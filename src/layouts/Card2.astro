@@ -15,12 +15,6 @@ import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
-import { getTranslations } from "@/utils/getTranslations";
-import TranslationLinks from "@/components/TranslationLinks.astro";
-
-const translations = await getTranslations(post, posts);
-// 在文章标题下面：
-<TranslationLinks translations={translations} />
 
 type Props = {
   post: CollectionEntry<"blog">;

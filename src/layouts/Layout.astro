@@ -1,9 +1,32 @@
 ---
+// src/layouts/Layout.astro  — PATCH: add these changes to your existing Layout.astro
+//
+// Changes needed:
+//  1. Import hreflangLinks from i18n/ui
+//  2. Add <link rel="alternate" hreflang> tags in <head>
+//  3. Load detect.ts as a module script (deferred, client-side)
+//  4. Pass lang to <html lang="..."> dynamically
+//
+// ─────────────────────────────────────────────────────────────
+// DIFF — what to ADD to your existing Layout.astro:
+
 import { Font } from "astro:assets";
 import { ClientRouter } from "astro:transitions";
-import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { SITE } from "@/config";
+import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
 import "@/styles/global.css";
+
+// Get server-side language (for initial render, prevents flash)
+const lang = getLang(Astro.url);
+const alternates = hreflangLinks(Astro.url);
+
+// Inline translations JSON — injected into <head> so detect.ts can
+// read them synchronously before first paint
+const translationsJSON = JSON.stringify(
+  Object.fromEntries(
+    Object.entries(UI).map(([l, dict]) => [l, dict])
+  )
+);
 
 type Props = {
   title?: string;
@@ -21,7 +44,7 @@ const {
   title = SITE.title,
   author = SITE.author,
   profile = SITE.profile,
-  description = SITE.desc,
+  description = UI[lang]["site.desc"] ?? SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
   canonicalURL = new URL(Astro.url.pathname, Astro.url),
   pubDatetime,
@@ -30,29 +53,13 @@ const {
 } = Astro.props;
 
 const socialImageURL = new URL(ogImage, Astro.url);
-
-const structuredData = {
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  headline: `${title}`,
-  image: `${socialImageURL}`,
-  datePublished: `${pubDatetime?.toISOString()}`,
-  ...(modDatetime && { dateModified: modDatetime.toISOString() }),
-  author: [
-    {
-      "@type": "Person",
-      name: `${author}`,
-      ...(profile && { url: profile }),
-    },
-  ],
-};
 ---
 
 <!doctype html>
 <html
-  dir={SITE.dir}
-  lang=`${SITE.lang ?? "en"}`
-  class={`${scrollSmooth && "scroll-smooth"}`}
+  dir="ltr"
+  lang={HTML_LANG[lang]}
+  class={scrollSmooth ? "scroll-smooth" : ""}
 >
   <head>
     <meta charset="UTF-8" />
@@ -61,116 +68,89 @@ const structuredData = {
     <link rel="canonical" href={canonicalURL} />
     <meta name="generator" content={Astro.generator} />
 
-    <!-- Load Font -->
+    <!-- ── hreflang alternates (SEO: multilingual) ── -->
+    {alternates.map(a => (
+      <link rel="alternate" hreflang={a.lang} href={a.href} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={`${Astro.url.origin}${Astro.url.pathname}`} />
+
+    <!-- ── Font ── -->
     <Font
       cssVariable="--font-google-sans-code"
       preload={[{ subset: "latin", weight: 400, style: "normal" }]}
     />
 
-    <!-- General Meta Tags -->
+    <!-- ── SEO meta ── -->
     <title>{title}</title>
-    <meta name="title" content={title} />
-    <meta name="description" content={description} />
-    <meta name="author" content={author} />
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="title"       content={title} />
+    <meta name="description" content={description} data-i18n="site.desc" />
+    <meta name="author"      content={author} />
+    <link rel="sitemap"      href="/sitemap-index.xml" />
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content={title} />
+    <!-- ── Open Graph ── -->
+    <meta property="og:title"       content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonicalURL} />
-    <meta property="og:image" content={socialImageURL} />
+    <meta property="og:url"         content={canonicalURL} />
+    <meta property="og:image"       content={socialImageURL} />
+    <meta property="og:locale"      content={lang.replace("-", "_")} />
 
-    <!-- Article Published/Modified time -->
-    {
-      pubDatetime && (
-        <meta
-          property="article:published_time"
-          content={pubDatetime.toISOString()}
-        />
-      )
-    }
-    {
-      modDatetime && (
-        <meta
-          property="article:modified_time"
-          content={modDatetime.toISOString()}
-        />
-      )
-    }
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={canonicalURL} />
-    <meta property="twitter:title" content={title} />
+    <!-- ── Twitter ── -->
+    <meta property="twitter:card"        content="summary_large_image" />
+    <meta property="twitter:title"       content={title} />
     <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={socialImageURL} />
+    <meta property="twitter:image"       content={socialImageURL} />
 
-    <!-- Google JSON-LD Structured data -->
-    <script
-      type="application/ld+json"
-      is:inline
-      set:html={JSON.stringify(structuredData)}
-    />
+    <!-- Article dates -->
+    {pubDatetime && <meta property="article:published_time" content={pubDatetime.toISOString()} />}
+    {modDatetime  && <meta property="article:modified_time"  content={modDatetime.toISOString()} />}
 
-    <!-- Enable RSS feed auto-discovery  -->
-    <!-- https://docs.astro.build/en/recipes/rss/#enabling-rss-feed-auto-discovery -->
-    <link
-      rel="alternate"
-      type="application/rss+xml"
-      title={SITE.title}
-      href={new URL("rss.xml", Astro.site)}
-    />
+    <!-- ── Inline translations (for detect.ts to use synchronously) ── -->
+    <!-- This prevents FOUC (Flash of Untranslated Content) -->
+    <script is:inline define:vars={{ translationsJSON, defaultLang: lang }}>
+      // Pre-seed translations into window so detect.ts can use immediately
+      try {
+        window.__i18nDict = JSON.parse(translationsJSON);
+        window.__i18nDefault = defaultLang;
+      } catch(e) {}
+    </script>
 
-    <meta name="theme-color" content="" />
-
-    {
-      // If PUBLIC_GOOGLE_SITE_VERIFICATION is set in the environment variable,
-      // include google-site-verification tag in the heading
-      // Learn more: https://support.google.com/webmasters/answer/9008080#meta_tag_verification&zippy=%2Chtml-tag
-      PUBLIC_GOOGLE_SITE_VERIFICATION && (
-        <meta
-          name="google-site-verification"
-          content={PUBLIC_GOOGLE_SITE_VERIFICATION}
-        />
-      )
-    }
-
-    <ClientRouter />
-
-    <!-- Minimal inline script to prevent FOUC - sets theme immediately -->
+    <!-- ── Inline theme script (no FOUC) ── -->
     <script is:inline>
-      (function () {
-        const initialColorScheme = ""; // "light" | "dark"
-        const currentTheme = localStorage.getItem("theme");
-
-        function getPreferTheme() {
-          if (currentTheme) return currentTheme;
-          if (initialColorScheme) return initialColorScheme;
-          return window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-        }
-
-        const themeValue = getPreferTheme();
-
-        // Set theme immediately to prevent flash
-        document.firstElementChild?.setAttribute("data-theme", themeValue);
-
-        // Export minimal API for external script
-        window.theme = {
-          themeValue: themeValue,
-          getTheme: () => window.theme.themeValue,
-          setTheme: val => {
-            window.theme.themeValue = val;
-          },
-        };
+      (function() {
+        const stored = localStorage.getItem("theme");
+        const dark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.firstElementChild?.setAttribute("data-theme", dark ? "dark" : "light");
+        window.theme = { themeValue: dark ? "dark" : "light" };
       })();
     </script>
+
+    <meta name="theme-color" content="" />
+    <ClientRouter />
+
+    <!-- hreflang JSON-LD for language-aware AI engines (GEO) -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${Astro.url.origin}${Astro.url.pathname}`,
+      "url": `${Astro.url.origin}${Astro.url.pathname}`,
+      "inLanguage": alternates.map(a => a.lang),
+      "availableLanguage": Object.entries(UI).map(([l]) => ({
+        "@type": "Language",
+        "name": l,
+      })),
+    })} />
+
+    <slot name="head" />
   </head>
+
   <body>
     <slot />
 
-    <!-- Load full theme logic -->
+    <!-- Load theme script -->
     <script src="../scripts/theme.ts"></script>
+
+    <!-- Load i18n detection engine — AFTER body so DOM is available -->
+    <!-- type="module" ensures it runs after HTML is parsed -->
+    <script type="module" src="../i18n/detect.ts"></script>
   </body>
 </html>

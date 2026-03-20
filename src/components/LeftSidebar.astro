@@ -1,0 +1,232 @@
+---
+// src/components/LeftSidebar.astro
+// 36kr-style sticky left nav.
+// All visible text uses data-i18n="key" → replaced by detect.ts on load.
+// Taxonomy comes from TAXONOMY constant in ui.ts.
+
+import IconSearch from "@/assets/icons/IconSearch.svg";
+import { SITE } from "@/config";
+import { LANGUAGES, TAXONOMY, DEFAULT_LANG, getLang } from "@/i18n/ui";
+import type { Lang } from "@/i18n/ui";
+
+const lang = getLang(Astro.url);
+const { pathname } = Astro.url;
+const cur = pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+const isActive = (p: string) => p === "/" ? (cur === "" || cur === "/") : cur.startsWith(p);
+
+const langList = Object.entries(LANGUAGES) as [Lang, string][];
+
+const shortLabel: Record<Lang, string> = {
+  "zh-CN": "简中", "zh-TW": "繁中", en: "EN", es: "ES", pt: "PT",
+};
+---
+
+<aside class="lsidebar" role="navigation" aria-label="主导航">
+
+  <!-- Logo -->
+  <a href="/" class="lsidebar-logo" aria-label="CryptoNews">
+    <div class="lsidebar-logo-icon" aria-hidden="true">₿</div>
+    <span class="lsidebar-logo-text" data-i18n="site.name">CryptoNews</span>
+  </a>
+
+  <!-- Mobile hamburger -->
+  <button
+    id="mobile-nav-btn"
+    class="mobile-ham-btn"
+    aria-label="Toggle menu"
+    aria-expanded="false"
+    aria-controls="lnav"
+  >
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
+  <!-- ── Navigation ── -->
+  <nav class="lnav" id="lnav">
+
+    <!-- Home -->
+    <a href="/" class:list={["lnav-item", { active: isActive("/") && !isActive("/posts") && !isActive("/tags") && !isActive("/search") && !isActive("/about") && !isActive("/archives") }]}>
+      <data-i18n="nav.home">首页</data-i18n>
+      <span data-i18n="nav.home">首页</span>
+    </a>
+
+    <!-- Flash -->
+    <a href="/tags/快讯" class:list={["lnav-item", { active: isActive("/tags/快讯") }]}>
+      <span data-i18n="nav.flash">快讯</span>
+    </a>
+
+    <!-- ── Taxonomy nav items (from TAXONOMY constant) ── -->
+    {TAXONOMY.slice(1).map((cat, i) => (
+      <div class="lnav-group" id={`group-${cat.key}`}>
+        <!-- Toggle button if it has sub-items -->
+        {cat.sub.length > 0 ? (
+          <button
+            class:list={["lnav-item lnav-toggle", { active: isActive(cat.href) }]}
+            aria-expanded={isActive(cat.href) ? "true" : "false"}
+            data-group={cat.key}
+          >
+            <span data-i18n={`cat.${cat.key}`}>{cat.key}</span>
+            <svg class="arrow" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 2l4 4-4 4"/>
+            </svg>
+          </button>
+        ) : (
+          <a href={cat.href} class:list={["lnav-item", { active: isActive(cat.href) }]}>
+            <span data-i18n={`cat.${cat.key}`}>{cat.key}</span>
+          </a>
+        )}
+
+        <!-- Sub-menu -->
+        {cat.sub.length > 0 && (
+          <div
+            class:list={["lnav-sub", { open: isActive(cat.href) }]}
+            id={`sub-${cat.key}`}
+          >
+            {(cat.sub as readonly { key: string; labelKey: string; href: string }[]).map(sub => (
+              <a
+                href={sub.href}
+                class:list={["lnav-sub-link", { active: isActive(sub.href) }]}
+                data-i18n={sub.labelKey}
+              >
+                {sub.key}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    ))}
+
+    <div class="lnav-divider" />
+
+    <!-- Search -->
+    <a href="/search" class:list={["lnav-item", { active: isActive("/search") }]}>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <IconSearch style="width:14px;height:14px;flex-shrink:0;" />
+        <span data-i18n="nav.search">搜索</span>
+      </span>
+    </a>
+
+    <!-- About -->
+    <a href="/about" class:list={["lnav-item", { active: isActive("/about") }]}>
+      <span data-i18n="nav.about">关于</span>
+    </a>
+
+  </nav>
+
+  <!-- ── Action buttons ── -->
+  <div class="lnav-actions">
+    <a href="/about" class="lnav-btn">
+      <span>📝</span> <span data-i18n="btn.submit">投稿报道</span>
+    </a>
+    <a href="/about" class="lnav-btn">
+      <span>🤝</span> <span data-i18n="btn.partner">合作入驻</span>
+    </a>
+  </div>
+
+  <!-- ── Language switcher ── -->
+  <div class="lnav-lang">
+    <div class="lnav-lang-label">
+      <span data-i18n="lang.label">语言</span>
+    </div>
+    <div class="lang-btns" role="group" aria-label="Language selection">
+      {langList.map(([code]) => (
+        <button
+          class:list={["lang-btn", { active: lang === code }]}
+          data-lang-btn={code}
+          aria-pressed={lang === code ? "true" : "false"}
+          title={LANGUAGES[code]}
+          onclick={`window.__switchLang && window.__switchLang('${code}')`}
+        >
+          {shortLabel[code]}
+        </button>
+      ))}
+    </div>
+    <p class="lang-auto-note">
+      <span data-i18n="lang.auto">自动检测</span>
+    </p>
+  </div>
+
+</aside>
+
+<style>
+  /* Mobile hamburger — hidden on desktop */
+  .mobile-ham-btn {
+    display: none;
+    margin-left: auto;
+    margin-right: 12px;
+    padding: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--fg-muted);
+    border-radius: 4px;
+    transition: background 0.12s;
+  }
+  .mobile-ham-btn:hover { background: var(--bg-elevated); }
+
+  /* Lang auto note */
+  .lang-auto-note {
+    font-size: 10px;
+    color: var(--fg-light);
+    margin: 4px 0 0;
+    text-align: center;
+  }
+
+  /* Active sub-link */
+  .lnav-sub-link.active {
+    color: var(--accent);
+    background: var(--nav-active-bg);
+  }
+
+  /* Toggle arrow animation */
+  .lnav-toggle[aria-expanded="true"] .arrow {
+    transform: rotate(90deg);
+  }
+  .arrow {
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .lnav-toggle {
+    justify-content: space-between;
+  }
+
+  @media (max-width: 768px) {
+    .mobile-ham-btn { display: flex; }
+  }
+</style>
+
+<script>
+  // ── Sub-menu toggles ──────────────────────────────────────
+  function initToggles() {
+    document.querySelectorAll<HTMLButtonElement>(".lnav-toggle").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-group");
+        const sub = document.getElementById(`sub-${key}`);
+        if (!sub) return;
+        const open = sub.classList.toggle("open");
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    });
+  }
+
+  // ── Mobile nav toggle ─────────────────────────────────────
+  function initMobileNav() {
+    const btn  = document.getElementById("mobile-nav-btn");
+    const nav  = document.getElementById("lnav");
+    if (!btn || !nav) return;
+    btn.addEventListener("click", () => {
+      const open = nav.classList.toggle("mobile-open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  }
+
+  initToggles();
+  initMobileNav();
+  document.addEventListener("astro:after-swap", () => {
+    initToggles();
+    initMobileNav();
+  });
+</script>

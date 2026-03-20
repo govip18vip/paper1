@@ -6,28 +6,211 @@ import Datetime from "./Datetime.astro";
 
 type Props = {
   variant?: "h2" | "h3";
+  size?: "hero" | "large" | "medium" | "small" | "list";
 } & CollectionEntry<"blog">;
 
-const { variant: Heading = "h2", id, data, filePath } = Astro.props;
+const { variant: Heading = "h2", size = "medium", id, data, filePath } = Astro.props;
+const { title, description, tags, pubDatetime, modDatetime, ogImage } = data;
+const postPath = getPath(id, filePath);
 
-const { title, description, ...props } = data;
+// Pick first tag as category label
+const primaryTag = tags?.[0] ?? "加密货币";
+
+// Map common tags to color classes
+const tagColorMap: Record<string, string> = {
+  "btc": "ctag",
+  "bitcoin": "ctag",
+  "eth": "ctag-blue",
+  "ethereum": "ctag-blue",
+  "defi": "ctag-green",
+  "wallet": "ctag-green",
+  "钱包": "ctag-green",
+  "market": "",
+  "行情": "",
+  "教程": "ctag-blue",
+  "docs": "ctag-blue",
+};
+const tagClass = tagColorMap[primaryTag.toLowerCase()] ?? "ctag";
+
+// Placeholder gradient bg for cards without images
+const placeholderColors = [
+  "from-orange-900/40 to-amber-900/20",
+  "from-blue-900/40 to-cyan-900/20",
+  "from-purple-900/40 to-violet-900/20",
+  "from-green-900/40 to-emerald-900/20",
+];
+const gradientIdx = title.length % placeholderColors.length;
+const placeholderGrad = placeholderColors[gradientIdx];
 ---
 
-<li class="my-6">
-  <a
-    href={getPath(id, filePath)}
-    class:list={[
-      "inline-block text-lg font-medium text-accent",
-      "decoration-dashed underline-offset-4 hover:underline",
-      "focus-visible:no-underline focus-visible:underline-offset-0",
-    ]}
-  >
-    <Heading
-      style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
-    >
-      {title}
-    </Heading>
+{size === "hero" && (
+  <a href={postPath} class="hero-img-wrap block group focus-outline" aria-label={title}>
+    {ogImage ? (
+      <img
+        src={typeof ogImage === "string" ? ogImage : (ogImage as any).src}
+        alt={title}
+        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        loading="eager"
+        fetchpriority="high"
+      />
+    ) : (
+      <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center p-8`}>
+        <span class="text-5xl opacity-30">₿</span>
+      </div>
+    )}
+    <div class="hero-overlay" />
+    <div class="hero-content">
+      <div class="mb-2">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <Heading
+        style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+        class="text-white text-xl sm:text-2xl font-bold leading-snug mb-2 group-hover:text-amber-200 transition-colors"
+      >
+        {title}
+      </Heading>
+      <p class="text-white/70 text-sm line-clamp-2 hidden sm:block">{description}</p>
+      <div class="mt-2">
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-white/50 text-xs" />
+      </div>
+    </div>
   </a>
-  <Datetime {...props} />
-  <p>{description}</p>
-</li>
+)}
+
+{size === "large" && (
+  <article class="c-card group">
+    <a href={postPath} class="c-card-img block focus-outline" tabindex="-1" aria-hidden="true">
+      {ogImage ? (
+        <img
+          src={typeof ogImage === "string" ? ogImage : (ogImage as any).src}
+          alt={title}
+          loading="lazy"
+          class="w-full h-full object-cover"
+        />
+      ) : (
+        <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+          <span class="text-4xl opacity-25">₿</span>
+        </div>
+      )}
+    </a>
+    <div class="p-4">
+      <div class="mb-2">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <a href={postPath} class="focus-outline">
+        <Heading
+          style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+          class="text-foreground font-bold text-base leading-snug mb-2 group-hover:text-accent transition-colors line-clamp-2"
+        >
+          {title}
+        </Heading>
+      </a>
+      <p class="text-sm mt-1.5 line-clamp-2" style="color: var(--foreground-muted);">{description}</p>
+      <div class="mt-3">
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-xs" />
+      </div>
+    </div>
+  </article>
+)}
+
+{size === "medium" && (
+  <article class="c-card group">
+    <a href={postPath} class="c-card-img block focus-outline" tabindex="-1" aria-hidden="true">
+      {ogImage ? (
+        <img
+          src={typeof ogImage === "string" ? ogImage : (ogImage as any).src}
+          alt={title}
+          loading="lazy"
+          class="w-full h-full object-cover"
+        />
+      ) : (
+        <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+          <span class="text-3xl opacity-20">₿</span>
+        </div>
+      )}
+    </a>
+    <div class="p-3.5">
+      <div class="mb-1.5">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <a href={postPath} class="focus-outline">
+        <Heading
+          style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+          class="text-foreground font-semibold text-sm leading-snug group-hover:text-accent transition-colors line-clamp-2"
+        >
+          {title}
+        </Heading>
+      </a>
+      <div class="mt-2">
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-xs" />
+      </div>
+    </div>
+  </article>
+)}
+
+{size === "small" && (
+  <article class="c-card group flex gap-0 overflow-hidden">
+    <a href={postPath} class="shrink-0 block focus-outline" style="width:100px;height:70px;overflow:hidden;" tabindex="-1" aria-hidden="true">
+      {ogImage ? (
+        <img
+          src={typeof ogImage === "string" ? ogImage : (ogImage as any).src}
+          alt={title}
+          loading="lazy"
+          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      ) : (
+        <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+          <span class="text-lg opacity-20">₿</span>
+        </div>
+      )}
+    </a>
+    <div class="p-2.5 flex flex-col justify-between min-w-0">
+      <a href={postPath} class="focus-outline">
+        <Heading
+          style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+          class="text-foreground font-medium text-xs leading-snug group-hover:text-accent transition-colors line-clamp-3"
+        >
+          {title}
+        </Heading>
+      </a>
+      <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-[10px] mt-1" />
+    </div>
+  </article>
+)}
+
+{size === "list" && (
+  <article class="alist-item group" itemscope itemtype="https://schema.org/Article">
+    <a href={postPath} class="shrink-0 block focus-outline rounded overflow-hidden" style="width:80px;height:56px;background:var(--background-elevated);" tabindex="-1">
+      {ogImage ? (
+        <img
+          src={typeof ogImage === "string" ? ogImage : (ogImage as any).src}
+          alt={title}
+          loading="lazy"
+          class="w-full h-full object-cover"
+          itemprop="image"
+        />
+      ) : (
+        <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+          <span class="text-base opacity-20">₿</span>
+        </div>
+      )}
+    </a>
+    <div class="flex-1 min-w-0">
+      <div class="mb-1">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <a href={postPath} class="focus-outline" itemprop="url">
+        <Heading
+          style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+          class="alist-title text-foreground font-medium text-sm leading-snug transition-colors line-clamp-2"
+          itemprop="name"
+        >
+          {title}
+        </Heading>
+      </a>
+      <div class="mt-1">
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-[11px]" />
+      </div>
+    </div>
+  </article>
+)}

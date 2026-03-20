@@ -1,121 +1,412 @@
 ---
+// src/pages/index.astro
+// 36kr-exact layout: Top bar | Left Sidebar | Center content | Right sidebar
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
-import Footer from "@/components/Footer.astro";
-import Socials from "@/components/Socials.astro";
-import LinkButton from "@/components/LinkButton.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
 import Card from "@/components/Card.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
-import IconRss from "@/assets/icons/IconRss.svg";
-import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
 import { SITE } from "@/config";
-import { SOCIALS } from "@/constants";
+import { getLang, useTranslations, buildAlternates, langMeta } from "@/i18n/ui";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+
+const lang = getLang(Astro.url);
+const t = useTranslations(lang);
+const meta = langMeta[lang];
+const alternates = buildAlternates(Astro.url);
 
 const posts = await getCollection("blog");
+const all = getSortedPosts(posts);
+const featured = all.filter(p => p.data.featured);
+const recent = all.filter(p => !p.data.featured);
 
-const sortedPosts = getSortedPosts(posts);
-const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
-const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+// Hero: first featured or first post
+const [hero, ...restFeatured] = featured.length > 0 ? featured : all;
+
+// 2×2 thumbnail grid (next 4 after hero)
+const thumbPosts = (restFeatured.length >= 4 ? restFeatured : all.filter(p => p !== hero)).slice(0, 4);
+
+// Article list (center, below hero)
+const listPosts = all.filter(p => p !== hero && !thumbPosts.includes(p)).slice(0, 10);
+
+// Right sidebar: quick news (latest 8)
+const newsPosts = all.slice(0, 8);
+
+// Right sidebar: hot posts (trending, top 7)
+const hotPosts = all.slice(0, 7);
+
+// Tutorial sidebar posts
+const tutorialPosts = all.filter(p =>
+  p.data.tags?.some(t => ["docs", "教程", "tutorial", "beginner", "新手"].includes(t.toLowerCase()))
+).slice(0, 5);
+
+// ── Structured Data (SEO + GEO) ──────────────────────────────────────────────
+const siteUrl = SITE.website.replace(/\/$/, "");
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${siteUrl}/#website`,
+  name: t("meta.siteName"),
+  description: t("meta.siteDesc"),
+  url: siteUrl,
+  inLanguage: [meta.htmlLang, "en", "zh-CN", "es", "pt"],
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/search?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+  publisher: {
+    "@type": "Organization",
+    "@id": `${siteUrl}/#organization`,
+    name: t("meta.siteName"),
+    url: siteUrl,
+    logo: { "@type": "ImageObject", url: `${siteUrl}/favicon.svg` },
+    knowsAbout: [
+      "Bitcoin", "Cryptocurrency", "Blockchain", "DeFi", "NFT",
+      "比特币", "区块链", "加密货币", "去中心化金融",
+    ],
+  },
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [{ "@type": "ListItem", position: 1, name: t("nav.home"), item: siteUrl }],
+};
+
+// FAQPage schema for GEO (helps AI engines answer questions about the site)
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "什么是比特币(BTC)?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "比特币(Bitcoin,BTC)是世界上第一种去中心化加密货币，由中本聪于2009年创建。它通过区块链技术实现点对点交易，无需中间机构。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "如何在币安(Binance)注册账户?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "在币安注册需要：1) 访问binance.com；2) 点击注册并填写邮箱/手机；3) 完成邮箱验证；4) 进行KYC身份认证；5) 开启双重验证(2FA)保障账户安全。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "什么是DeFi去中心化金融?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "DeFi(去中心化金融)是基于区块链的金融服务生态系统，通过智能合约提供借贷、交易、流动性挖矿等服务，无需传统银行等中间机构参与。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How to keep crypto wallet safe?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Keep your crypto wallet secure by: using hardware wallets (Ledger/Trezor) for large holdings; never sharing your seed phrase; enabling 2FA; using different wallets for different purposes; and being vigilant against phishing attacks.",
+      },
+    },
+  ],
+};
+
+// Speakable schema for voice search / AI assistants
+const speakableSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": `${siteUrl}/#webpage`,
+  url: siteUrl,
+  name: t("meta.siteName"),
+  description: t("meta.siteDesc"),
+  speakable: {
+    "@type": "SpeakableSpecification",
+    cssSelector: ["#geo-intro", "#site-about"],
+  },
+};
 ---
 
-<Layout>
+<Layout
+  title={`${t("meta.siteName")} — ${t("meta.siteDesc").slice(0, 60)}`}
+  description={t("meta.siteDesc")}
+>
+  <!-- Injected into <head> -->
+  <Fragment slot="head">
+    <!-- hreflang alternates -->
+    {alternates.map(a => (
+      <link rel="alternate" hreflang={a.lang.toLowerCase()} href={a.url} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={siteUrl} />
+    <!-- Structured data -->
+    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(speakableSchema)} />
+  </Fragment>
+
+  <!-- TOP UTILITY BAR (full-width, dark) -->
   <Header />
-  <main id="main-content" data-layout="index" class="app-layout">
-    <section id="hero" class:list={["pt-8 pb-6", "border-b border-border"]}>
-      <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">
-        Mingalaba
-      </h1>
-      <a
-        target="_blank"
-        href="/rss.xml"
-        class="inline-block"
-        aria-label="rss feed"
-        title="RSS Feed"
-      >
-        <IconRss
-          width={20}
-          height={20}
-          class="scale-125 stroke-accent stroke-3 rtl:-rotate-90"
-        />
-        <span class="sr-only">RSS Feed</span>
-      </a>
 
-      <p>
-        AstroPaper is a minimal, responsive, accessible and SEO-friendly Astro
-        blog theme. This theme follows best practices and provides accessibility
-        out of the box. Light and dark mode are supported by default. Moreover,
-        additional color schemes can also be configured.
-      </p>
-      <p class="mt-2">
-        Read the blog posts or check
-        <LinkButton
-          class="underline decoration-dashed underline-offset-4 hover:text-accent"
-          href="https://github.com/satnaing/astro-paper#readme"
-        >
-          README
-        </LinkButton> for more info.
-      </p>
-      {
-        // only display if at least one social link is enabled
-        SOCIALS.length > 0 && (
-          <div class="mt-4 flex max-sm:flex-col sm:items-center">
-            <div class="me-2 mb-1 whitespace-nowrap sm:mb-0">Social Links:</div>
-            <Socials />
+  <!-- MAIN 3-COLUMN LAYOUT -->
+  <div class="site-outer">
+
+    <!-- ═══════════════ LEFT SIDEBAR ═══════════════ -->
+    <LeftSidebar />
+
+    <!-- ═══════════════ CENTER CONTENT ═══════════════ -->
+    <div class="main-col" id="main-content" data-layout="index">
+
+      <!-- ── HERO SECTION (big left + 2×2 right) ── -->
+      <section class="hero-section anim-1" aria-label={t("section.latest")}>
+        <div class="hero-row">
+
+          <!-- Big hero post -->
+          <div>
+            {hero ? (
+              <Card {...hero} size="hero" variant="h2" />
+            ) : (
+              <div class="hero-main" style="display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);">
+                <p style="color:var(--fg-muted);font-size:14px;">暂无精选文章</p>
+              </div>
+            )}
           </div>
-        )
-      }
-    </section>
 
-    {
-      featuredPosts.length > 0 && (
-        <section
-          id="featured"
-          class:list={[
-            "pt-12 pb-6",
-            { "border-b border-border": recentPosts.length > 0 },
-          ]}
-        >
-          <h2 class="text-2xl font-semibold tracking-wide">Featured</h2>
-          <ul>
-            {featuredPosts.map(data => (
-              <Card variant="h3" {...data} />
+          <!-- 2×2 thumbnail grid -->
+          <div class="hero-grid">
+            {thumbPosts.slice(0, 4).map(p => (
+              <Card {...p} size="thumb" variant="h3" />
+            ))}
+            {/* Fill blanks */}
+            {Array.from({ length: Math.max(0, 4 - thumbPosts.length) }).map((_, i) => (
+              <div
+                class="hero-thumb"
+                style="background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;opacity:0.4;"
+              >
+                <span style="font-size:24px;">₿</span>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── LATEST ARTICLES LIST ── -->
+      <section aria-label={t("section.latest")} class="anim-2">
+        <div class="sec-head" style="padding-top:16px;">
+          <span class="sec-head-title">{t("section.latest")}</span>
+          <a href="/posts" class="sec-head-more">
+            {t("section.allPosts")} →
+          </a>
+        </div>
+
+        <div class="alist">
+          {listPosts.length > 0 ? (
+            listPosts.map(p => <Card {...p} size="list" variant="h3" />)
+          ) : (
+            <div style="padding:32px;text-align:center;color:var(--fg-muted);font-size:14px;">
+              暂无文章，创作第一篇内容吧。
+            </div>
+          )}
+        </div>
+
+        {all.length > 10 && (
+          <div style="padding:0 16px 16px;text-align:center;">
+            <a href="/posts" class="more-btn" style="display:inline-block;max-width:280px;">
+              {t("section.more")}
+            </a>
+          </div>
+        )}
+      </section>
+
+      <!-- ── GEO / SEO CONTENT BLOCK ── -->
+      <!-- This section is machine-readable AND human-readable for AI engine indexing -->
+      <section
+        id="geo-intro"
+        aria-label={t("section.about")}
+        style="padding:16px;margin:0 0 16px;"
+        class="anim-3"
+        itemscope
+        itemtype="https://schema.org/AboutPage"
+      >
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:20px 24px;">
+          <h2 style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--fg);display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-block;width:3px;height:18px;background:var(--accent);border-radius:2px;flex-shrink:0;"></span>
+            {t("section.about")}
+          </h2>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;" id="site-about">
+            <div itemscope itemtype="https://schema.org/Thing">
+              <h3 style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;" itemprop="name">
+                ₿ {t("meta.about.btc")}
+              </h3>
+              <p style="font-size:12px;color:var(--fg-muted);line-height:1.6;" itemprop="description">
+                {t("meta.about.btcDesc")}
+              </p>
+            </div>
+            <div itemscope itemtype="https://schema.org/Thing">
+              <h3 style="font-size:13px;font-weight:700;color:var(--accent-blue);margin-bottom:6px;" itemprop="name">
+                🏦 {t("meta.about.exchange")}
+              </h3>
+              <p style="font-size:12px;color:var(--fg-muted);line-height:1.6;" itemprop="description">
+                {t("meta.about.exchangeDesc")}
+              </p>
+            </div>
+            <div itemscope itemtype="https://schema.org/Thing">
+              <h3 style="font-size:13px;font-weight:700;color:var(--accent-green);margin-bottom:6px;" itemprop="name">
+                🔐 {t("meta.about.wallet")}
+              </h3>
+              <p style="font-size:12px;color:var(--fg-muted);line-height:1.6;" itemprop="description">
+                {t("meta.about.walletDesc")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TAG CLOUD ── -->
+      <section style="padding:0 16px 20px;" aria-label={t("section.topic")}>
+        <div class="sec-head" style="padding-left:0;">
+          <span class="sec-head-title">{t("section.topic")}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+          {[
+            { label: "比特币", href: "/tags/btc" },
+            { label: "以太坊", href: "/tags/eth" },
+            { label: "币安教程", href: "/tags/docs" },
+            { label: "DeFi", href: "/tags/defi" },
+            { label: "NFT", href: "/tags/nft" },
+            { label: "钱包安全", href: "/tags/wallet" },
+            { label: "冷钱包", href: "/tags/wallet" },
+            { label: "BTC行情", href: "/tags/market" },
+            { label: "新手入门", href: "/tags/beginner" },
+            { label: "空投教程", href: "/tags/docs" },
+            { label: "合约交易", href: "/tags/docs" },
+            { label: "Web3", href: "/tags/defi" },
+            { label: "Bitcoin", href: "/tags/btc" },
+            { label: "Binance Guide", href: "/tags/docs" },
+            { label: "区块链新闻", href: "/posts" },
+          ].map(tag => (
+            <a
+              href={tag.href}
+              style="display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:500;border:1px solid var(--border);color:var(--fg-muted);background:var(--bg-card);text-decoration:none;transition:all 0.12s;"
+              onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
+              onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg-muted)';"
+            >
+              {tag.label}
+            </a>
+          ))}
+          <a
+            href="/tags"
+            style="display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:600;border:1px solid var(--accent);color:var(--accent);background:var(--tag-orange-bg);text-decoration:none;"
+          >
+            全部标签 →
+          </a>
+        </div>
+      </section>
+
+    </div>
+    <!-- end main-col -->
+
+    <!-- ═══════════════ RIGHT SIDEBAR ═══════════════ -->
+    <aside class="rsidebar" aria-label="快讯与热门">
+
+      <!-- Latest quick news -->
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{t("section.flash")}</div>
+        {newsPosts.map((p, i) => (
+          <Card {...p} size="news" variant="h3" />
+        ))}
+        <a href="/posts" class="more-btn">{t("section.more")}</a>
+      </div>
+
+      <!-- Hot / trending -->
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">🔥 {t("section.hot")}</div>
+        <ol>
+          {hotPosts.map((p, i) => {
+            const path = `/posts/${p.id}`;
+            return (
+              <li style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-subtle);align-items:flex-start;">
+                <span class:list={["hot-rank", { "top": i < 3 }]}>{i + 1}</span>
+                <a
+                  href={path}
+                  style="flex:1;font-size:12.5px;font-weight:500;color:var(--fg);line-height:1.5;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:color 0.12s;"
+                  onmouseover="this.style.color='var(--accent)';"
+                  onmouseout="this.style.color='var(--fg)';"
+                >
+                  {p.data.title}
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+
+      <!-- Tutorials -->
+      {tutorialPosts.length > 0 && (
+        <div class="rsidebar-section">
+          <div class="rsidebar-head">📚 {t("section.tutorial")}</div>
+          <ul style="list-style:none;padding:0;margin:0;">
+            {tutorialPosts.map(p => (
+              <li style="padding:8px 0;border-bottom:1px solid var(--border-subtle);">
+                <a
+                  href={`/posts/${p.id}`}
+                  style="display:flex;gap:8px;align-items:flex-start;text-decoration:none;color:var(--fg);font-size:12.5px;line-height:1.5;transition:color 0.12s;"
+                  onmouseover="this.style.color='var(--accent)';"
+                  onmouseout="this.style.color='var(--fg)';"
+                >
+                  <span class="ctag-blue" style="margin-top:2px;flex-shrink:0;">教程</span>
+                  <span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                    {p.data.title}
+                  </span>
+                </a>
+              </li>
             ))}
           </ul>
-        </section>
-      )
-    }
+          <a href="/tags/docs" class="more-btn">{t("section.more")}</a>
+        </div>
+      )}
 
-    {
-      recentPosts.length > 0 && (
-        <section id="recent-posts" class="pt-12 pb-6">
-          <h2 class="text-2xl font-semibold tracking-wide">Recent Posts</h2>
-          <ul>
-            {recentPosts.map(
-              (data, index) =>
-                index < SITE.postPerIndex && <Card variant="h3" {...data} />
-            )}
-          </ul>
-        </section>
-      )
-    }
+      <!-- Quick nav -->
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">快速导航</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          {[
+            { label: "₿ BTC",    href: "/tags/btc",      bg: "var(--tag-orange-bg)", color: "var(--accent)" },
+            { label: "⚡ DeFi",   href: "/tags/defi",     bg: "var(--tag-green-bg)",  color: "var(--accent-green)" },
+            { label: "🔐 钱包",   href: "/tags/wallet",   bg: "var(--tag-blue-bg)",   color: "var(--accent-blue)" },
+            { label: "📖 教程",   href: "/tags/docs",     bg: "rgba(167,139,250,.12)", color: "#a78bfa" },
+            { label: "📊 行情",   href: "/tags/market",   bg: "var(--tag-red-bg)",    color: "var(--accent-red)" },
+            { label: "🗂 全部",   href: "/posts",         bg: "var(--bg-elevated)",   color: "var(--fg-muted)" },
+          ].map(item => (
+            <a
+              href={item.href}
+              style={`display:flex;align-items:center;justify-content:center;padding:8px;border-radius:5px;font-size:11.5px;font-weight:600;text-decoration:none;background:${item.bg};color:${item.color};transition:opacity 0.12s;`}
+              onmouseover="this.style.opacity='0.7';"
+              onmouseout="this.style.opacity='1';"
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </div>
 
-    <div class="my-8 text-center">
-      <LinkButton href="/posts/">
-        All Posts
-        <IconArrowRight class="inline-block rtl:-rotate-180" />
-      </LinkButton>
-    </div>
-  </main>
-  <Footer />
+    </aside>
+    <!-- end rsidebar -->
+
+  </div>
+  <!-- end site-outer -->
+
 </Layout>
 
 <script>
+  // Store back URL for nav
   document.addEventListener("astro:page-load", () => {
-    const indexLayout = (document.querySelector("#main-content") as HTMLElement)
-      ?.dataset?.layout;
-    if (indexLayout) {
-      sessionStorage.setItem("backUrl", "/");
-    }
+    const el = document.querySelector("[data-layout='index']");
+    if (el) sessionStorage.setItem("backUrl", "/");
   });
 </script>

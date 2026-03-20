@@ -1,0 +1,144 @@
+---
+// src/components/TranslationLinks.astro
+// Shows a row of language flags/labels linking to translation siblings.
+// Renders nothing if no translations exist.
+
+import type { TranslationEntry } from "@/utils/getTranslations";
+
+type Props = {
+  translations: TranslationEntry[];
+};
+
+const { translations } = Astro.props;
+
+if (translations.length <= 1) return;
+
+// Flag emoji map
+const flags: Record<string, string> = {
+  "zh-CN": "🇨🇳",
+  "zh-TW": "🇹🇼",
+  "en":    "🇺🇸",
+  "es":    "🇪🇸",
+  "pt":    "🇧🇷",
+};
+
+// Short label map
+const shortLabel: Record<string, string> = {
+  "zh-CN": "简中",
+  "zh-TW": "繁中",
+  "en":    "EN",
+  "es":    "ES",
+  "pt":    "PT",
+};
+---
+
+<aside
+  class="translation-box"
+  aria-label="Available translations"
+  itemscope
+  itemtype="https://schema.org/SiteLinksSearchBox"
+>
+  <!-- Label — swapped by JS i18n engine -->
+  <span class="translation-label" data-i18n="post.translations">
+    其他语言版本
+  </span>
+
+  <div class="translation-links" role="list">
+    {translations.map(tr => (
+      <div role="listitem">
+        {tr.isCurrent ? (
+          <!-- Current language: shown as active badge (no link) -->
+          <span
+            class="tlang-btn current"
+            aria-current="true"
+            lang={tr.lang}
+            title={tr.title}
+          >
+            {flags[tr.lang] ?? ""} {shortLabel[tr.lang] ?? tr.lang}
+          </span>
+        ) : (
+          <!-- Other languages: linked -->
+          <a
+            href={`${tr.href}?hl=${tr.lang}`}
+            class="tlang-btn"
+            lang={tr.lang}
+            hreflang={tr.lang}
+            title={tr.title}
+            rel="alternate"
+          >
+            {flags[tr.lang] ?? ""} {shortLabel[tr.lang] ?? tr.lang}
+          </a>
+        )}
+      </div>
+    ))}
+  </div>
+
+  <!-- Screen-reader: full titles as list -->
+  <ul class="sr-only" aria-label="Translation list">
+    {translations.map(tr => (
+      <li lang={tr.lang}>
+        {tr.isCurrent
+          ? `${tr.langLabel}: ${tr.title} (current)`
+          : <a href={`${tr.href}?hl=${tr.lang}`} hreflang={tr.lang}>{tr.langLabel}: {tr.title}</a>
+        }
+      </li>
+    ))}
+  </ul>
+</aside>
+
+<style>
+  .translation-box {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    margin: 16px 0;
+  }
+  .translation-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+  .translation-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tlang-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    background: var(--bg-card);
+    text-decoration: none;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+  }
+  .tlang-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--tag-orange-bg);
+  }
+  .tlang-btn.current {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--tag-orange-bg);
+    cursor: default;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+  }
+</style>

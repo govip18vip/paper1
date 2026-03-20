@@ -1,32 +1,166 @@
 ---
+// src/components/Footer.astro
 import type { HTMLAttributes } from "astro/types";
-import Socials from "./Socials.astro";
+import { SITE } from "@/config";
+import { getLang, useTranslations } from "@/i18n/ui";
+
+const lang = getLang(Astro.url);
+const t = useTranslations(lang);
 
 const currentYear = new Date().getFullYear();
 
-type Props = {
-  noMarginTop?: boolean;
-} & HTMLAttributes<"footer">;
-
+type Props = { noMarginTop?: boolean } & HTMLAttributes<"footer">;
 const { noMarginTop = false, class: className, ...attrs } = Astro.props;
+
+const footerCols = [
+  {
+    heading: t("footer.col.news"),
+    links: [
+      { label: "BTC 行情", href: "/tags/btc" },
+      { label: "ETH 资讯", href: "/tags/eth" },
+      { label: "DeFi 动态", href: "/tags/defi" },
+      { label: "NFT 资讯", href: "/tags/nft" },
+      { label: "市场分析", href: "/tags/market" },
+    ],
+  },
+  {
+    heading: t("footer.col.guide"),
+    links: [
+      { label: "新手入门", href: "/tags/beginner" },
+      { label: "交易所教程", href: "/tags/docs" },
+      { label: "钱包安全", href: "/tags/wallet" },
+      { label: "合约交易", href: "/tags/docs" },
+      { label: "空投教程", href: "/tags/docs" },
+    ],
+  },
+  {
+    heading: t("footer.col.links"),
+    links: [
+      { label: "全部文章", href: "/posts" },
+      { label: "标签索引", href: "/tags" },
+      { label: "归档",     href: "/archives" },
+      { label: "搜索",     href: "/search" },
+      { label: "关于",     href: "/about" },
+    ],
+  },
+];
 ---
 
 <footer
-  class:list={["app-layout", { "mt-auto": !noMarginTop }, className]}
+  class:list={[{ "mt-auto": !noMarginTop }, className]}
+  style="background:var(--bg-sidebar);border-top:1px solid var(--border);margin-top:auto;"
   {...attrs}
+  itemscope
+  itemtype="https://schema.org/WPFooter"
 >
+  <div style="max-width:1400px;margin:0 auto;padding:36px 24px 0;display:grid;grid-template-columns:1fr repeat(3,140px);gap:32px;align-items:start;">
+
+    <!-- Brand column -->
+    <div>
+      <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;margin-bottom:14px;">
+        <div style="width:34px;height:34px;background:var(--accent);color:#fff;font-size:18px;font-weight:900;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">₿</div>
+        <span style="font-size:18px;font-weight:900;color:var(--fg);letter-spacing:-0.02em;">{SITE.title}</span>
+      </a>
+      <p style="font-size:12.5px;color:var(--fg-muted);line-height:1.7;max-width:240px;margin-bottom:14px;">
+        {t("meta.siteDesc")}
+      </p>
+      <!-- Social / RSS links -->
+      <div style="display:flex;gap:8px;">
+        <a
+          href="/rss.xml"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--fg-muted);text-decoration:none;transition:all 0.12s;"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
+          onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg-muted)';"
+        >
+          📡 RSS
+        </a>
+        <a
+          href="/about"
+          style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--fg-muted);text-decoration:none;transition:all 0.12s;"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
+          onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg-muted)';"
+        >
+          ✉ {t("footer.about")}
+        </a>
+      </div>
+    </div>
+
+    <!-- Link columns -->
+    {footerCols.map(col => (
+      <div>
+        <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--fg-light);margin-bottom:12px;">
+          {col.heading}
+        </h3>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+          {col.links.map(link => (
+            <li>
+              <a
+                href={link.href}
+                style="font-size:13px;color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+                onmouseover="this.style.color='var(--accent)';"
+                onmouseout="this.style.color='var(--fg-muted)';"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div style="max-width:1400px;margin:0 auto;padding:16px 24px;margin-top:28px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--fg-light);">
+    <div>
+      © {currentYear} {SITE.title}. {t("footer.rights")}.
+    </div>
+    <div style="display:flex;gap:16px;align-items:center;">
+      <a href="/about" style="color:var(--fg-light);text-decoration:none;transition:color 0.12s;" onmouseover="this.style.color='var(--accent)';" onmouseout="this.style.color='var(--fg-light)';">{t("footer.about")}</a>
+      <a href="/rss.xml" target="_blank" rel="noopener noreferrer" style="color:var(--fg-light);text-decoration:none;transition:color 0.12s;" onmouseover="this.style.color='var(--accent)';" onmouseout="this.style.color='var(--fg-light)';">RSS</a>
+      <span style="opacity:0.5;">⚡ {t("footer.slogan")}</span>
+    </div>
+  </div>
+
+  <!-- GEO: Hidden machine-readable organization data for AI crawlers -->
   <div
-    class:list={[
-      "py-6 sm:py-4",
-      "border-t border-border",
-      "flex flex-col items-center justify-between sm:flex-row-reverse",
-    ]}
+    style="display:none;"
+    aria-hidden="true"
+    itemscope
+    itemtype="https://schema.org/Organization"
   >
-    <Socials />
-    <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
-      <span>Copyright &#169; {currentYear}</span>
-      <span class="hidden sm:inline">&nbsp;|&nbsp;</span>
-      <span>All rights reserved.</span>
+    <span itemprop="name">{SITE.title}</span>
+    <span itemprop="description">{t("meta.siteDesc")}</span>
+    <link itemprop="url" href={SITE.website} />
+    <meta itemprop="foundingDate" content="2024" />
+    <span itemprop="knowsAbout">比特币(Bitcoin, BTC)价格分析与行情资讯</span>
+    <span itemprop="knowsAbout">币安(Binance)交易所使用教程</span>
+    <span itemprop="knowsAbout">以太坊(Ethereum, ETH)技术与生态</span>
+    <span itemprop="knowsAbout">去中心化金融(DeFi)协议分析</span>
+    <span itemprop="knowsAbout">加密货币钱包安全(MetaMask, Ledger, Trezor)</span>
+    <span itemprop="knowsAbout">非同质化代币(NFT)市场动态</span>
+    <span itemprop="knowsAbout">区块链新手入门教程</span>
+    <span itemprop="knowsAbout">Cryptocurrency exchange tutorials</span>
+    <span itemprop="knowsAbout">Bitcoin price analysis and market news</span>
+    <span itemprop="knowsAbout">Tutoriales de exchanges de criptomonedas</span>
+    <span itemprop="knowsAbout">Guias de segurança de carteiras cripto</span>
+    <div itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+      <meta itemprop="addressCountry" content="CN" />
     </div>
   </div>
 </footer>
+
+<style>
+  @media (max-width: 900px) {
+    footer > div:first-child {
+      grid-template-columns: 1fr 1fr !important;
+    }
+  }
+  @media (max-width: 600px) {
+    footer > div:first-child {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>

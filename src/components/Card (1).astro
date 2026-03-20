@@ -1,0 +1,194 @@
+---
+// src/components/Card.astro
+// Variants: "hero" | "thumb" | "list" | "news" | "grid" | default
+import type { CollectionEntry } from "astro:content";
+import { slugifyStr } from "@/utils/slugify";
+import { getPath } from "@/utils/getPath";
+import Datetime from "./Datetime.astro";
+
+type Props = {
+  variant?: "h2" | "h3";
+  size?: "hero" | "thumb" | "list" | "news" | "grid";
+} & CollectionEntry<"blog">;
+
+const {
+  variant: Heading = "h2",
+  size = "list",
+  id,
+  data,
+  filePath,
+} = Astro.props;
+
+const { title, description, tags, pubDatetime, modDatetime, ogImage } = data;
+const postPath = getPath(id, filePath);
+const primaryTag = tags?.[0] ?? "加密货币";
+
+// Tag color class based on content
+const tagColors: Record<string, string> = {
+  btc: "ctag",        bitcoin: "ctag",
+  eth: "ctag-blue",   ethereum: "ctag-blue",
+  defi: "ctag-green", nft: "ctag-blue",
+  wallet: "ctag-green", 钱包: "ctag-green",
+  market: "ctag-red",   行情: "ctag-red",
+  docs: "ctag-blue",  教程: "ctag-blue",
+  beginner: "ctag-green", 新手: "ctag-green",
+};
+const tagClass = tagColors[primaryTag.toLowerCase()] ?? "ctag";
+
+// Gradient placeholder backgrounds (crypto-themed)
+const grads = [
+  "linear-gradient(135deg,#1a1628 0%,#2d1a0e 100%)",
+  "linear-gradient(135deg,#0a1628 0%,#0d2a1a 100%)",
+  "linear-gradient(135deg,#1a0a28 0%,#280d0d 100%)",
+  "linear-gradient(135deg,#0d1628 0%,#1a1628 100%)",
+];
+const grad = grads[title.length % grads.length];
+
+// Get image src string
+const imgSrc = typeof ogImage === "string"
+  ? ogImage
+  : (ogImage as any)?.src ?? "";
+---
+
+{/* ==========================
+    HERO — large featured card with overlay title
+    ========================== */}
+{size === "hero" && (
+  <a
+    href={postPath}
+    class="hero-main"
+    aria-label={title}
+    style="display:block;"
+  >
+    {imgSrc ? (
+      <img src={imgSrc} alt={title} loading="eager" fetchpriority="high" />
+    ) : (
+      <div class="hero-placeholder" style={`background:${grad};`}>₿</div>
+    )}
+    <div class="hero-main-overlay" aria-hidden="true" />
+    <div class="hero-main-content">
+      <div style="margin-bottom:6px;">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <Heading
+        style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+        class="hero-main-title"
+      >
+        {title}
+      </Heading>
+      <div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.55);">
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} />
+      </div>
+    </div>
+  </a>
+)}
+
+{/* ==========================
+    THUMB — small thumbnail for 2×2 hero grid
+    ========================== */}
+{size === "thumb" && (
+  <a href={postPath} class="hero-thumb" aria-label={title}>
+    {imgSrc ? (
+      <img src={imgSrc} alt={title} loading="lazy" />
+    ) : (
+      <div class="hero-placeholder" style={`background:${grad};font-size:24px;`}>₿</div>
+    )}
+    <div class="hero-thumb-overlay" aria-hidden="true" />
+    <div class="hero-thumb-title">{title}</div>
+  </a>
+)}
+
+{/* ==========================
+    LIST — 36kr article list item (horizontal: thumb + text)
+    ========================== */}
+{size === "list" && (
+  <a
+    href={postPath}
+    class="alist-item"
+    aria-label={title}
+    itemscope
+    itemtype="https://schema.org/Article"
+  >
+    <div class="alist-thumb">
+      {imgSrc ? (
+        <img src={imgSrc} alt={title} loading="lazy" itemprop="image" />
+      ) : (
+        <div style={`width:100%;height:100%;background:${grad};display:flex;align-items:center;justify-content:center;font-size:22px;opacity:0.4;`}>₿</div>
+      )}
+    </div>
+    <div class="alist-body">
+      <div class="alist-tag">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <Heading
+        style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+        class="alist-title"
+        itemprop="name"
+      >
+        {title}
+      </Heading>
+      {description && (
+        <p class="alist-desc" itemprop="description">{description}</p>
+      )}
+      <div class="alist-meta">
+        <span class="alist-meta-tag">{primaryTag}</span>
+        <span>|</span>
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-xs" />
+      </div>
+    </div>
+  </a>
+)}
+
+{/* ==========================
+    NEWS — right sidebar quick news item
+    ========================== */}
+{size === "news" && (
+  <div class="qnews-item">
+    <div class:list={["qnews-dot", {
+      "blue": primaryTag.toLowerCase() === "eth" || primaryTag.toLowerCase() === "defi",
+      "green": primaryTag.toLowerCase() === "wallet" || primaryTag.toLowerCase() === "新手",
+      "gray": false,
+    }]} aria-hidden="true" />
+    <div class="qnews-body">
+      <a href={postPath} class="qnews-title" itemprop="url" aria-label={title}>
+        {title}
+      </a>
+      <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="qnews-time" />
+    </div>
+  </div>
+)}
+
+{/* ==========================
+    GRID — small grid card (for /posts page)
+    ========================== */}
+{size === "grid" && (
+  <article class="c-card" itemscope itemtype="https://schema.org/Article">
+    <a href={postPath} class="c-card-img" tabindex="-1" aria-hidden="true">
+      {imgSrc ? (
+        <img src={imgSrc} alt={title} loading="lazy" itemprop="image" />
+      ) : (
+        <div style={`width:100%;height:100%;background:${grad};display:flex;align-items:center;justify-content:center;font-size:28px;opacity:0.3;`}>₿</div>
+      )}
+    </a>
+    <div style="padding:12px 14px 14px;">
+      <div style="margin-bottom:6px;">
+        <span class={tagClass}>{primaryTag}</span>
+      </div>
+      <a href={postPath}>
+        <Heading
+          style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
+          class="alist-title"
+          itemprop="name"
+        >
+          {title}
+        </Heading>
+      </a>
+      {description && (
+        <p class="alist-desc" style="margin-top:4px;" itemprop="description">{description}</p>
+      )}
+      <div style="margin-top:8px;">
+        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} class="text-xs" />
+      </div>
+    </div>
+  </article>
+)}
