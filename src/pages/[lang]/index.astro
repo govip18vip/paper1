@@ -1,5 +1,7 @@
 ---
-// src/pages/index.astro  ← 默认语言（zh-CN）首页
+// src/pages/[lang]/index.astro
+// 非默认语言首页：/en/  /zh-tw/  /es/  /pt/
+import type { GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -7,19 +9,35 @@ import LeftSidebar from "@/components/LeftSidebar.astro";
 import Card from "@/components/Card.astro";
 import { getPath } from "@/utils/getPath";
 import { SITE } from "@/config";
-import { DEFAULT_LANG, useTranslations, hreflangLinks, HTML_LANG } from "@/i18n/ui";
+import {
+  LANGUAGES, DEFAULT_LANG, useTranslations, hreflangLinks,
+  LANG_TO_PATH, type Lang,
+} from "@/i18n/ui";
 import { buildHomePageData } from "@/utils/homePage";
 
-const lang = DEFAULT_LANG;
+// ✅ 必须导出 getStaticPaths，为每个非默认语言生成静态页面
+export const getStaticPaths = (async () => {
+  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
+    l => l !== DEFAULT_LANG
+  );
+  return nonDefaultLangs.map(lang => ({
+    params: { lang: LANG_TO_PATH[lang] }, // URL 路径段: "en" | "zh-tw" | "es" | "pt"
+    props: { lang },                       // 内部 key:   "en" | "zh-TW" | "es" | "pt"
+  }));
+}) satisfies GetStaticPaths;
+
+// 从 props 获取内部语言 key（在 getStaticPaths 中设置）
+const { lang } = Astro.props as { lang: Lang };
 const t = useTranslations(lang);
 const alternates = hreflangLinks(Astro.url);
 
 const allPosts = await getCollection("blog");
-const {
-  hero, thumbPosts, listPosts, newsPosts, hotPosts, tutorialPosts, total,
-} = buildHomePageData(allPosts, lang);
+const { hero, thumbPosts, listPosts, newsPosts, hotPosts, tutorialPosts, total } =
+  buildHomePageData(allPosts, lang);
 
 const siteUrl = SITE.website.replace(/\/$/, "");
+const langSeg = LANG_TO_PATH[lang]; // "en" | "zh-tw" | "es" | "pt"
+const base = `/${langSeg}`;          // 本语言基础路径
 ---
 
 <Layout
@@ -27,14 +45,16 @@ const siteUrl = SITE.website.replace(/\/$/, "");
   description={t("site.desc")}
 >
   <Fragment slot="head">
-    {alternates.map(a => <link rel="alternate" hreflang={a.lang.toLowerCase()} href={a.href} />)}
+    {alternates.map(a => (
+      <link rel="alternate" hreflang={a.lang.toLowerCase()} href={a.href} />
+    ))}
     <link rel="alternate" hreflang="x-default" href={siteUrl} />
   </Fragment>
 
   <Header />
 
   <div class="site-outer">
-    <LeftSidebar />
+    <LeftSidebar currentLang={lang} />
 
     <div class="main-col" id="main-content" data-layout="index">
 
@@ -46,14 +66,15 @@ const siteUrl = SITE.website.replace(/\/$/, "");
               <Card {...hero} size="hero" variant="h2" />
             ) : (
               <div class="hero-main" style="display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);">
-                <p style="color:var(--fg-muted);font-size:14px;">暂无精选文章</p>
+                <p style="color:var(--fg-muted);font-size:14px;">No featured posts yet</p>
               </div>
             )}
           </div>
           <div class="hero-grid">
             {thumbPosts.map(p => <Card {...p} size="thumb" variant="h3" />)}
             {Array.from({ length: Math.max(0, 4 - thumbPosts.length) }).map(() => (
-              <div class="hero-thumb" style="background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;opacity:0.4;">
+              <div class="hero-thumb"
+                style="background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;opacity:0.4;">
                 <span style="font-size:24px;">₿</span>
               </div>
             ))}
@@ -61,25 +82,26 @@ const siteUrl = SITE.website.replace(/\/$/, "");
         </div>
       </section>
 
-      <!-- ARTICLE LIST -->
+      <!-- LATEST ARTICLES LIST -->
       <section aria-label={t("section.latest")} class="anim-2">
         <div class="sec-head" style="padding-top:16px;">
-          <span class="sec-head-title" data-i18n="section.latest">{t("section.latest")}</span>
-          <a href="/posts" class="sec-head-more" data-i18n="section.all">{t("section.all")} →</a>
+          <span class="sec-head-title">{t("section.latest")}</span>
+          <a href={`${base}/posts/`} class="sec-head-more">{t("section.all")} →</a>
         </div>
         <div class="alist">
           {listPosts.length > 0 ? (
             listPosts.map(p => <Card {...p} size="list" variant="h3" />)
           ) : (
             <div style="padding:32px;text-align:center;color:var(--fg-muted);font-size:14px;">
-              暂无文章
+              No articles in this language yet.
             </div>
           )}
         </div>
         {total > 12 && (
           <div style="padding:0 16px 16px;text-align:center;">
-            <a href="/posts" class="more-btn" style="display:inline-block;max-width:280px;"
-              data-i18n="section.more">{t("section.more")}</a>
+            <a href={`${base}/posts/`} class="more-btn" style="display:inline-block;max-width:280px;">
+              {t("section.more")}
+            </a>
           </div>
         )}
       </section>
@@ -89,67 +111,102 @@ const siteUrl = SITE.website.replace(/\/$/, "");
         itemscope itemtype="https://schema.org/AboutPage">
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:20px 24px;">
           <h2 style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--fg);display:flex;align-items:center;gap:8px;">
-            <span style="display:inline-block;width:3px;height:18px;background:var(--accent);border-radius:2px;"></span>
-            <span data-i18n="section.about">{t("section.about")}</span>
+            <span style="display:inline-block;width:3px;height:18px;background:var(--accent);border-radius:2px;flex-shrink:0;"></span>
+            {t("section.about")}
           </h2>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
             <div>
               <h3 style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;"
-                data-i18n="about.btc.title">{t("about.btc.title")}</h3>
+                itemprop="name">{t("about.btc.title")}</h3>
               <p style="font-size:12px;color:var(--fg-muted);line-height:1.6;"
-                data-i18n="about.btc.desc">{t("about.btc.desc")}</p>
+                itemprop="description">{t("about.btc.desc")}</p>
             </div>
             <div>
               <h3 style="font-size:13px;font-weight:700;color:var(--accent-blue);margin-bottom:6px;"
-                data-i18n="about.ex.title">{t("about.ex.title")}</h3>
+                itemprop="name">{t("about.ex.title")}</h3>
               <p style="font-size:12px;color:var(--fg-muted);line-height:1.6;"
-                data-i18n="about.ex.desc">{t("about.ex.desc")}</p>
+                itemprop="description">{t("about.ex.desc")}</p>
             </div>
             <div>
               <h3 style="font-size:13px;font-weight:700;color:var(--accent-green);margin-bottom:6px;"
-                data-i18n="about.wallet.title">{t("about.wallet.title")}</h3>
+                itemprop="name">{t("about.wallet.title")}</h3>
               <p style="font-size:12px;color:var(--fg-muted);line-height:1.6;"
-                data-i18n="about.wallet.desc">{t("about.wallet.desc")}</p>
+                itemprop="description">{t("about.wallet.desc")}</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- TAG CLOUD -->
+      <section style="padding:0 16px 20px;" aria-label={t("section.topic")} class="anim-4">
+        <div class="sec-head" style="padding-left:0;">
+          <span class="sec-head-title">{t("section.topic")}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+          {[
+            { label: "Bitcoin", href: "/tags/btc" },
+            { label: "Ethereum", href: "/tags/eth" },
+            { label: "DeFi", href: "/tags/defi" },
+            { label: "NFT", href: "/tags/nft" },
+            { label: "Wallet", href: "/tags/wallet" },
+            { label: "Beginner", href: "/tags/beginner" },
+            { label: "Web3", href: "/tags/defi" },
+          ].map(tag => (
+            <a href={tag.href}
+              style="display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:500;border:1px solid var(--border);color:var(--fg-muted);background:var(--bg-card);text-decoration:none;transition:all 0.12s;"
+              onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
+              onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg-muted)';">
+              {tag.label}
+            </a>
+          ))}
+          <a href="/tags"
+            style="display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:600;border:1px solid var(--accent);color:var(--accent);background:var(--tag-orange-bg);text-decoration:none;">
+            {t("section.topic")} →
+          </a>
         </div>
       </section>
 
     </div>
 
     <!-- RIGHT SIDEBAR -->
-    <aside class="rsidebar" aria-label="快讯与热门">
+    <aside class="rsidebar" aria-label="Sidebar">
       <div class="rsidebar-section">
-        <div class="rsidebar-head"><span data-i18n="section.flash">{t("section.flash")}</span></div>
+        <div class="rsidebar-head">{t("section.flash")}</div>
         {newsPosts.map(p => <Card {...p} size="news" variant="h3" />)}
-        <a href="/posts" class="more-btn" data-i18n="section.more">{t("section.more")}</a>
+        <a href={`${base}/posts/`} class="more-btn">{t("section.more")}</a>
       </div>
+
       <div class="rsidebar-section">
-        <div class="rsidebar-head">🔥 <span data-i18n="section.hot">{t("section.hot")}</span></div>
+        <div class="rsidebar-head">🔥 {t("section.hot")}</div>
         <ol>
           {hotPosts.map((p, i) => (
             <li style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-subtle);align-items:flex-start;">
               <span class:list={["hot-rank", { top: i < 3 }]}>{i + 1}</span>
               <a href={getPath(p.id, p.filePath)}
                 style="flex:1;font-size:12.5px;font-weight:500;color:var(--fg);line-height:1.5;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:color 0.12s;"
-                onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'">
+                onmouseover="this.style.color='var(--accent)';"
+                onmouseout="this.style.color='var(--fg)';">
                 {p.data.title}
               </a>
             </li>
           ))}
         </ol>
       </div>
+
       {tutorialPosts.length > 0 && (
         <div class="rsidebar-section">
-          <div class="rsidebar-head">📚 <span data-i18n="section.tutorial">{t("section.tutorial")}</span></div>
+          <div class="rsidebar-head">📚 {t("section.tutorial")}</div>
           <ul style="list-style:none;padding:0;margin:0;">
             {tutorialPosts.map(p => (
               <li style="padding:8px 0;border-bottom:1px solid var(--border-subtle);">
                 <a href={getPath(p.id, p.filePath)}
                   style="display:flex;gap:8px;align-items:flex-start;text-decoration:none;color:var(--fg);font-size:12.5px;transition:color 0.12s;"
-                  onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'">
-                  <span class="ctag-blue" style="margin-top:2px;flex-shrink:0;">教程</span>
-                  <span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{p.data.title}</span>
+                  onmouseover="this.style.color='var(--accent)';"
+                  onmouseout="this.style.color='var(--fg)';">
+                  <span class="ctag-blue" style="margin-top:2px;flex-shrink:0;">Guide</span>
+                  <span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                    {p.data.title}
+                  </span>
                 </a>
               </li>
             ))}
@@ -157,11 +214,13 @@ const siteUrl = SITE.website.replace(/\/$/, "");
         </div>
       )}
     </aside>
+
   </div>
 </Layout>
 
 <script>
   document.addEventListener("astro:page-load", () => {
-    sessionStorage.setItem("backUrl", "/");
+    const el = document.querySelector("[data-layout='index']");
+    if (el) sessionStorage.setItem("backUrl", window.location.pathname);
   });
 </script>

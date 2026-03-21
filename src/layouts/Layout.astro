@@ -1,31 +1,16 @@
 ---
-// src/layouts/Layout.astro  — PATCH: add these changes to your existing Layout.astro
-//
-// Changes needed:
-//  1. Import hreflangLinks from i18n/ui
-//  2. Add <link rel="alternate" hreflang> tags in <head>
-//  3. Load detect.ts as a module script (deferred, client-side)
-//  4. Pass lang to <html lang="..."> dynamically
-//
-// ─────────────────────────────────────────────────────────────
-// DIFF — what to ADD to your existing Layout.astro:
-
+// src/layouts/Layout.astro
 import { Font } from "astro:assets";
 import { ClientRouter } from "astro:transitions";
 import { SITE } from "@/config";
 import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
 import "@/styles/global.css";
 
-// Get server-side language (for initial render, prevents flash)
 const lang = getLang(Astro.url);
 const alternates = hreflangLinks(Astro.url);
 
-// Inline translations JSON — injected into <head> so detect.ts can
-// read them synchronously before first paint
 const translationsJSON = JSON.stringify(
-  Object.fromEntries(
-    Object.entries(UI).map(([l, dict]) => [l, dict])
-  )
+  Object.fromEntries(Object.entries(UI).map(([l, dict]) => [l, dict]))
 );
 
 type Props = {
@@ -44,7 +29,7 @@ const {
   title = SITE.title,
   author = SITE.author,
   profile = SITE.profile,
-  description = UI[lang]["site.desc"] ?? SITE.desc,
+  description = UI[lang]?.["site.desc"] ?? SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
   canonicalURL = new URL(Astro.url.pathname, Astro.url),
   pubDatetime,
@@ -68,33 +53,33 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <link rel="canonical" href={canonicalURL} />
     <meta name="generator" content={Astro.generator} />
 
-    <!-- ── hreflang alternates (SEO: multilingual) ── -->
+    <!-- hreflang alternates -->
     {alternates.map(a => (
       <link rel="alternate" hreflang={a.lang} href={a.href} />
     ))}
     <link rel="alternate" hreflang="x-default" href={`${Astro.url.origin}${Astro.url.pathname}`} />
 
-    <!-- ── Font ── -->
+    <!-- Font -->
     <Font
       cssVariable="--font-google-sans-code"
       preload={[{ subset: "latin", weight: 400, style: "normal" }]}
     />
 
-    <!-- ── SEO meta ── -->
+    <!-- SEO meta -->
     <title>{title}</title>
     <meta name="title"       content={title} />
     <meta name="description" content={description} data-i18n="site.desc" />
     <meta name="author"      content={author} />
     <link rel="sitemap"      href="/sitemap-index.xml" />
 
-    <!-- ── Open Graph ── -->
+    <!-- Open Graph -->
     <meta property="og:title"       content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url"         content={canonicalURL} />
     <meta property="og:image"       content={socialImageURL} />
     <meta property="og:locale"      content={lang.replace("-", "_")} />
 
-    <!-- ── Twitter ── -->
+    <!-- Twitter -->
     <meta property="twitter:card"        content="summary_large_image" />
     <meta property="twitter:title"       content={title} />
     <meta property="twitter:description" content={description} />
@@ -104,21 +89,20 @@ const socialImageURL = new URL(ogImage, Astro.url);
     {pubDatetime && <meta property="article:published_time" content={pubDatetime.toISOString()} />}
     {modDatetime  && <meta property="article:modified_time"  content={modDatetime.toISOString()} />}
 
-    <!-- ── Inline translations (for detect.ts to use synchronously) ── -->
-    <!-- This prevents FOUC (Flash of Untranslated Content) -->
+    <!-- 预注入翻译字典（防止 FOUC）-->
     <script is:inline define:vars={{ translationsJSON, defaultLang: lang }}>
-      // Pre-seed translations into window so detect.ts can use immediately
       try {
         window.__i18nDict = JSON.parse(translationsJSON);
         window.__i18nDefault = defaultLang;
       } catch(e) {}
     </script>
 
-    <!-- ── Inline theme script (no FOUC) ── -->
+    <!-- 主题初始化（必须内联，防止深色模式闪烁）-->
     <script is:inline>
       (function() {
-        const stored = localStorage.getItem("theme");
-        const dark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var stored = localStorage.getItem("theme");
+        var dark = stored === "dark" ||
+          (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
         document.firstElementChild?.setAttribute("data-theme", dark ? "dark" : "light");
         window.theme = { themeValue: dark ? "dark" : "light" };
       })();
@@ -127,17 +111,13 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <meta name="theme-color" content="" />
     <ClientRouter />
 
-    <!-- hreflang JSON-LD for language-aware AI engines (GEO) -->
+    <!-- hreflang JSON-LD -->
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "WebPage",
       "@id": `${Astro.url.origin}${Astro.url.pathname}`,
       "url": `${Astro.url.origin}${Astro.url.pathname}`,
       "inLanguage": alternates.map(a => a.lang),
-      "availableLanguage": Object.entries(UI).map(([l]) => ({
-        "@type": "Language",
-        "name": l,
-      })),
     })} />
 
     <slot name="head" />
@@ -146,11 +126,16 @@ const socialImageURL = new URL(ogImage, Astro.url);
   <body>
     <slot />
 
-    <!-- Load theme script -->
-    <script src="../scripts/theme.ts"></script>
+    <!--
+      ✅ 修复：使用 import 语法（Astro 编译时解析路径）
+         不要用 src="../..." 相对路径，浏览器会按 URL 解析导致 404
+    -->
+    <script>
+      import "@/scripts/theme.ts";
+    </script>
 
-    <!-- Load i18n detection engine — AFTER body so DOM is available -->
-    <!-- type="module" ensures it runs after HTML is parsed -->
-    <script type="module" src="../i18n/detect.ts"></script>
+    <script>
+      import "@/i18n/detect.ts";
+    </script>
   </body>
 </html>
