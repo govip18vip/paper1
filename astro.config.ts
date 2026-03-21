@@ -7,7 +7,7 @@ import { SITE } from "./src/config";
 import { transformerFileName } from "./src/utils/transformers/fileName.js";
 import {
   transformerNotationDiff,
-  transformerNotationHighlightWord,
+  transformerNotationWordHighlight,   // ← 改这里
   transformerNotationFocus,
 } from "@shikijs/transformers";
 
@@ -76,26 +76,20 @@ export default defineConfig({
       transformers: [
         transformerFileName(),
         transformerNotationDiff(),
-        transformerNotationHighlightWord(),
+        transformerNotationWordHighlight(), 
         transformerNotationFocus(),
       ],
     },
   },
 
-  vite: {
-    plugins: [tailwindcss()],
-    optimizeDeps: {
-      exclude: ["@resvg/resvg-js"],
-    },
-  },
+	vite: {
+		plugins: [tailwindcss()],
+		optimizeDeps: {
+		  exclude: ["@resvg/resvg-js"],
+		},
+	  },
 
-  image: {
-    experimentalLayout: "responsive",
-  },
-
-  experimental: {
-    svg: true,
-    responsiveImages: true,
-    contentIntellisense: true,
-  },
-});
+	  image: {
+		layout: "constrained",
+	  },
+	});
