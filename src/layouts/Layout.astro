@@ -1,6 +1,5 @@
 ---
 // src/layouts/Layout.astro
-import { Font } from "astro:assets";
 import { ClientRouter } from "astro:transitions";
 import { SITE } from "@/config";
 import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
@@ -58,12 +57,6 @@ const socialImageURL = new URL(ogImage, Astro.url);
       <link rel="alternate" hreflang={a.lang} href={a.href} />
     ))}
     <link rel="alternate" hreflang="x-default" href={`${Astro.url.origin}${Astro.url.pathname}`} />
-
-    <!-- Font -->
-    <Font
-      cssVariable="--font-google-sans-code"
-      preload={[{ subset: "latin", weight: 400, style: "normal" }]}
-    />
 
     <!-- SEO meta -->
     <title>{title}</title>
@@ -126,10 +119,6 @@ const socialImageURL = new URL(ogImage, Astro.url);
   <body>
     <slot />
 
-    <!--
-      ✅ 修复：使用 import 语法（Astro 编译时解析路径）
-         不要用 src="../..." 相对路径，浏览器会按 URL 解析导致 404
-    -->
     <script>
       import "@/scripts/theme.ts";
     </script>

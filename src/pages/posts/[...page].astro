@@ -1,6 +1,6 @@
 ---
-// src/pages/[lang]/posts/[...page].astro
-// 非默认语言文章列表：/en/posts/  /zh-tw/posts/  /es/posts/  /pt/posts/
+// src/pages/posts/[...page].astro
+// 默认语言（zh-CN）文章列表：/posts/  /posts/2/  /posts/3/ ...
 import type { GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
@@ -10,54 +10,37 @@ import LeftSidebar from "@/components/LeftSidebar.astro";
 import Card from "@/components/Card.astro";
 import Pagination from "@/components/Pagination.astro";
 import { SITE } from "@/config";
-import {
-  LANGUAGES, DEFAULT_LANG, useTranslations,
-  LANG_TO_PATH, type Lang,
-} from "@/i18n/ui";
+import { DEFAULT_LANG, useTranslations } from "@/i18n/ui";
 import { filterPostsByLang } from "@/utils/homePage";
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const nonDefaultLangs = Object.keys(LANGUAGES)
-    .filter(l => l !== DEFAULT_LANG) as Lang[];
-
   const allPosts = await getCollection("blog", ({ data }) => !data.draft);
-
-  return nonDefaultLangs.flatMap(lang => {
-    const langPosts = filterPostsByLang(allPosts, lang);
-    // params.lang 必须是 URL 路径段（如 "en"、"zh-tw"），不是内部 key
-    return paginate(langPosts, {
-      params: { lang: LANG_TO_PATH[lang] },
-      pageSize: SITE.postPerPage,
-    });
-  });
+  // 只生成默认语言（zh-CN）的文章列表页
+  const langPosts = filterPostsByLang(allPosts, DEFAULT_LANG);
+  return paginate(langPosts, { pageSize: SITE.postPerPage });
 }) satisfies GetStaticPaths;
 
-const { lang: langPath } = Astro.params;
-
-// 路径段 → 内部 Lang key
-const lang = (
-  Object.entries(LANG_TO_PATH).find(([, v]) => v === langPath)?.[0] ?? DEFAULT_LANG
-) as Lang;
-
+const lang = DEFAULT_LANG;
 const t = useTranslations(lang);
 const { page } = Astro.props;
-
-const langSeg = LANG_TO_PATH[lang];
-const homeHref = `/${langSeg}/`;
 ---
 
-<Layout title={`${t("section.all")} | ${t("site.name")}`} description={t("site.desc")}>
+<Layout
+  title={`${t("section.all")} | ${t("site.name")}`}
+  description={t("site.desc")}
+>
   <Header />
 
   <div class="site-outer">
-    <LeftSidebar currentLang={lang} />
+    <LeftSidebar />
 
     <div class="main-col" style="padding-bottom:40px;">
       <!-- Breadcrumb -->
       <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
-        <a href={homeHref}
+        <a href="/"
           style="color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
-          onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg-muted)'">
+          onmouseover="this.style.color='var(--accent)'"
+          onmouseout="this.style.color='var(--fg-muted)'">
           {t("nav.home")}
         </a>
         <span style="margin:0 6px;opacity:0.5;">›</span>
@@ -65,7 +48,9 @@ const homeHref = `/${langSeg}/`;
       </div>
 
       <div style="padding:10px 16px 0;">
-        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">{t("section.all")}</h1>
+        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">
+          {t("section.all")}
+        </h1>
         <p style="font-size:13px;color:var(--fg-muted);">{t("site.desc.short")}</p>
       </div>
 
@@ -76,10 +61,7 @@ const homeHref = `/${langSeg}/`;
           </div>
         ) : (
           <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
-            <p style="font-size:15px;margin-bottom:8px;">📝 No articles yet</p>
-            <p style="font-size:12px;opacity:0.7;">
-              Add .md files to <code>src/data/blog/{langSeg}/</code>
-            </p>
+            <p style="font-size:15px;margin-bottom:8px;">📝 暂无文章</p>
           </div>
         )}
       </div>
@@ -91,7 +73,7 @@ const homeHref = `/${langSeg}/`;
       <div class="rsidebar-section">
         <div class="rsidebar-head">{t("section.tags")}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          {["BTC","ETH","DeFi","NFT","Wallet","Tutorial"].map(tag => (
+          {["BTC","ETH","DeFi","NFT","钱包","新手入门"].map(tag => (
             <a href={`/tags/${tag.toLowerCase()}`} class="ctag" style="text-decoration:none;">{tag}</a>
           ))}
         </div>
