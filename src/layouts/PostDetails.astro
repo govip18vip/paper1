@@ -17,6 +17,8 @@ import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import BinanceFloating from "@/components/BinanceFloating.astro";
 import {
   DEFAULT_LANG, useTranslations,
   LANG_TO_PATH, hreflangLinks,
@@ -41,6 +43,7 @@ const postsHref = langSeg ? `/${langSeg}/posts/` : "/posts/";
 
 const translations = await getTranslations(post, posts);
 const alternates   = hreflangLinks(Astro.url);
+
 
 // ── 基础字段 ──────────────────────────────────────────────
 const {
@@ -235,6 +238,7 @@ const breadcrumbSchema = {
 
   <Header />
 
+
   <div class="site-outer">
     <!-- 左侧导航高亮当前文章语言 -->
     <LeftSidebar currentLang={postLang} />
@@ -324,11 +328,25 @@ const breadcrumbSchema = {
             </div>
           </div>
         </div>
+<!-- ✅ article 横幅 -->
+        <div style="padding:0 24px 16px;">
+          <BinanceBanner variant="article" lang={postLang} />
+        </div>
 
+        <hr style="border:none;border-top:1px dashed var(--border);margin:0 24px;" />
         <!-- 正文 -->
         <article id="article" class="app-prose" itemprop="articleBody"
           style="padding:24px;max-width:none;">
           <Content />
+		  <article id="article" class="app-prose" itemprop="articleBody"
+          style="padding:24px;max-width:none;">
+          <Content />
+        </article>
+
+        <!-- ✅ 文章正文后 mid横幅 -->
+        <div style="padding:0 24px 8px;">
+          <BinanceBanner variant="mid" lang={postLang} />
+        </div>
         </article>
 
         <!-- FAQ 区块（有 faqs 字段时在正文后展示）-->

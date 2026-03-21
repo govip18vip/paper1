@@ -9,6 +9,7 @@ import getSortedPosts from "@/utils/getSortedPosts";
 import { getPath } from "@/utils/getPath";
 import { SITE } from "@/config";
 import { getLang, useTranslations, buildAlternates, HTML_LANG } from "@/i18n/ui";
+import BinanceBanner from "@/components/BinanceBanner.astro";
 
 const lang = getLang(Astro.url);
 const t = useTranslations(lang);

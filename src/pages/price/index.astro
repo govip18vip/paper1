@@ -1,0 +1,150 @@
+---
+// src/pages/price/index.astro
+// 行情总览页 /price — 所有主流币种实时价格
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import { SITE } from "@/config";
+
+const coins = [
+  { id: "bitcoin",      sym: "BTC", name: "比特币",    href: "/price/btc", emoji: "₿",  color: "#f7931a" },
+  { id: "ethereum",     sym: "ETH", name: "以太坊",    href: "/price/eth", emoji: "⟠", color: "#627eea" },
+  { id: "binancecoin",  sym: "BNB", name: "币安币",    href: "/tags/btc",  emoji: "🔶", color: "#F0B90B" },
+  { id: "solana",       sym: "SOL", name: "Solana",    href: "/tags/btc",  emoji: "◎",  color: "#9945FF" },
+  { id: "ripple",       sym: "XRP", name: "瑞波币",    href: "/tags/btc",  emoji: "✕",  color: "#346AA9" },
+  { id: "cardano",      sym: "ADA", name: "艾达币",    href: "/tags/btc",  emoji: "◆",  color: "#0033AD" },
+  { id: "dogecoin",     sym: "DOGE", name: "狗狗币",   href: "/tags/btc",  emoji: "🐕", color: "#C2A633" },
+  { id: "tron",         sym: "TRX", name: "波场",       href: "/tags/btc", emoji: "♦",  color: "#E50914" },
+];
+
+const pricePageSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "加密货币实时行情 — BTC、ETH、BNB价格",
+  description: "实时追踪比特币、以太坊等主流加密货币价格，查看24小时涨跌幅和历史走势图。",
+  url: `${SITE.website}price`,
+};
+---
+
+<Layout
+  title="加密货币实时行情 — BTC、ETH今日价格 | CryptoNews"
+  description="实时追踪比特币BTC、以太坊ETH等主流加密货币价格，24小时涨跌幅、市值排行。"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(pricePageSchema)} />
+    <link rel="preconnect" href="https://api.coingecko.com" />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+    <main class="main-col" id="main-content">
+
+      <div style="padding:14px 16px 0;">
+        <h1 style="font-size:20px;font-weight:800;color:var(--fg);margin:0 0 4px;">加密货币实时行情</h1>
+        <p style="font-size:13px;color:var(--fg-muted);margin:0;">实时价格 · 数据来源 CoinGecko · 每60秒更新</p>
+      </div>
+
+      <!-- 价格表格 -->
+      <section style="padding:12px 16px 0;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <!-- 表头 -->
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.05em;">
+            <span>币种</span>
+            <span style="text-align:right;">价格 (USD)</span>
+            <span style="text-align:right;">24h涨跌</span>
+            <span style="text-align:right;">市值</span>
+          </div>
+          <!-- 行 -->
+          {coins.map((coin, i) => (
+            <a href={coin.href}
+              style={`display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;padding:14px 16px;border-bottom:${i < coins.length-1 ? "1px solid var(--border-subtle)" : "none"};text-decoration:none;color:var(--fg);transition:background 0.12s;align-items:center;`}
+              onmouseover="this.style.background='var(--bg-elevated)'"
+              onmouseout="this.style.background='transparent'"
+            >
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style={`width:32px;height:32px;border-radius:50%;background:${coin.color}22;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid ${coin.color}44;flex-shrink:0;`}>{coin.emoji}</div>
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:var(--fg);">{coin.name}</div>
+                  <div style="font-size:11px;color:var(--fg-muted);">{coin.sym}</div>
+                </div>
+              </div>
+              <div id={`p-${coin.id}`} style="text-align:right;font-size:14px;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums;">--</div>
+              <div id={`c-${coin.id}`} style="text-align:right;font-size:13px;font-weight:600;">--</div>
+              <div id={`m-${coin.id}`} style="text-align:right;font-size:12px;color:var(--fg-muted);">--</div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <div style="padding:0 16px;">
+        <BinanceBanner variant="hero" lang="zh-CN" />
+      </div>
+
+      <!-- 行情页链接 -->
+      <section style="padding:0 16px 20px;">
+        <div class="sec-head" style="padding-left:0;margin-bottom:12px;">
+          <span class="sec-head-title">详细行情页面</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          {[
+            { href:"/price/btc", name:"比特币(BTC)价格", desc:"实时走势 · 减半数据", color:"#f7931a", emoji:"₿" },
+            { href:"/price/eth", name:"以太坊(ETH)价格", desc:"Gas费 · 质押收益",   color:"#627eea", emoji:"⟠" },
+          ].map(item => (
+            <a href={item.href} style={`display:flex;align-items:flex-start;gap:12px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;text-decoration:none;transition:border-color 0.12s;`}
+              onmouseover={`this.style.borderColor='${item.color}'`} onmouseout="this.style.borderColor='var(--border)'">
+              <div style={`width:40px;height:40px;border-radius:50%;background:${item.color}22;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid ${item.color}44;`}>{item.emoji}</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--fg);">{item.name}</div>
+                <div style="font-size:12px;color:var(--fg-muted);margin-top:2px;">{item.desc}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <BinanceBanner variant="compact" lang="zh-CN" />
+      </div>
+    </aside>
+  </div>
+  <Footer />
+</Layout>
+
+<script is:inline>
+(function(){
+  const fmt = n => n >= 1e9 ? "$"+(n/1e9).toFixed(1)+"B" : n >= 1e6 ? "$"+(n/1e6).toFixed(0)+"M" : "$"+n.toLocaleString("en-US",{maximumFractionDigits:0});
+  const fmtP = n => n >= 1000 ? "$"+n.toLocaleString("en-US",{maximumFractionDigits:0}) : "$"+n.toFixed(3);
+
+  async function load(){
+    try {
+      const ids = ["bitcoin","ethereum","binancecoin","solana","ripple","cardano","dogecoin","tron"];
+      const r = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(",")}&order=market_cap_desc&sparkline=false`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if(!r.ok) return;
+      const list = await r.json();
+      for(const c of list){
+        const pe = document.getElementById("p-"+c.id);
+        const ce = document.getElementById("c-"+c.id);
+        const me = document.getElementById("m-"+c.id);
+        if(pe) pe.textContent = fmtP(c.current_price);
+        if(ce && c.price_change_percentage_24h !== null){
+          const chg = c.price_change_percentage_24h;
+          ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + chg.toFixed(2) + "%";
+          ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+        }
+        if(me) me.textContent = fmt(c.market_cap);
+      }
+    } catch(e){}
+  }
+  load();
+  setInterval(load, 60000);
+})();
+</script>

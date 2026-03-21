@@ -1,141 +1,212 @@
 ---
+// src/pages/search.astro  (替换原文件)
+// 搜索页增强：热门关键词快捷按钮 + 搜索框突出
+
 import "@pagefind/default-ui/css/ui.css";
-import Main from "@/layouts/Main.astro";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
 import { SITE } from "@/config";
 
 const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : "/";
+
+const hotKeywords = [
+  "比特币", "以太坊", "币安注册", "BTC价格",
+  "ETH教程", "DeFi", "钱包安全", "新手入门",
+  "MetaMask", "Ledger", "减半",
+];
 ---
 
-<Layout title={`Search | ${SITE.title}`}>
+<Layout title={`搜索 | ${SITE.title}`}
+  description="搜索区块链资讯、加密货币教程、比特币行情分析等内容。">
+
   <Header />
-  <Main pageTitle="Search" pageDesc="Search any article ...">
-    <div id="pagefind-search" transition:persist data-backurl={backUrl}></div>
-  </Main>
+
+  <div class="site-outer">
+    <LeftSidebar />
+
+    <main class="main-col" style="padding:20px 16px 40px;" id="main-content">
+      <!-- 标题 -->
+      <div style="margin-bottom:20px;">
+        <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0 0 6px;">搜索</h1>
+        <p style="font-size:13px;color:var(--fg-muted);margin:0;">搜索文章、教程、行情分析…</p>
+      </div>
+
+      <!-- 热门关键词 -->
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:var(--fg-light);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">热门搜索</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="hot-keywords">
+          {hotKeywords.map(kw => (
+            <button
+              data-kw={kw}
+              class="hot-kw-btn"
+            >{kw}</button>
+          ))}
+        </div>
+      </div>
+
+      <!-- Pagefind 搜索框 -->
+      <div id="pagefind-search" transition:persist data-backurl={backUrl}></div>
+
+      <!-- 搜索后广告位 -->
+      <div id="search-after-cta" style="display:none;margin-top:24px;">
+        <BinanceBanner variant="compact" lang="zh-CN" />
+      </div>
+    </main>
+
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">快速导航</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          {[
+            { label: "BTC行情", href: "/price/btc" },
+            { label: "ETH行情", href: "/price/eth" },
+            { label: "币安教程", href: "/tags/docs" },
+            { label: "新手入门", href: "/tags/beginner" },
+            { label: "钱包安全", href: "/tags/wallet" },
+            { label: "DeFi资讯", href: "/tags/defi" },
+          ].map(item => (
+            <a href={item.href} style="display:block;padding:7px 10px;background:var(--bg-elevated);border-radius:5px;text-decoration:none;color:var(--fg);font-size:13px;transition:background 0.12s;"
+              onmouseover="this.style.background='var(--nav-active-bg)';this.style.color='var(--accent)';"
+              onmouseout="this.style.background='var(--bg-elevated)';this.style.color='var(--fg)';">
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </div>
+      <div class="rsidebar-section">
+        <BinanceBanner variant="compact" lang="zh-CN" />
+      </div>
+    </aside>
+  </div>
+
   <Footer />
 </Layout>
 
-<script>
-  function initSearch() {
-    const pageFindSearch: HTMLElement | null =
-      document.querySelector("#pagefind-search");
+<style>
+.hot-kw-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.hot-kw-btn:hover,
+.hot-kw-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--tag-orange-bg);
+}
 
+#pagefind-search {
+  --pagefind-ui-font: var(--font-app);
+  --pagefind-ui-text: var(--foreground);
+  --pagefind-ui-background: var(--background);
+  --pagefind-ui-border: var(--border);
+  --pagefind-ui-primary: var(--accent);
+  --pagefind-ui-tag: var(--background);
+  --pagefind-ui-border-radius: 0.375rem;
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-image-border-radius: 8px;
+  --pagefind-ui-image-box-ratio: 3 / 2;
+}
+#pagefind-search form::before { background-color: var(--foreground); }
+#pagefind-search input { font-weight: 400; border: 1px solid var(--border); }
+#pagefind-search input:focus-visible { outline: 1px solid var(--accent); }
+#pagefind-search .pagefind-ui__result-title a {
+  color: var(--accent);
+  text-decoration-style: dashed;
+  text-underline-offset: 4px;
+}
+#pagefind-search .pagefind-ui__result:last-of-type { border-bottom: 0; }
+</style>
+
+<script>
+  let pagefindInstance: any = null;
+
+  function initSearch() {
+    const pageFindSearch = document.querySelector("#pagefind-search");
     if (!pageFindSearch) return;
 
     const params = new URLSearchParams(window.location.search);
-
-    const onIdle = window.requestIdleCallback || (cb => setTimeout(cb, 1));
+    const onIdle = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1));
 
     onIdle(async () => {
-      // @ts-expect-error — Missing types for @pagefind/default-ui package.
+      // @ts-expect-error
       const { PagefindUI } = await import("@pagefind/default-ui");
 
-      // Display warning inn dev mode
       if (import.meta.env.DEV) {
         pageFindSearch.innerHTML = `
-            <div class="bg-muted/75 rounded p-4 space-y-4 mb-4">
-              <p><strong>DEV mode Warning! </strong>You need to build the project at least once to see the search results during development.</p>
-              <code class="block bg-black text-white px-2 py-1 rounded">pnpm run build</code>
-            </div>
-          `;
+          <div style="background:var(--bg-elevated);border-radius:6px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:var(--fg-muted);">
+            <strong>DEV模式：</strong>请先运行 <code style="background:var(--bg-card);padding:2px 6px;border-radius:3px;">pnpm run build</code> 后搜索才能生效。
+          </div>`;
       }
 
-      // Init pagefind ui
-      const search = new PagefindUI({
+      pagefindInstance = new PagefindUI({
         element: "#pagefind-search",
         showImages: false,
         showSubResults: true,
         processTerm: function (term: string) {
-          params.set("q", term); // Update the `q` parameter in the URL
-          history.replaceState(history.state, "", "?" + params.toString()); // Push the new URL without reloading
+          params.set("q", term);
+          history.replaceState(history.state, "", "?" + params.toString());
+          const backUrl = (pageFindSearch as HTMLElement)?.dataset?.backurl;
+          if (backUrl) sessionStorage.setItem("backUrl", backUrl + "?" + params.toString());
 
-          const backUrl = pageFindSearch?.dataset?.backurl;
-          sessionStorage.setItem("backUrl", backUrl + "?" + params.toString());
+          // 有搜索词时显示广告位
+          const cta = document.getElementById("search-after-cta");
+          if (cta) cta.style.display = term.trim() ? "block" : "none";
 
           return term;
         },
       });
 
-      // If search param exists (eg: search?q=astro), trigger search
+      // 热门关键词点击
+      document.querySelectorAll<HTMLButtonElement>(".hot-kw-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const kw = btn.dataset.kw || "";
+          // 激活按钮高亮
+          document.querySelectorAll(".hot-kw-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          // 触发搜索
+          const input = document.querySelector<HTMLInputElement>(".pagefind-ui__search-input");
+          if (input) {
+            input.value = kw;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          if (pagefindInstance) pagefindInstance.triggerSearch(kw);
+        });
+      });
+
       const query = params.get("q");
-      if (query) {
-        search.triggerSearch(query);
-      }
+      if (query) pagefindInstance.triggerSearch(query);
 
-      // Reset search param if search input is cleared
-      const searchInput = document.querySelector(".pagefind-ui__search-input");
-      const clearButton = document.querySelector(".pagefind-ui__search-clear");
-      searchInput?.addEventListener("input", resetSearchParam);
-      clearButton?.addEventListener("click", resetSearchParam);
+      // 清空重置
+      const searchInput = document.querySelector<HTMLInputElement>(".pagefind-ui__search-input");
+      const clearBtn = document.querySelector(".pagefind-ui__search-clear");
 
-      function resetSearchParam(e: Event) {
-        if ((e.target as HTMLInputElement)?.value.trim() === "") {
+      function resetParam(e: Event) {
+        if ((e.target as HTMLInputElement)?.value?.trim() === "") {
           history.replaceState(history.state, "", window.location.pathname);
+          document.querySelectorAll(".hot-kw-btn").forEach(b => b.classList.remove("active"));
+          const cta = document.getElementById("search-after-cta");
+          if (cta) cta.style.display = "none";
         }
       }
+      searchInput?.addEventListener("input", resetParam);
+      clearBtn?.addEventListener("click", resetParam);
     });
   }
 
   document.addEventListener("astro:after-swap", () => {
-    const pagefindSearch = document.querySelector("#pagefind-search");
-
-    // if pagefind search form already exists, don't initialize search component
-    if (pagefindSearch && pagefindSearch.querySelector("form")) return;
-
+    const pf = document.querySelector("#pagefind-search");
+    if (pf && pf.querySelector("form")) return;
     initSearch();
   });
   initSearch();
 </script>
-
-<style is:global>
-  #pagefind-search {
-    --pagefind-ui-font: var(--font-app);
-    --pagefind-ui-text: var(--foreground);
-    --pagefind-ui-background: var(--background);
-    --pagefind-ui-border: var(--border);
-    --pagefind-ui-primary: var(--accent);
-    --pagefind-ui-tag: var(--background);
-    --pagefind-ui-border-radius: 0.375rem;
-    --pagefind-ui-border-width: 1px;
-    --pagefind-ui-image-border-radius: 8px;
-    --pagefind-ui-image-box-ratio: 3 / 2;
-
-    form::before {
-      background-color: var(--foreground);
-    }
-
-    input {
-      font-weight: 400;
-      border: 1px solid var(--border);
-    }
-
-    input:focus-visible {
-      outline: 1px solid var(--accent);
-    }
-
-    .pagefind-ui__result-title a {
-      color: var(--accent);
-      outline-offset: 1px;
-      outline-color: var(--accent);
-      text-decoration-style: dashed;
-      text-underline-offset: 4px;
-    }
-
-    .pagefind-ui__result-title a:focus-visible,
-    .pagefind-ui__search-clear:focus-visible {
-      text-decoration-line: none;
-      outline-width: 2px;
-      outline-style: dashed;
-    }
-
-    .pagefind-ui__result:last-of-type {
-      border-bottom: 0;
-    }
-
-    .pagefind-ui__result-nested .pagefind-ui__result-link:before {
-      font-family: system-ui;
-    }
-  }
-</style>

@@ -1,0 +1,463 @@
+---
+// src/pages/price/btc.astro
+// 比特币实时价格专题页 — GEO + Schema.org PriceSpecification
+// 路由: /price/btc
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import { getCollection } from "astro:content";
+import { getPath } from "@/utils/getPath";
+import { SITE } from "@/config";
+
+const relatedPosts = (await getCollection("blog")).filter(p =>
+  p.data.tags?.some(t => ["btc", "bitcoin", "比特币"].includes(t.toLowerCase()))
+).slice(0, 6);
+
+// Schema.org 结构化数据 — GEO核心
+const priceSchema = {
+  "@context": "https://schema.org",
+  "@type": "FinancialProduct",
+  name: "Bitcoin (BTC)",
+  description: "Bitcoin是世界上第一种去中心化数字货币，总量固定2100万枚，由区块链技术支撑。",
+  url: `${SITE.website}price/btc`,
+  category: "Cryptocurrency",
+  feesAndCommissionsSpecification: "交易手续费因交易所而异，通常为0.1%以下",
+  provider: {
+    "@type": "Organization",
+    name: SITE.title,
+    url: SITE.website,
+  },
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    seller: { "@type": "Organization", name: "Binance" },
+  },
+  additionalProperty: [
+    { "@type": "PropertyValue", name: "最大供应量", value: "21,000,000 BTC" },
+    { "@type": "PropertyValue", name: "区块时间", value: "约10分钟" },
+    { "@type": "PropertyValue", name: "共识机制", value: "工作量证明(PoW)" },
+    { "@type": "PropertyValue", name: "最新减半时间", value: "2024年4月" },
+  ],
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "比特币今天价格是多少？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "比特币(BTC)价格实时波动，请查看本页顶部的实时价格数据，数据来源于主流交易所加权平均价。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "比特币在哪里可以买到？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "您可以在币安(Binance)、OKX、Coinbase等主流交易所购买比特币。其中币安是全球交易量最大的交易所，注册时使用邀请码B2345可享最高手续费折扣。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "比特币总量是多少？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "比特币总量永远上限为2100万枚，这是写入代码的绝对上限，任何人都无法更改。截至2024年，已挖出约1950万枚。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "比特币减半是什么意思？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "比特币减半是指每挖出210,000个区块（约4年），矿工每个区块的奖励减半。2024年4月最新一次减半后，区块奖励从6.25 BTC降至3.125 BTC。减半使供应速度放缓，历史上往往对价格产生积极影响。",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "买比特币需要多少钱？",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "您不需要购买整枚比特币，可以购买很小的份额（最小可购买约10美元等值）。比特币最小单位是聪（Satoshi），1 BTC = 1亿聪。",
+      },
+    },
+  ],
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
+    { "@type": "ListItem", position: 2, name: "行情", item: `${SITE.website}price` },
+    { "@type": "ListItem", position: 3, name: "比特币价格", item: `${SITE.website}price/btc` },
+  ],
+};
+---
+
+<Layout
+  title="比特币(BTC)今日实时价格 — 行情走势图 | CryptoNews"
+  description="比特币BTC最新实时价格、24小时涨跌幅、历史走势图。了解如何购买比特币、最优交易所推荐及安全存储指南。"
+  ogImage="/price/btc-og.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(priceSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <!-- 预连接价格数据源 -->
+    <link rel="preconnect" href="https://api.coingecko.com" />
+  </Fragment>
+
+  <Header />
+
+  <div class="site-outer">
+    <LeftSidebar />
+
+    <main class="main-col" id="main-content" data-pagefind-body
+      itemscope itemtype="https://schema.org/WebPage">
+
+      <!-- 面包屑 -->
+      <nav style="padding:12px 16px 0;font-size:13px;color:var(--fg-muted);" aria-label="breadcrumb">
+        <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <a href="/price" style="color:var(--fg-muted);text-decoration:none;">行情</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="color:var(--fg);">比特币(BTC)</span>
+      </nav>
+
+      <!-- ══ 价格 Hero 卡片 ══ -->
+      <section style="padding:12px 16px 0;" aria-label="BTC实时价格">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <!-- 标题行 -->
+          <div style="display:flex;align-items:center;gap:12px;padding:20px 24px 16px;border-bottom:1px solid var(--border);">
+            <div style="width:44px;height:44px;border-radius:50%;background:#f7931a;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0;">₿</div>
+            <div>
+              <h1 itemprop="name" style="font-size:20px;font-weight:800;color:var(--fg);margin:0;line-height:1.2;">比特币价格 <span style="font-size:13px;font-weight:400;color:var(--fg-muted);">Bitcoin · BTC</span></h1>
+              <p style="font-size:12px;color:var(--fg-muted);margin:3px 0 0;">实时价格 · 数据来源：CoinGecko</p>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+              <span class="ctag-blue" id="btc-rank">排名 #1</span>
+              <span class="ctag">数字黄金</span>
+            </div>
+          </div>
+
+          <!-- 价格数字区 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border);">
+            <div style="padding:18px 24px;border-right:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;">当前价格 (USD)</div>
+              <div id="btc-price" style="font-size:28px;font-weight:800;color:var(--fg);font-variant-numeric:tabular-nums;">--</div>
+              <div id="btc-change" style="font-size:13px;margin-top:4px;font-weight:600;">--</div>
+            </div>
+            <div style="padding:18px 16px;border-right:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;">24h 最高</div>
+              <div id="btc-high" style="font-size:16px;font-weight:700;color:var(--fg);">--</div>
+              <div style="font-size:11px;color:var(--fg-muted);margin-top:4px;">24h 最低</div>
+              <div id="btc-low" style="font-size:14px;font-weight:600;color:var(--fg);">--</div>
+            </div>
+            <div style="padding:18px 16px;border-right:1px solid var(--border);">
+              <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;">市值</div>
+              <div id="btc-mcap" style="font-size:15px;font-weight:700;color:var(--fg);">--</div>
+              <div style="font-size:11px;color:var(--fg-muted);margin-top:4px;">24h 成交量</div>
+              <div id="btc-vol" style="font-size:13px;font-weight:600;color:var(--fg);">--</div>
+            </div>
+            <div style="padding:18px 16px;">
+              <div style="font-size:11px;color:var(--fg-muted);margin-bottom:6px;">流通量</div>
+              <div style="font-size:14px;font-weight:700;color:var(--fg);">~19.7M BTC</div>
+              <div style="font-size:11px;color:var(--fg-muted);margin-top:4px;">总量上限</div>
+              <div style="font-size:14px;font-weight:700;color:#f7931a;">21,000,000 BTC</div>
+            </div>
+          </div>
+
+          <!-- 价格图表 -->
+          <div style="padding:16px 24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span style="font-size:13px;font-weight:600;color:var(--fg);">价格走势</span>
+              <div style="display:flex;gap:4px;" id="chart-period-btns">
+                {["1D","7D","30D"].map(p => (
+                  <button
+                    data-period={p}
+                    style="padding:3px 10px;border-radius:3px;font-size:11px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--fg-muted);cursor:pointer;transition:all 0.12s;"
+                  >{p}</button>
+                ))}
+              </div>
+            </div>
+            <div style="position:relative;height:200px;">
+              <canvas id="btc-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- 更新时间 -->
+          <div style="padding:8px 24px 14px;font-size:11px;color:var(--fg-light);">
+            最后更新：<span id="btc-updated">--</span> · 数据每60秒自动刷新
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ 币安购买 CTA ══ -->
+      <div style="padding:0 16px;">
+        <BinanceBanner variant="article" lang="zh-CN" />
+      </div>
+
+      <!-- ══ 关键数据 & 基本信息 ══ -->
+      <section style="padding:0 16px 16px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;">
+          <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+            比特币基本资料
+          </h2>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            {[
+              ["创始人", "Satoshi Nakamoto（中本聪）"],
+              ["上线时间", "2009年1月3日"],
+              ["共识机制", "工作量证明（PoW）"],
+              ["区块时间", "约10分钟"],
+              ["区块奖励", "3.125 BTC（2024年4月减半后）"],
+              ["下次减半", "预计2028年"],
+              ["最大供应量", "21,000,000 BTC"],
+              ["代码", "BTC / XBT"],
+            ].map(([k, v]) => (
+              <div style="border-bottom:1px solid var(--border-subtle);padding:8px 0;display:flex;justify-content:space-between;gap:8px;">
+                <span style="font-size:12.5px;color:var(--fg-muted);flex-shrink:0;">{k}</span>
+                <span style="font-size:12.5px;color:var(--fg);font-weight:500;text-align:right;">{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ FAQ (GEO权威内容) ══ -->
+      <section style="padding:0 16px 16px;" itemscope itemtype="https://schema.org/FAQPage">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;">
+          <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+            常见问题 FAQ
+          </h2>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            {[
+              ["比特币总量是多少？", "比特币总量永远上限为2100万枚，这是写入代码的绝对上限，任何人无法更改。截至2025年，已挖出约1950万枚。"],
+              ["比特币在哪里购买最划算？", "推荐在币安(Binance)购买，全球交易量最大，手续费低。注册时使用邀请码 B2345 可享受平台最高折扣，现货手续费低至0.075%。"],
+              ["比特币减半什么时候发生？", "每挖出210,000个区块（约4年）发生一次减半。最近一次：2024年4月，奖励从6.25 BTC降至3.125 BTC。下次预计2028年。"],
+              ["比特币安全吗？", "比特币区块链自2009年运行至今从未被成功黑客攻击。主要风险来自交易所被黑或个人私钥丢失，建议大额资产存入硬件钱包（如Ledger）。"],
+            ].map(([q, a]) => (
+              <details
+                itemscope
+                itemprop="mainEntity"
+                itemtype="https://schema.org/Question"
+                style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;padding:14px 16px;cursor:pointer;"
+              >
+                <summary itemprop="name" style="font-size:14px;font-weight:600;color:var(--fg);list-style:none;display:flex;justify-content:space-between;align-items:center;">
+                  <span>{q}</span>
+                  <span style="color:var(--fg-muted);font-size:18px;flex-shrink:0;margin-left:8px;">+</span>
+                </summary>
+                <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                  <p itemprop="text" style="font-size:13px;color:var(--fg-muted);line-height:1.7;margin:10px 0 0;">{a}</p>
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ 相关文章 ══ -->
+      {relatedPosts.length > 0 && (
+        <section style="padding:0 16px 20px;">
+          <div class="sec-head" style="padding-left:0;margin-bottom:12px;">
+            <span class="sec-head-title">BTC 相关文章</span>
+            <a href="/tags/btc" class="sec-head-more">查看全部 →</a>
+          </div>
+          <div class="alist">
+            {relatedPosts.map(p => (
+              <article class="alist-item">
+                <div class="flex-1 min-w-0">
+                  <a href={getPath(p.id, p.filePath)} style="font-size:14px;font-weight:600;color:var(--fg);text-decoration:none;line-height:1.5;display:block;transition:color 0.12s;"
+                    onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'">
+                    {p.data.title}
+                  </a>
+                  <p style="font-size:12px;color:var(--fg-muted);margin:4px 0 0;">{p.data.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+    </main>
+
+    <!-- 右侧边栏 -->
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">₿ BTC 快速操作</div>
+        <a href={`https://www.binance.com/en/register?ref=B2345`}
+          target="_blank" rel="noopener noreferrer sponsored"
+          style="display:block;padding:10px;background:#F0B90B;color:#1a1200;border-radius:5px;text-decoration:none;font-size:13px;font-weight:700;text-align:center;margin-bottom:8px;transition:opacity 0.12s;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          在币安购买 BTC →
+        </a>
+        <p style="font-size:11px;color:var(--fg-muted);text-align:center;margin:0;">邀请码 B2345 · 最高折扣</p>
+      </div>
+
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">其他币种行情</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          {[
+            { name: "Ethereum", symbol: "ETH", href: "/price/eth", emoji: "⟠" },
+            { name: "Binance Coin", symbol: "BNB", href: "/tags/btc", emoji: "🔶" },
+            { name: "Solana", symbol: "SOL", href: "/tags/btc", emoji: "◎" },
+          ].map(coin => (
+            <a href={coin.href} style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-elevated);border-radius:5px;text-decoration:none;color:var(--fg);font-size:13px;transition:background 0.12s;"
+              onmouseover="this.style.background='var(--nav-active-bg)'" onmouseout="this.style.background='var(--bg-elevated)'">
+              <span>{coin.emoji} {coin.name}</span>
+              <span style="color:var(--fg-muted);font-size:11px;">{coin.symbol}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="rsidebar-section">
+        <BinanceBanner variant="compact" lang="zh-CN" />
+      </div>
+    </aside>
+  </div>
+
+  <Footer />
+</Layout>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script is:inline>
+(function(){
+  const fmt = n => n >= 1e9
+    ? "$" + (n/1e9).toFixed(2) + "B"
+    : n >= 1e6 ? "$" + (n/1e6).toFixed(0) + "M"
+    : "$" + n.toLocaleString("en-US", {maximumFractionDigits:0});
+
+  const fmtPrice = n => n >= 1000
+    ? "$" + n.toLocaleString("en-US", {maximumFractionDigits:0})
+    : "$" + n.toFixed(2);
+
+  let chart = null;
+
+  async function loadPrice(){
+    try {
+      const r = await fetch(
+        "https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false",
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if(!r.ok) return;
+      const d = await r.json();
+      const mkt = d.market_data;
+      const price = mkt.current_price.usd;
+      const chg = mkt.price_change_percentage_24h;
+      const isUp = chg >= 0;
+
+      document.getElementById("btc-price").textContent = fmtPrice(price);
+      const changeEl = document.getElementById("btc-change");
+      changeEl.textContent = (isUp ? "▲ +" : "▼ ") + chg.toFixed(2) + "%";
+      changeEl.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+
+      document.getElementById("btc-high").textContent = fmtPrice(mkt.high_24h.usd);
+      document.getElementById("btc-low").textContent  = fmtPrice(mkt.low_24h.usd);
+      document.getElementById("btc-mcap").textContent = fmt(mkt.market_cap.usd);
+      document.getElementById("btc-vol").textContent  = fmt(mkt.total_volume.usd);
+
+      const now = new Date();
+      document.getElementById("btc-updated").textContent =
+        now.toLocaleTimeString("zh-CN", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    } catch(e){}
+  }
+
+  async function loadChart(days = 1){
+    try {
+      const r = await fetch(
+        `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if(!r.ok) return;
+      const { prices } = await r.json();
+      const labels = prices.map(([ts]) => {
+        const d = new Date(ts);
+        return days === 1
+          ? d.toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})
+          : d.toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"});
+      });
+      const data = prices.map(([,v]) => v);
+      const isUp = data[data.length-1] >= data[0];
+      const color = isUp ? "#00c896" : "#f04747";
+
+      if(chart){ chart.destroy(); chart = null; }
+
+      const ctx = document.getElementById("btc-chart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            data,
+            borderColor: color,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: true,
+            backgroundColor: (ctx) => {
+              const g = ctx.chart.ctx.createLinearGradient(0,0,0,200);
+              g.addColorStop(0, color + "33");
+              g.addColorStop(1, color + "00");
+              return g;
+            },
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: {
+              label: ctx => "$" + ctx.raw.toLocaleString("en-US",{maximumFractionDigits:0})
+            }
+          }},
+          scales: {
+            x: { grid: { display: false }, ticks: {
+              maxTicksLimit: 6,
+              color: "#888",
+              font: { size: 10 },
+            }},
+            y: { grid: { color: "rgba(128,128,128,0.1)" }, ticks: {
+              color: "#888",
+              font: { size: 10 },
+              callback: v => "$" + (v>=1000 ? (v/1000).toFixed(0)+"K" : v),
+            }},
+          },
+        },
+      });
+    } catch(e){}
+  }
+
+  // 周期切换按钮
+  document.getElementById("chart-period-btns")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-period]");
+    if(!btn) return;
+    document.querySelectorAll("[data-period]").forEach(b => {
+      b.style.background = "transparent";
+      b.style.color = "var(--fg-muted)";
+      b.style.borderColor = "var(--border)";
+    });
+    btn.style.background = "var(--accent)";
+    btn.style.color = "#fff";
+    btn.style.borderColor = "var(--accent)";
+    const map = { "1D": 1, "7D": 7, "30D": 30 };
+    loadChart(map[btn.dataset.period] || 1);
+  });
+
+  // 激活默认按钮
+  const defaultBtn = document.querySelector("[data-period='1D']");
+  if(defaultBtn){ defaultBtn.click(); }
+
+  // 加载价格 & 每60秒刷新
+  loadPrice();
+  setInterval(loadPrice, 60000);
+})();
+</script>

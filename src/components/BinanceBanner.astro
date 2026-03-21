@@ -1,0 +1,200 @@
+---
+// src/components/BinanceBanner.astro — 高转化版（真实Logo + APK下载 + 落地页）
+// variant: "article" | "mid" | "hero" | "compact"
+
+type Props = { variant?: "article" | "mid" | "hero" | "compact"; lang?: string; };
+const { variant = "article", lang = "zh-CN" } = Astro.props;
+
+const REF    = "B2345";
+const WEB    = `https://www.binance.com/en/register?ref=${REF}`;
+const APK_CN = "https://basebiance.com/binanceapkcn";
+const APK_EN = "https://basebiance.com/binanceapken/";
+const LOGO   = "https://basebiance.com/content/images/2025/04/1HH5201407.png";
+const LP     = "/go/binance";
+
+const copy: Record<string, any> = {
+  "zh-CN": {
+    badge:"推荐交易所", headline:"注册币安，享最高手续费折扣",
+    dl_cn:"大陆版APK下载", dl_en:"国际版APK", web:"网页注册",
+    note:"邀请码 B2345 · 现货手续费低至 0.075% · 全球最大交易所",
+    disc:"* 投资有风险，不构成投资建议。本站与币安有联盟合作。", more:"查看详情 →",
+  },
+  "zh-TW": {
+    badge:"推薦交易所", headline:"註冊幣安，享最高手續費折扣",
+    dl_cn:"大陸版APK", dl_en:"國際版APK下載", web:"網頁註冊",
+    note:"邀請碼 B2345 · 現貨手續費低至 0.075%",
+    disc:"* 投資有風險，不構成投資建議。", more:"查看詳情 →",
+  },
+  "en": {
+    badge:"Partner Exchange", headline:"Sign up on Binance – Maximum Fee Discount",
+    dl_cn:"China APK", dl_en:"Download APK", web:"Register Online",
+    note:"Referral B2345 · Spot fee from 0.075% · World's #1 Exchange",
+    disc:"* Crypto investing carries risk. Affiliate disclosure.", more:"Learn more →",
+  },
+  "es": {
+    badge:"Exchange Recomendado", headline:"Regístrate en Binance – Máximo descuento",
+    dl_cn:"APK China", dl_en:"Descargar APK", web:"Registro Web",
+    note:"Código B2345 · Comisión spot desde 0.075%",
+    disc:"* Invertir conlleva riesgos.", more:"Ver más →",
+  },
+  "pt": {
+    badge:"Exchange Parceira", headline:"Cadastre-se na Binance – Menor taxa possível",
+    dl_cn:"APK China", dl_en:"Baixar APK", web:"Cadastro Online",
+    note:"Código B2345 · Taxa spot a partir de 0,075%",
+    disc:"* Investir tem riscos.", more:"Ver mais →",
+  },
+};
+const c = copy[lang] ?? copy["zh-CN"];
+---
+
+{variant === "article" && (
+  <aside class="bnr-article" role="complementary" aria-label="合作推荐">
+    <div class="bnr-top">
+      <div class="bnr-top-left">
+        <img src={LOGO} alt="Binance" width="40" height="40" class="bnr-logo" loading="lazy"/>
+        <div>
+          <span class="bnr-badge">{c.badge}</span>
+          <p class="bnr-title">{c.headline}</p>
+        </div>
+      </div>
+      <div class="bnr-code-pill">
+        <span class="bnr-cl">邀请码</span>
+        <strong class="bnr-cv">{REF}</strong>
+      </div>
+    </div>
+    <p class="bnr-note">{c.note}</p>
+    <div class="bnr-btns">
+      <a href={APK_CN} target="_blank" rel="noopener noreferrer sponsored" class="bnr-b bnr-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.54 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        {c.dl_cn}
+      </a>
+      <a href={APK_EN} target="_blank" rel="noopener noreferrer sponsored" class="bnr-b bnr-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.39-1.32 2.76-2.54 3.99zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        {c.dl_en}
+      </a>
+      <a href={WEB} target="_blank" rel="noopener noreferrer sponsored" class="bnr-b bnr-ghost">{c.web}</a>
+      <a href={LP} class="bnr-b bnr-more">{c.more}</a>
+    </div>
+    <p class="bnr-disc">{c.disc}</p>
+  </aside>
+)}
+
+{variant === "mid" && (
+  <div class="bnr-mid">
+    <img src={LOGO} alt="Binance" width="36" height="36" class="bnr-logo" loading="lazy"/>
+    <div class="bnr-mid-text">
+      <strong class="bnr-mid-title">{c.headline}</strong>
+      <span class="bnr-mid-sub">邀请码 <b>{REF}</b> · {c.note.split("·")[1]?.trim()}</span>
+    </div>
+    <div class="bnr-mid-right">
+      <a href={APK_CN} target="_blank" rel="noopener noreferrer sponsored" class="bnr-mid-dl">{c.dl_cn}</a>
+      <a href={LP} class="bnr-mid-lp">{c.more}</a>
+    </div>
+  </div>
+)}
+
+{variant === "hero" && (
+  <a href={LP} class="bnr-hero" aria-label={c.headline}>
+    <img src={LOGO} alt="Binance" width="40" height="40" class="bnr-logo" loading="lazy"/>
+    <div class="bnr-hero-text">
+      <span class="bnr-badge">{c.badge}</span>
+      <strong class="bnr-hero-title">{c.headline}</strong>
+      <span class="bnr-hero-sub">{c.note}</span>
+    </div>
+    <div class="bnr-hero-right">
+      <span class="bnr-hero-code">{REF}</span>
+      <span class="bnr-hero-btn">{c.dl_cn} →</span>
+    </div>
+  </a>
+)}
+
+{variant === "compact" && (
+  <div class="bnr-compact">
+    <div class="bnr-compact-head">
+      <img src={LOGO} alt="Binance" width="28" height="28" class="bnr-logo" loading="lazy"/>
+      <div>
+        <span class="bnr-badge">{c.badge}</span>
+        <p class="bnr-compact-title">{c.headline}</p>
+      </div>
+    </div>
+    <div class="bnr-code-pill" style="margin:8px 0;width:fit-content;">
+      <span class="bnr-cl">邀请码</span>
+      <strong class="bnr-cv">{REF}</strong>
+    </div>
+    <a href={APK_CN} target="_blank" rel="noopener noreferrer sponsored" class="bnr-cp-primary">{c.dl_cn}</a>
+    <a href={APK_EN} target="_blank" rel="noopener noreferrer sponsored" class="bnr-cp-secondary">{c.dl_en}</a>
+    <a href={LP} class="bnr-cp-more">{c.more}</a>
+    <p class="bnr-disc">{c.disc}</p>
+  </div>
+)}
+
+<style>
+.bnr-logo { border-radius: 8px; flex-shrink: 0; display: block; }
+.bnr-badge { display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(240,185,11,.15);color:#b58800;margin-bottom:4px; }
+html[data-theme="dark"] .bnr-badge { background:rgba(240,185,11,.12);color:#F0B90B; }
+.bnr-code-pill { display:inline-flex;align-items:center;gap:6px;background:var(--bg-elevated);border:1px dashed rgba(240,185,11,.4);border-radius:6px;padding:4px 12px; }
+.bnr-cl { font-size:11px;color:var(--fg-muted); }
+.bnr-cv { font-size:16px;font-weight:900;color:#F0B90B;font-family:monospace;letter-spacing:.08em; }
+.bnr-disc { font-size:10.5px;color:var(--fg-light);margin:8px 0 0;line-height:1.5; }
+
+/* ARTICLE */
+.bnr-article { background:var(--bg-elevated);border:1px solid var(--border);border-left:4px solid #F0B90B;border-radius:10px;padding:20px 22px;margin:28px 0; }
+.bnr-top { display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px; }
+.bnr-top-left { display:flex;align-items:flex-start;gap:12px; }
+.bnr-title { font-size:15px;font-weight:700;color:var(--fg);margin:0;line-height:1.35; }
+.bnr-note { font-size:12.5px;color:var(--fg-muted);line-height:1.6;margin:0 0 14px; }
+.bnr-btns { display:flex;flex-wrap:wrap;gap:8px; }
+.bnr-b { display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;transition:all .12s;white-space:nowrap; }
+.bnr-primary { background:#F0B90B;color:#1a1200;box-shadow:0 2px 8px rgba(240,185,11,.3); }
+.bnr-primary:hover { background:#ffd700;transform:translateY(-1px); }
+.bnr-secondary { background:var(--bg-card);color:var(--fg);border:1px solid var(--border); }
+.bnr-secondary:hover { border-color:#F0B90B;color:#F0B90B; }
+.bnr-ghost { background:transparent;color:var(--fg-muted);border:1px solid var(--border-subtle);font-weight:500; }
+.bnr-ghost:hover { color:var(--fg);border-color:var(--border); }
+.bnr-more { background:transparent;color:var(--fg-muted);font-size:12.5px;padding:9px 6px; }
+.bnr-more:hover { color:var(--accent); }
+
+/* MID */
+.bnr-mid { display:flex;align-items:center;gap:14px;background:var(--bg-card);border:1px solid rgba(240,185,11,.22);border-radius:8px;padding:14px 18px;margin:22px 0; }
+.bnr-mid-text { flex:1;min-width:0;display:flex;flex-direction:column;gap:3px; }
+.bnr-mid-title { font-size:14px;font-weight:700;color:var(--fg);line-height:1.3; }
+.bnr-mid-sub { font-size:12px;color:var(--fg-muted); }
+.bnr-mid-sub b { color:#F0B90B;font-family:monospace; }
+.bnr-mid-right { display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0; }
+.bnr-mid-dl { display:inline-block;padding:8px 16px;background:#F0B90B;color:#1a1200;border-radius:5px;font-size:13px;font-weight:700;text-decoration:none;transition:background .12s;white-space:nowrap; }
+.bnr-mid-dl:hover { background:#ffd700; }
+.bnr-mid-lp { font-size:11.5px;color:var(--fg-muted);text-decoration:none;transition:color .12s; }
+.bnr-mid-lp:hover { color:var(--accent); }
+
+/* HERO */
+.bnr-hero { display:flex;align-items:center;gap:14px;background:var(--bg-elevated);border:1px solid rgba(240,185,11,.2);border-radius:8px;padding:14px 20px;margin:16px;text-decoration:none;transition:border-color .15s; }
+.bnr-hero:hover { border-color:rgba(240,185,11,.5); }
+.bnr-hero-text { flex:1;display:flex;flex-direction:column;gap:2px; }
+.bnr-hero-title { font-size:14px;font-weight:700;color:var(--fg);line-height:1.3; }
+.bnr-hero-sub { font-size:11.5px;color:var(--fg-muted); }
+.bnr-hero-right { display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0; }
+.bnr-hero-code { font-size:13px;font-weight:900;color:#F0B90B;font-family:monospace;letter-spacing:.06em; }
+.bnr-hero-btn { display:inline-block;padding:7px 16px;background:#F0B90B;color:#1a1200;border-radius:4px;font-size:12px;font-weight:700; }
+
+/* COMPACT */
+.bnr-compact { background:var(--bg-elevated);border:1px solid rgba(240,185,11,.18);border-radius:8px;padding:14px; }
+.bnr-compact-head { display:flex;align-items:flex-start;gap:10px;margin-bottom:6px; }
+.bnr-compact-title { font-size:13px;font-weight:600;color:var(--fg);margin:0;line-height:1.4; }
+.bnr-cp-primary { display:flex;align-items:center;justify-content:center;width:100%;padding:9px;background:#F0B90B;color:#1a1200;border-radius:5px;font-size:12.5px;font-weight:700;text-decoration:none;margin-bottom:6px;transition:background .12s; }
+.bnr-cp-primary:hover { background:#ffd700; }
+.bnr-cp-secondary { display:flex;align-items:center;justify-content:center;width:100%;padding:8px;background:var(--bg-card);color:var(--fg);border:1px solid var(--border);border-radius:5px;font-size:12px;font-weight:600;text-decoration:none;margin-bottom:6px;transition:all .12s; }
+.bnr-cp-secondary:hover { border-color:#F0B90B;color:#F0B90B; }
+.bnr-cp-more { display:block;text-align:center;font-size:11.5px;color:var(--fg-muted);text-decoration:none;margin-bottom:6px;transition:color .12s; }
+.bnr-cp-more:hover { color:var(--accent); }
+
+/* 响应式 */
+@media (max-width:600px) {
+  .bnr-top { flex-direction:column; }
+  .bnr-btns { flex-direction:column; }
+  .bnr-b { width:100%;justify-content:center; }
+  .bnr-mid { flex-wrap:wrap; }
+  .bnr-mid-right { flex-direction:row;align-items:center;width:100%; }
+  .bnr-mid-dl { flex:1;text-align:center; }
+  .bnr-hero { flex-wrap:wrap; }
+}
+</style>

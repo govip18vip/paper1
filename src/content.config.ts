@@ -4,6 +4,7 @@ import { glob } from "astro/loaders";
 import { SITE } from "@/config";
 import { LANGUAGES } from "@/i18n/ui";
 
+
 export const BLOG_PATH = "src/data/blog";
 
 const blog = defineCollection({
