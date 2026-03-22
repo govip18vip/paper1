@@ -4,6 +4,7 @@ import { ClientRouter } from "astro:transitions";
 import { SITE } from "@/config";
 import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
 import "@/styles/global.css";
+import "../styles/mobile-fixes.css";
 
 const lang = getLang(Astro.url);
 const alternates = hreflangLinks(Astro.url);

@@ -1,0 +1,138 @@
+---
+/**
+ * Mobile TOC 组件 — 手机端折叠目录
+ * 放置路径: src/components/MobileTOC.astro
+ * 
+ * 使用方式 (在 PostDetails.astro 的文章正文前):
+ * ---
+ * import MobileTOC from "../components/MobileTOC.astro";
+ * ---
+ * <MobileTOC headings={headings} />
+ * <article>
+ *   <Content />
+ * </article>
+ */
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+}
+
+const { headings = [] } = Astro.props;
+
+// 只显示 h2 和 h3
+const filteredHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+{filteredHeadings.length > 2 && (
+  <details class="mobile-toc">
+    <summary>目录 / Table of Contents</summary>
+    <nav>
+      <ul>
+        {filteredHeadings.map((heading) => (
+          <li style={heading.depth === 3 ? "padding-left: 1rem;" : ""}>
+            <a href={`#${heading.slug}`}>{heading.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </details>
+)}
+
+<style>
+  .mobile-toc {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    .mobile-toc {
+      display: block;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(128, 128, 128, 0.15);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+  }
+
+  .mobile-toc summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 16px;
+    background: rgba(128, 128, 128, 0.05);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+  }
+
+  .mobile-toc summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-toc summary::before {
+    content: "📑";
+  }
+
+  .mobile-toc summary::after {
+    content: "▸";
+    margin-left: auto;
+    transition: transform 0.2s ease;
+  }
+
+  .mobile-toc[open] summary::after {
+    transform: rotate(90deg);
+  }
+
+  .mobile-toc nav {
+    padding: 8px 16px 16px;
+  }
+
+  .mobile-toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .mobile-toc li {
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-toc a {
+    display: block;
+    padding: 6px 0;
+    color: inherit;
+    opacity: 0.75;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-tap-highlight-color: transparent;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.06);
+    transition: opacity 0.15s;
+  }
+
+  .mobile-toc a:hover,
+  .mobile-toc a:active {
+    opacity: 1;
+  }
+
+  /* 暗色模式 */
+  :global(.dark) .mobile-toc,
+  :global([data-theme="dark"]) .mobile-toc {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  :global(.dark) .mobile-toc summary,
+  :global([data-theme="dark"]) .mobile-toc summary {
+    background: rgba(255, 255, 255, 0.05);
+  }
+</style>

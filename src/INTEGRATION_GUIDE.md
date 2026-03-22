@@ -9,7 +9,7 @@ import BinanceFloating from "@/components/BinanceFloating.astro";
 
 ---
 
-## 第2步：正文 Content 后插入 mid 横幅
+## 第2步：正文 Content 后插入 mid ``横幅
 
 ```astro
         <article id="article" class="app-prose" itemprop="articleBody"
