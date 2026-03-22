@@ -4,7 +4,6 @@ import { glob } from "astro/loaders";
 import { SITE } from "@/config";
 import { LANGUAGES } from "@/i18n/ui";
 
-
 export const BLOG_PATH = "src/data/blog";
 
 const blog = defineCollection({
@@ -30,22 +29,16 @@ const blog = defineCollection({
         .optional(),
       translationKey: z.string().optional(),
 
+      // ── Visual ─────────────────────────────────────────────
+      // heroImage: used in frontmatter for the main article banner.
+      // Accepts both local image() refs and external URL strings.
+      heroImage: image().or(z.string()).optional(),
+
       // ── SEO / Schema fields ────────────────────────────────
-      // type 决定注入哪种 Schema：
-      //   "article"  → Article schema（默认，适用普通资讯）
-      //   "howto"    → HowTo schema（适用教程类，展示步骤富片段）
-      //   "guide"    → Article schema + FAQPage（适用深度指南）
-      //   "news"     → Article + SpecialAnnouncement（适用快讯）
       type: z
         .enum(["article", "howto", "guide", "news"])
         .default("article"),
 
-      // faqs：注入 FAQPage schema，Google"人们还问"富片段
-      // 每篇文章建议 3~8 个问答对
-      // 示例：
-      //   faqs:
-      //     - q: "币安注册需要实名吗？"
-      //       a: "是的，需完成KYC才能使用完整功能。"
       faqs: z
         .array(
           z.object({

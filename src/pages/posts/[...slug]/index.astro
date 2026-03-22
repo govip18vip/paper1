@@ -1,27 +1,51 @@
 ---
+// src/pages/posts/[...slug]/index.astro
 import { type CollectionEntry, getCollection } from "astro:content";
 import PostDetails from "@/layouts/PostDetails.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
 import { getPath } from "@/utils/getPath";
+import { getTranslations } from "@/utils/getTranslations";
 
 type Props = {
   post: CollectionEntry<"blog">;
+  allPosts: CollectionEntry<"blog">[];
 };
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog", ({ data }) => !data.draft);
-  const postResult = posts.map(post => ({
-    params: { slug: getPath(post.id, post.filePath, false) },
-    props: { post },
-  }));
+  const sorted = getSortedPosts(posts);
 
-  return postResult;
+  return sorted.map(post => ({
+    params: { slug: getPath(post.id, post.filePath, false) },
+    props: { post, allPosts: sorted },
+  }));
 }
 
-const { post } = Astro.props;
+const { post, allPosts } = Astro.props;
 
-const posts = await getCollection("blog");
-const sortedPosts = getSortedPosts(posts);
+// ★ Critical: call render() to get Content component and headings
+const { Content, headings } = await post.render();
+
+// Build translation siblings
+const translations = await getTranslations(post, allPosts);
+
+// Find prev/next posts (same language preferred)
+const postLang = (post.data as any).lang ?? "zh-CN";
+const sameLangPosts = allPosts.filter(p => {
+  const l = (p.data as any).lang;
+  return (!l && postLang === "zh-CN") || l === postLang;
+});
+const currentIdx = sameLangPosts.findIndex(p => p.id === post.id);
+const prevPost = currentIdx > 0 ? sameLangPosts[currentIdx - 1] : null;
+const nextPost = currentIdx < sameLangPosts.length - 1 ? sameLangPosts[currentIdx + 1] : null;
 ---
 
-<PostDetails post={post} posts={sortedPosts} />
+<PostDetails
+  post={post}
+  headings={headings}
+  translations={translations}
+  prevPost={prevPost}
+  nextPost={nextPost}
+>
+  <Content />
+</PostDetails>
