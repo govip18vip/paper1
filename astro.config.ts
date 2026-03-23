@@ -12,14 +12,21 @@ import {
   transformerNotationFocus,
 } from "@shikijs/transformers";
 
+// ─────────────────────────────────────────────────────────────
+// Astro 5.x Config
+//
+// output: "static" (默认) — Astro 5 已支持按页面 prerender = false
+// "hybrid" 已在 Astro 5 中移除，不要使用
+// ─────────────────────────────────────────────────────────────
+
 export default defineConfig({
   site: SITE.website,
 
-  // ★ hybrid = 默认静态，文章页走 SSR
+  // Astro 5: "static" 已原生支持 per-page SSR (prerender = false)
   output: "static",
+
   adapter: vercel({
-    // Vercel ISR：SSR页面缓存5分钟，过期后台刷新
-    // 用户永远秒开（读缓存），Ghost发布后最多5分钟生效
+    // Vercel ISR：SSR 页面缓存 5 分钟，过期后台刷新
     isr: {
       expiration: 300,
     },
@@ -36,30 +43,57 @@ export default defineConfig({
         let changefreq: any = "monthly";
         let priority = 0.6;
         if (url === SITE.website || url === SITE.website + "/") {
-          changefreq = "daily"; priority = 1.0;
+          changefreq = "daily";
+          priority = 1.0;
         } else if (url.includes("/price/")) {
-          changefreq = "hourly"; priority = 0.9;
-        } else if (url.includes("/posts/") && !url.match(/\/posts\/\d+\/?$/)) {
-          changefreq = "weekly"; priority = 0.8;
+          changefreq = "hourly";
+          priority = 0.9;
+        } else if (
+          url.includes("/posts/") &&
+          !url.match(/\/posts\/\d+\/?$/)
+        ) {
+          changefreq = "weekly";
+          priority = 0.8;
         } else if (url.includes("/tags/")) {
-          changefreq = "weekly"; priority = 0.7;
+          changefreq = "weekly";
+          priority = 0.7;
         } else if (url.match(/\/(en|zh-tw|es|pt)\/?$/)) {
-          changefreq = "daily"; priority = 0.9;
+          changefreq = "daily";
+          priority = 0.9;
         }
-        return { ...item, changefreq, priority, lastmod: new Date(item.lastmod ?? Date.now()).toISOString() };
+        return {
+          ...item,
+          changefreq,
+          priority,
+          lastmod: new Date(item.lastmod ?? Date.now()).toISOString(),
+        };
       },
       i18n: {
         defaultLocale: "zh-CN",
-        locales: { "zh-CN": "zh-CN", "zh-tw": "zh-TW", "en": "en", "es": "es", "pt": "pt-BR" },
+        locales: {
+          "zh-CN": "zh-CN",
+          "zh-tw": "zh-TW",
+          en: "en",
+          es: "es",
+          pt: "pt-BR",
+        },
       },
     }),
   ],
 
   markdown: {
-    remarkPlugins: [remarkToc, [remarkCollapse, { test: "Table of contents" }]],
+    remarkPlugins: [
+      remarkToc,
+      [remarkCollapse, { test: "Table of contents" }],
+    ],
     shikiConfig: {
       themes: { light: "min-light", dark: "night-owl" },
-      transformers: [transformerFileName(), transformerNotationDiff(), transformerNotationWordHighlight(), transformerNotationFocus()],
+      transformers: [
+        transformerFileName(),
+        transformerNotationDiff(),
+        transformerNotationWordHighlight(),
+        transformerNotationFocus(),
+      ],
     },
   },
 

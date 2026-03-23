@@ -1,28 +1,36 @@
 // src/pages/api/prices.json.ts
-// Binance-powered price API endpoint — 唯一版本
+// ─────────────────────────────────────────────────────────────
+// Binance-powered price API endpoint
+// ⚠️ 必须 prerender = false，否则价格数据会被固化在构建时
+// ─────────────────────────────────────────────────────────────
+export const prerender = false;
+
 import type { APIRoute } from "astro";
 import { COIN_DB, MAJOR_COINS } from "@/utils/coinInfo";
 
 export const GET: APIRoute = async ({ url }) => {
-  const requestedIds = url.searchParams.get("ids")?.split(",") ||
+  const requestedIds =
+    url.searchParams.get("ids")?.split(",") ||
     MAJOR_COINS.map(c => c.id);
 
-  // Build Binance symbols list
   const symbols = requestedIds
     .map(id => COIN_DB[id]?.binanceSymbol)
     .filter(Boolean) as string[];
 
   if (symbols.length === 0) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: "No valid coin IDs provided",
-    }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ success: false, error: "No valid coin IDs provided" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
     let tickers: any[] = [];
 
-    // 方法1：精确查询指定 symbols
+    // 方法1：精确查询
     try {
       const symbolsParam = JSON.stringify(symbols);
       const res = await fetch(
@@ -33,14 +41,16 @@ export const GET: APIRoute = async ({ url }) => {
         tickers = await res.json();
       }
     } catch {
-      // 方法1失败，尝试方法2
+      // 方法1失败
     }
 
-    // 方法2：回退到全量查询
+    // 方法2：回退到全量
     if (tickers.length === 0) {
       try {
-        const fallback = await fetch("https://data-api.binance.vision/api/v3/ticker/24hr",
-          { signal: AbortSignal.timeout(10000) });
+        const fallback = await fetch(
+          "https://data-api.binance.vision/api/v3/ticker/24hr",
+          { signal: AbortSignal.timeout(10000) }
+        );
         if (fallback.ok) {
           const all = await fallback.json();
           const set = new Set(symbols);
@@ -51,7 +61,6 @@ export const GET: APIRoute = async ({ url }) => {
       }
     }
 
-    // Parse results
     const data: Record<string, any> = {};
     for (const t of tickers) {
       if (!t.symbol?.endsWith("USDT")) continue;
@@ -69,23 +78,32 @@ export const GET: APIRoute = async ({ url }) => {
       };
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      source: "binance",
-      timestamp: new Date().toISOString(),
-      count: Object.keys(data).length,
-      data,
-    }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=30",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        source: "binance",
+        timestamp: new Date().toISOString(),
+        count: Object.keys(data).length,
+        data,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=30",
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
+    );
   } catch (error) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 };
