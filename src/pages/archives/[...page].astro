@@ -1,0 +1,134 @@
+---
+// src/pages/articles/[...page].astro
+// Ghost 文章列表 — SSR，支持 ?lang=en &tag=btc 过滤
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import { SITE } from "@/config";
+import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+import { getPosts, type GhostPost, type GhostPagination } from "@/utils/ghost";
+
+const pageParam = Astro.params.page;
+const currentPage = pageParam ? parseInt(pageParam) || 1 : 1;
+const langParam = Astro.url.searchParams.get("lang") as Lang | null;
+const lang: Lang = langParam || getLang(Astro.url);
+const tagFilter = Astro.url.searchParams.get("tag") || undefined;
+const t = useTranslations(lang);
+
+let posts: GhostPost[] = [];
+let pagination: GhostPagination = { page:1, limit:20, pages:1, total:0, next:null, prev:null };
+
+try {
+  const data = await getPosts({ page: currentPage, limit: 20, lang, tag: tagFilter });
+  posts = data.posts;
+  pagination = data.pagination;
+} catch (e) { console.error("Ghost error:", e); }
+
+function pageUrl(p: number): string {
+  const base = p === 1 ? "/articles" : `/articles/${p}`;
+  const params = new URLSearchParams();
+  if (lang !== "zh-CN") params.set("lang", lang);
+  if (tagFilter) params.set("tag", tagFilter);
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+const pageTitle = tagFilter ? `${tagFilter} — ${t("section.all")}` : t("section.all");
+---
+
+<Layout title={`${pageTitle} | ${t("site.name")}`} description={t("site.desc")}>
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
+
+    <div class="main-col" style="padding-bottom:40px;">
+
+      <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
+        <a href="/" style="color:var(--fg-muted);text-decoration:none;">{t("nav.home")}</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="color:var(--fg);">{pageTitle}</span>
+        {pagination.pages > 1 && <span style="color:var(--fg-light);"> — {currentPage}/{pagination.pages}</span>}
+      </div>
+
+      <div style="padding:10px 16px 0;">
+        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin:0 0 4px;">{pageTitle}</h1>
+        <p style="font-size:13px;color:var(--fg-muted);">
+          {pagination.total.toLocaleString()} {lang === "en" ? "articles" : lang === "es" ? "artículos" : lang === "pt" ? "artigos" : "篇文章"}
+        </p>
+      </div>
+
+      {/* 语言切换 */}
+      <div style="padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;">
+        {(["zh-CN","zh-TW","en","es","pt"] as Lang[]).map(l => {
+          const label = l==="zh-CN"?"简中":l==="zh-TW"?"繁中":l==="en"?"EN":l==="es"?"ES":"PT";
+          const active = l === lang;
+          const href = `/articles${tagFilter ? `?tag=${tagFilter}&` : "?"}lang=${l}`;
+          return <a href={href} style={`display:inline-flex;align-items:center;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;border:1px solid ${active?"var(--accent)":"var(--border)"};color:${active?"#fff":"var(--fg-muted)"};background:${active?"var(--accent)":"transparent"};text-decoration:none;transition:all 0.12s;`}>{label}</a>;
+        })}
+      </div>
+
+      {/* 列表 */}
+      <div style="margin-top:8px;">
+        {posts.length > 0 ? (
+          <div class="alist">
+            {posts.map(p => (
+              <a href={`/article/${p.slug}`} class="alist-item" style="text-decoration:none;color:inherit;">
+                {p.feature_image && (
+                  <div class="alist-thumb"><img src={p.feature_image} alt={p.title} loading="lazy" /></div>
+                )}
+                <div class="alist-body">
+                  {p.primary_tag && <div class="alist-tag"><span class="ctag">{p.primary_tag.name}</span></div>}
+                  <div class="alist-title">{p.title}</div>
+                  {p.excerpt && <div class="alist-desc">{p.excerpt.slice(0,100)}</div>}
+                  <div class="alist-meta">
+                    <span>{p.primary_author?.name || SITE.author}</span>
+                    <span>·</span>
+                    <span>{new Date(p.published_at).toLocaleDateString()}</span>
+                    {p.reading_time > 0 && <><span>·</span><span>{p.reading_time} min</span></>}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
+            <p style="font-size:20px;margin-bottom:8px;">📝</p>
+            <p>{lang === "en" ? "No articles found" : "暂无文章"}</p>
+          </div>
+        )}
+      </div>
+
+      {/* 分页 */}
+      {pagination.pages > 1 && (
+        <nav style="display:flex;align-items:center;justify-content:center;gap:12px;padding:20px 16px;">
+          {pagination.prev
+            ? <a href={pageUrl(pagination.prev)} style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;color:var(--fg);text-decoration:none;">← {t("post.prev")}</a>
+            : <span style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--fg-muted);opacity:0.4;">← {t("post.prev")}</span>
+          }
+          <span style="font-size:14px;color:var(--fg-muted);">{currentPage} / {pagination.pages}</span>
+          {pagination.next
+            ? <a href={pageUrl(pagination.next)} style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;color:var(--fg);text-decoration:none;">{t("post.next")} →</a>
+            : <span style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--fg-muted);opacity:0.4;">{t("post.next")} →</span>
+          }
+        </nav>
+      )}
+    </div>
+
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{t("section.tags")}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          {["BTC","ETH","DeFi","NFT","Wallet","Beginner","Market"].map(tag => (
+            <a href={`/articles/?tag=${tag.toLowerCase()}&lang=${lang}`} class="ctag" style="text-decoration:none;">{tag}</a>
+          ))}
+        </div>
+      </div>
+      <div class="rsidebar-section"><BinanceBanner variant="compact" lang={lang} /></div>
+    </aside>
+  </div>
+  <Footer />
+</Layout>

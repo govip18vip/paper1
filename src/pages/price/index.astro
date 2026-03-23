@@ -1,6 +1,10 @@
 ---
 // src/pages/price/index.astro
-// 行情总览页 /price — 所有主流币种实时价格
+// ─────────────────────────────────────────────────────────────
+// CoinMarketCap 风格行情总览页 /price
+// 使用 Binance API（无认证） + CoinGecko 补充市值
+// 完整多语言支持
+// ─────────────────────────────────────────────────────────────
 
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -8,143 +12,385 @@ import Footer from "@/components/Footer.astro";
 import LeftSidebar from "@/components/LeftSidebar.astro";
 import BinanceBanner from "@/components/BinanceBanner.astro";
 import { SITE } from "@/config";
+import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+import { MAJOR_COINS, COIN_DB } from "@/utils/coinInfo";
 
-const coins = [
-  { id: "bitcoin",      sym: "BTC", name: "比特币",    href: "/price/btc", emoji: "₿",  color: "#f7931a" },
-  { id: "ethereum",     sym: "ETH", name: "以太坊",    href: "/price/eth", emoji: "⟠", color: "#627eea" },
-  { id: "binancecoin",  sym: "BNB", name: "币安币",    href: "/tags/btc",  emoji: "🔶", color: "#F0B90B" },
-  { id: "solana",       sym: "SOL", name: "Solana",    href: "/tags/btc",  emoji: "◎",  color: "#9945FF" },
-  { id: "ripple",       sym: "XRP", name: "瑞波币",    href: "/tags/btc",  emoji: "✕",  color: "#346AA9" },
-  { id: "cardano",      sym: "ADA", name: "艾达币",    href: "/tags/btc",  emoji: "◆",  color: "#0033AD" },
-  { id: "dogecoin",     sym: "DOGE", name: "狗狗币",   href: "/tags/btc",  emoji: "🐕", color: "#C2A633" },
-  { id: "tron",         sym: "TRX", name: "波场",       href: "/tags/btc", emoji: "♦",  color: "#E50914" },
-];
+const lang = getLang(Astro.url) as Lang;
+const t = useTranslations(lang);
+
+// 多语言标题映射
+const pageTitle: Record<Lang, string> = {
+  "zh-CN": "加密货币实时行情",
+  "zh-TW": "加密貨幣即時行情",
+  en: "Cryptocurrency Live Prices",
+  es: "Precios Cripto en Vivo",
+  pt: "Preços Cripto ao Vivo",
+};
+
+const pageDesc: Record<Lang, string> = {
+  "zh-CN": "实时追踪 BTC、ETH 等主流加密货币价格，24h涨跌幅、市值排行 — 数据来源 Binance",
+  "zh-TW": "即時追蹤 BTC、ETH 等主流加密貨幣價格，24h漲跌幅、市值排行",
+  en: "Track real-time BTC, ETH and major cryptocurrency prices with 24h changes & market cap — powered by Binance",
+  es: "Siga precios de BTC, ETH y criptomonedas principales en tiempo real",
+  pt: "Acompanhe preços de BTC, ETH e principais criptomoedas em tempo real",
+};
+
+const labels: Record<string, Record<Lang, string>> = {
+  coin:     { "zh-CN": "币种", "zh-TW": "幣種", en: "Coin", es: "Moneda", pt: "Moeda" },
+  price:    { "zh-CN": "价格 (USD)", "zh-TW": "價格 (USD)", en: "Price (USD)", es: "Precio (USD)", pt: "Preço (USD)" },
+  change:   { "zh-CN": "24h涨跌", "zh-TW": "24h漲跌", en: "24h Change", es: "24h Cambio", pt: "24h Variação" },
+  mcap:     { "zh-CN": "市值", "zh-TW": "市值", en: "Market Cap", es: "Cap. Mercado", pt: "Cap. Mercado" },
+  vol:      { "zh-CN": "24h成交量", "zh-TW": "24h成交量", en: "24h Volume", es: "Vol. 24h", pt: "Vol. 24h" },
+  rank:     { "zh-CN": "排名", "zh-TW": "排名", en: "Rank", es: "Rango", pt: "Rank" },
+  source:   { "zh-CN": "数据来源：Binance · 每30秒更新", "zh-TW": "數據來源：Binance · 每30秒更新", en: "Data: Binance · Updates every 30s", es: "Datos: Binance · Actualiza cada 30s", pt: "Dados: Binance · Atualiza a cada 30s" },
+  detail:   { "zh-CN": "热门币种详情", "zh-TW": "熱門幣種詳情", en: "Popular Coins", es: "Monedas Populares", pt: "Moedas Populares" },
+  viewAll:  { "zh-CN": "查看详情 →", "zh-TW": "查看詳情 →", en: "View Details →", es: "Ver Detalles →", pt: "Ver Detalhes →" },
+};
 
 const pricePageSchema = {
   "@context": "https://schema.org",
   "@type": "WebPage",
-  name: "加密货币实时行情 — BTC、ETH、BNB价格",
-  description: "实时追踪比特币、以太坊等主流加密货币价格，查看24小时涨跌幅和历史走势图。",
+  name: pageTitle[lang],
+  description: pageDesc[lang],
   url: `${SITE.website}price`,
+  inLanguage: lang,
 };
 ---
 
 <Layout
-  title="加密货币实时行情 — BTC、ETH今日价格 | CryptoNews"
-  description="实时追踪比特币BTC、以太坊ETH等主流加密货币价格，24小时涨跌幅、市值排行。"
+  title={`${pageTitle[lang]} | ${t("site.name")}`}
+  description={pageDesc[lang]}
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(pricePageSchema)} />
-    <link rel="preconnect" href="https://api.coingecko.com" />
+    <link rel="preconnect" href="https://api.binance.com" />
   </Fragment>
 
   <Header />
   <div class="site-outer">
-    <LeftSidebar />
+    <LeftSidebar currentLang={lang} />
     <main class="main-col" id="main-content">
 
       <div style="padding:14px 16px 0;">
-        <h1 style="font-size:20px;font-weight:800;color:var(--fg);margin:0 0 4px;">加密货币实时行情</h1>
-        <p style="font-size:13px;color:var(--fg-muted);margin:0;">实时价格 · 数据来源 CoinGecko · 每60秒更新</p>
+        <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0 0 4px;">
+          {pageTitle[lang]}
+        </h1>
+        <p style="font-size:13px;color:var(--fg-muted);margin:0;">{labels.source[lang]}</p>
       </div>
 
-      <!-- 价格表格 -->
+      <!-- ══ 价格表格 ══ -->
       <section style="padding:12px 16px 0;">
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <!-- 表头 -->
-          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;padding:10px 16px;background:var(--bg-elevated);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.05em;">
-            <span>币种</span>
-            <span style="text-align:right;">价格 (USD)</span>
-            <span style="text-align:right;">24h涨跌</span>
-            <span style="text-align:right;">市值</span>
+          <div class="price-table-head">
+            <span style="min-width:30px;text-align:center;">#</span>
+            <span style="flex:2;">{labels.coin[lang]}</span>
+            <span style="flex:1;text-align:right;">{labels.price[lang]}</span>
+            <span style="flex:1;text-align:right;" class="hide-mobile-sm">{labels.change[lang]}</span>
+            <span style="flex:1;text-align:right;" class="hide-tablet">{labels.vol[lang]}</span>
+            <span style="flex:1;text-align:right;" class="hide-tablet">{labels.mcap[lang]}</span>
           </div>
-          <!-- 行 -->
-          {coins.map((coin, i) => (
-            <a href={coin.href}
-              style={`display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;padding:14px 16px;border-bottom:${i < coins.length-1 ? "1px solid var(--border-subtle)" : "none"};text-decoration:none;color:var(--fg);transition:background 0.12s;align-items:center;`}
-              onmouseover="this.style.background='var(--bg-elevated)'"
-              onmouseout="this.style.background='transparent'"
-            >
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style={`width:32px;height:32px;border-radius:50%;background:${coin.color}22;display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid ${coin.color}44;flex-shrink:0;`}>{coin.emoji}</div>
-                <div>
-                  <div style="font-size:14px;font-weight:700;color:var(--fg);">{coin.name}</div>
-                  <div style="font-size:11px;color:var(--fg-muted);">{coin.sym}</div>
+
+          <!-- 币种行 -->
+          <div id="price-table">
+            {MAJOR_COINS.map((coin, i) => (
+              <a href={`/price/${coin.symbol.toLowerCase()}`}
+                class="price-row"
+                data-coin={coin.id}
+              >
+                <span class="price-rank" id={`r-${coin.id}`}>{i + 1}</span>
+                <div class="price-coin-info">
+                  <div class="price-coin-icon" style={`background:${coin.color}22;border-color:${coin.color}44;color:${coin.color};`}>
+                    {coin.emoji}
+                  </div>
+                  <div style="min-width:0;">
+                    <div class="price-coin-name">{coin.name[lang]}</div>
+                    <div class="price-coin-sym">{coin.symbol}</div>
+                  </div>
                 </div>
-              </div>
-              <div id={`p-${coin.id}`} style="text-align:right;font-size:14px;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums;">--</div>
-              <div id={`c-${coin.id}`} style="text-align:right;font-size:13px;font-weight:600;">--</div>
-              <div id={`m-${coin.id}`} style="text-align:right;font-size:12px;color:var(--fg-muted);">--</div>
-            </a>
-          ))}
+                <div id={`p-${coin.id}`} class="price-val">—</div>
+                <div id={`c-${coin.id}`} class="price-change hide-mobile-sm">—</div>
+                <div id={`v-${coin.id}`} class="price-vol hide-tablet">—</div>
+                <div id={`m-${coin.id}`} class="price-mcap hide-tablet">—</div>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
+      <!-- 币安横幅 -->
       <div style="padding:0 16px;">
-        <BinanceBanner variant="hero" lang="zh-CN" />
+        <BinanceBanner variant="hero" lang={lang} />
       </div>
 
-      <!-- 行情页链接 -->
+      <!-- ══ 热门币种卡片 ══ -->
       <section style="padding:0 16px 20px;">
         <div class="sec-head" style="padding-left:0;margin-bottom:12px;">
-          <span class="sec-head-title">详细行情页面</span>
+          <span class="sec-head-title">{labels.detail[lang]}</span>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          {[
-            { href:"/price/btc", name:"比特币(BTC)价格", desc:"实时走势 · 减半数据", color:"#f7931a", emoji:"₿" },
-            { href:"/price/eth", name:"以太坊(ETH)价格", desc:"Gas费 · 质押收益",   color:"#627eea", emoji:"⟠" },
-          ].map(item => (
-            <a href={item.href} style={`display:flex;align-items:flex-start;gap:12px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;text-decoration:none;transition:border-color 0.12s;`}
-              onmouseover={`this.style.borderColor='${item.color}'`} onmouseout="this.style.borderColor='var(--border)'">
-              <div style={`width:40px;height:40px;border-radius:50%;background:${item.color}22;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid ${item.color}44;`}>{item.emoji}</div>
-              <div>
-                <div style="font-size:14px;font-weight:700;color:var(--fg);">{item.name}</div>
-                <div style="font-size:12px;color:var(--fg-muted);margin-top:2px;">{item.desc}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+          {MAJOR_COINS.slice(0, 8).map(coin => (
+            <a href={`/price/${coin.symbol.toLowerCase()}`}
+              class="coin-detail-card"
+              style={`--coin-color:${coin.color};`}
+            >
+              <div class="coin-detail-icon" style={`background:${coin.color}22;border-color:${coin.color}44;`}>
+                <span style={`color:${coin.color};font-size:18px;`}>{coin.emoji}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:700;color:var(--fg);">{coin.symbol}</div>
+                <div style="font-size:11px;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{coin.name[lang]}</div>
+                <div style="font-size:10px;color:var(--fg-light);margin-top:2px;">{labels.viewAll[lang]}</div>
               </div>
             </a>
           ))}
         </div>
       </section>
+
     </main>
 
+    <!-- 右侧栏 -->
     <aside class="rsidebar" style="padding:16px 0;">
       <div class="rsidebar-section">
-        <BinanceBanner variant="compact" lang="zh-CN" />
+        <BinanceBanner variant="compact" lang={lang} />
       </div>
     </aside>
   </div>
   <Footer />
 </Layout>
 
+<style>
+  .price-table-head {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 10px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .price-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    text-decoration: none;
+    color: var(--fg);
+    transition: background 0.12s;
+  }
+  .price-row:last-child { border-bottom: none; }
+  .price-row:hover { background: var(--bg-elevated); }
+  .price-rank {
+    min-width: 30px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+  .price-coin-info {
+    flex: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .price-coin-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+  .price-coin-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .price-coin-sym {
+    font-size: 11px;
+    color: var(--fg-muted);
+  }
+  .price-val {
+    flex: 1;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .price-change {
+    flex: 1;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .price-vol, .price-mcap {
+    flex: 1;
+    text-align: right;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .coin-detail-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .coin-detail-card:hover {
+    border-color: var(--coin-color, var(--accent));
+    transform: translateY(-1px);
+  }
+  .coin-detail-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+
+  @media (max-width: 768px) {
+    .hide-tablet { display: none !important; }
+  }
+  @media (max-width: 500px) {
+    .hide-mobile-sm { display: none !important; }
+    .price-row { padding: 10px 12px; }
+  }
+</style>
+
 <script is:inline>
 (function(){
-  const fmt = n => n >= 1e9 ? "$"+(n/1e9).toFixed(1)+"B" : n >= 1e6 ? "$"+(n/1e6).toFixed(0)+"M" : "$"+n.toLocaleString("en-US",{maximumFractionDigits:0});
-  const fmtP = n => n >= 1000 ? "$"+n.toLocaleString("en-US",{maximumFractionDigits:0}) : "$"+n.toFixed(3);
+  const fmt = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1e12) return "$" + (n/1e12).toFixed(2) + "T";
+    if (n >= 1e9) return "$" + (n/1e9).toFixed(2) + "B";
+    if (n >= 1e6) return "$" + (n/1e6).toFixed(1) + "M";
+    return "$" + n.toLocaleString("en-US", {maximumFractionDigits:0});
+  };
+  const fmtP = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1000) return "$" + n.toLocaleString("en-US", {maximumFractionDigits: n >= 10000 ? 0 : 2});
+    if (n >= 1) return "$" + n.toFixed(2);
+    return "$" + n.toFixed(4);
+  };
 
-  async function load(){
+  // Binance API 直接获取 24h ticker
+  async function fetchBinance() {
+    const symbols = [
+      "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT",
+      "ADAUSDT","DOGEUSDT","TRXUSDT","DOTUSDT","LTCUSDT",
+      "LINKUSDT","AVAXUSDT","UNIUSDT","XLMUSDT","ATOMUSDT",
+      "BCHUSDT","POLUSDT","ARBUSDT","OPUSDT","SUIUSDT"
+    ];
+
     try {
-      const ids = ["bitcoin","ethereum","binancecoin","solana","ripple","cardano","dogecoin","tron"];
+      const symbolsParam = JSON.stringify(symbols);
       const r = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(",")}&order=market_cap_desc&sparkline=false`,
+        `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) throw new Error("Binance API error");
+      return await r.json();
+    } catch {
+      // 回退：请求全量然后过滤
+      try {
+        const r = await fetch("https://data-api.binance.vision/api/v3/ticker/24hr",
+          { signal: AbortSignal.timeout(10000) });
+        if (!r.ok) return [];
+        const all = await r.json();
+        const set = new Set(symbols);
+        return all.filter(t => set.has(t.symbol));
+      } catch { return []; }
+    }
+  }
+
+  // CoinGecko 补充市值数据
+  async function fetchGeckoMarketCap() {
+    try {
+      const ids = "bitcoin,ethereum,binancecoin,solana,ripple,cardano,dogecoin,tron,polkadot,litecoin,chainlink,avalanche-2,uniswap,stellar,cosmos,bitcoin-cash,polygon-ecosystem-token,arbitrum,optimism,sui";
+      const r = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=false`,
         { signal: AbortSignal.timeout(10000) }
       );
-      if(!r.ok) return;
-      const list = await r.json();
-      for(const c of list){
-        const pe = document.getElementById("p-"+c.id);
-        const ce = document.getElementById("c-"+c.id);
-        const me = document.getElementById("m-"+c.id);
-        if(pe) pe.textContent = fmtP(c.current_price);
-        if(ce && c.price_change_percentage_24h !== null){
-          const chg = c.price_change_percentage_24h;
-          ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + chg.toFixed(2) + "%";
-          ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
-        }
-        if(me) me.textContent = fmt(c.market_cap);
+      if (!r.ok) return {};
+      const data = await r.json();
+      const map = {};
+      for (const c of data) {
+        map[c.symbol.toUpperCase()] = {
+          mcap: c.market_cap,
+          rank: c.market_cap_rank,
+          vol: c.total_volume,
+        };
       }
-    } catch(e){}
+      return map;
+    } catch { return {}; }
   }
-  load();
-  setInterval(load, 60000);
+
+  // Symbol → coinId 映射
+  const symToCoinId = {
+    BTC:"bitcoin", ETH:"ethereum", BNB:"binancecoin", SOL:"solana", XRP:"ripple",
+    ADA:"cardano", DOGE:"dogecoin", TRX:"tron", DOT:"polkadot", LTC:"litecoin",
+    LINK:"chainlink", AVAX:"avalanche-2", UNI:"uniswap", XLM:"stellar", ATOM:"cosmos",
+    BCH:"bitcoin-cash", POL:"polygon", ARB:"arbitrum", OP:"optimism", SUI:"sui",
+  };
+
+  async function updateAll() {
+    const [tickers, geckoMap] = await Promise.all([
+      fetchBinance(),
+      fetchGeckoMarketCap(),
+    ]);
+
+    for (const t of tickers) {
+      const sym = t.symbol.replace("USDT", "");
+      const coinId = symToCoinId[sym];
+      if (!coinId) continue;
+
+      const pe = document.getElementById("p-" + coinId);
+      const ce = document.getElementById("c-" + coinId);
+      const ve = document.getElementById("v-" + coinId);
+      const me = document.getElementById("m-" + coinId);
+      const re = document.getElementById("r-" + coinId);
+
+      const price = parseFloat(t.lastPrice);
+      const chg = parseFloat(t.priceChangePercent);
+      const vol = parseFloat(t.quoteVolume);
+
+      if (pe) pe.textContent = fmtP(price);
+      if (ce) {
+        ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
+        ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+      }
+      if (ve) ve.textContent = fmt(vol);
+
+      // CoinGecko 市值数据
+      const gecko = geckoMap[sym];
+      if (gecko) {
+        if (me) me.textContent = fmt(gecko.mcap);
+        if (re && gecko.rank) re.textContent = gecko.rank;
+      }
+    }
+  }
+
+  updateAll();
+  setInterval(updateAll, 30000); // 每30秒刷新
 })();
 </script>

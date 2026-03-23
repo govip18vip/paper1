@@ -1,0 +1,567 @@
+---
+// src/pages/price/[symbol].astro
+// ─────────────────────────────────────────────────────────────
+// CoinMarketCap 风格币种详情页  /price/btc  /price/eth  ...
+// 使用 Binance API 实时数据 + 完整币种资料
+// ─────────────────────────────────────────────────────────────
+
+import type { GetStaticPaths } from "astro";
+import { getCollection } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import { SITE } from "@/config";
+import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+import { MAJOR_COINS, COIN_DB, getCoinBySymbol } from "@/utils/coinInfo";
+import { getPath } from "@/utils/getPath";
+
+export const getStaticPaths = (async () => {
+  return MAJOR_COINS.map(coin => ({
+    params: { symbol: coin.symbol.toLowerCase() },
+    props: { coinId: coin.id },
+  }));
+}) satisfies GetStaticPaths;
+
+const { coinId } = Astro.props;
+const coin = COIN_DB[coinId];
+if (!coin) return Astro.redirect("/404");
+
+const lang = getLang(Astro.url) as Lang;
+const t = useTranslations(lang);
+
+// 获取相关文章
+const allPosts = await getCollection("blog");
+const relatedPosts = allPosts
+  .filter(p => !p.data.draft && p.data.tags?.some(tag =>
+    coin.tags.includes(tag.toLowerCase())
+  ))
+  .sort((a, b) => new Date(b.data.pubDatetime).getTime() - new Date(a.data.pubDatetime).getTime())
+  .slice(0, 10);
+
+// 多语言 labels
+const L: Record<string, Record<Lang, string>> = {
+  livePrice:   { "zh-CN": "实时价格", "zh-TW": "即時價格", en: "Live Price", es: "Precio en Vivo", pt: "Preço ao Vivo" },
+  priceUSD:    { "zh-CN": "价格 (USD)", "zh-TW": "價格 (USD)", en: "Price (USD)", es: "Precio (USD)", pt: "Preço (USD)" },
+  change24h:   { "zh-CN": "24h涨跌", "zh-TW": "24h漲跌", en: "24h Change", es: "Cambio 24h", pt: "Variação 24h" },
+  high24h:     { "zh-CN": "24h最高", "zh-TW": "24h最高", en: "24h High", es: "Máx 24h", pt: "Máx 24h" },
+  low24h:      { "zh-CN": "24h最低", "zh-TW": "24h最低", en: "24h Low", es: "Mín 24h", pt: "Mín 24h" },
+  vol24h:      { "zh-CN": "24h成交量", "zh-TW": "24h成交量", en: "24h Volume", es: "Vol 24h", pt: "Vol 24h" },
+  mcap:        { "zh-CN": "市值", "zh-TW": "市值", en: "Market Cap", es: "Cap. Mercado", pt: "Cap. Mercado" },
+  supply:      { "zh-CN": "流通量", "zh-TW": "流通量", en: "Circulating Supply", es: "Suministro Circulante", pt: "Fornecimento Circulante" },
+  maxSupply:   { "zh-CN": "最大供应", "zh-TW": "最大供應", en: "Max Supply", es: "Suministro Máx", pt: "Fornecimento Máx" },
+  trend:       { "zh-CN": "价格走势", "zh-TW": "價格走勢", en: "Price Chart", es: "Gráfico de Precio", pt: "Gráfico de Preço" },
+  projectInfo: { "zh-CN": "项目信息", "zh-TW": "項目資訊", en: "Project Info", es: "Info del Proyecto", pt: "Info do Projeto" },
+  founder:     { "zh-CN": "创始人", "zh-TW": "創始人", en: "Founder", es: "Fundador", pt: "Fundador" },
+  launchDate:  { "zh-CN": "上线日期", "zh-TW": "上線日期", en: "Launch Date", es: "Fecha de Lanzamiento", pt: "Data de Lançamento" },
+  consensus:   { "zh-CN": "共识机制", "zh-TW": "共識機制", en: "Consensus", es: "Consenso", pt: "Consenso" },
+  blockTime:   { "zh-CN": "出块时间", "zh-TW": "出塊時間", en: "Block Time", es: "Tiempo de Bloque", pt: "Tempo de Bloco" },
+  useCase:     { "zh-CN": "使用场景", "zh-TW": "使用場景", en: "Use Case", es: "Caso de Uso", pt: "Caso de Uso" },
+  desc:        { "zh-CN": "简介", "zh-TW": "簡介", en: "Description", es: "Descripción", pt: "Descrição" },
+  links:       { "zh-CN": "相关链接", "zh-TW": "相關連結", en: "Links", es: "Enlaces", pt: "Links" },
+  website:     { "zh-CN": "官网", "zh-TW": "官網", en: "Website", es: "Sitio Web", pt: "Site" },
+  whitepaper:  { "zh-CN": "白皮书", "zh-TW": "白皮書", en: "Whitepaper", es: "Whitepaper", pt: "Whitepaper" },
+  explorer:    { "zh-CN": "区块浏览器", "zh-TW": "區塊瀏覽器", en: "Explorer", es: "Explorador", pt: "Explorador" },
+  sourceCode:  { "zh-CN": "源代码", "zh-TW": "原始碼", en: "Source Code", es: "Código Fuente", pt: "Código Fonte" },
+  news:        { "zh-CN": "相关资讯", "zh-TW": "相關資訊", en: "Related News", es: "Noticias Relacionadas", pt: "Notícias Relacionadas" },
+  viewAll:     { "zh-CN": "查看全部 →", "zh-TW": "查看全部 →", en: "View All →", es: "Ver Todo →", pt: "Ver Tudo →" },
+  buyOn:       { "zh-CN": "在币安购买", "zh-TW": "在幣安購買", en: "Buy on Binance", es: "Comprar en Binance", pt: "Comprar na Binance" },
+  otherCoins:  { "zh-CN": "其他币种", "zh-TW": "其他幣種", en: "Other Coins", es: "Otras Monedas", pt: "Outras Moedas" },
+  updated:     { "zh-CN": "最后更新", "zh-TW": "最後更新", en: "Last updated", es: "Última actualización", pt: "Última atualização" },
+  autoRefresh: { "zh-CN": "每30秒自动刷新", "zh-TW": "每30秒自動刷新", en: "Auto-refreshes every 30s", es: "Se actualiza cada 30s", pt: "Atualiza a cada 30s" },
+  source:      { "zh-CN": "数据来源：Binance", "zh-TW": "數據來源：Binance", en: "Data: Binance", es: "Datos: Binance", pt: "Dados: Binance" },
+  quickBuy:    { "zh-CN": "快速操作", "zh-TW": "快速操作", en: "Quick Actions", es: "Acciones Rápidas", pt: "Ações Rápidas" },
+  refCode:     { "zh-CN": "邀请码 B2345 · 最高折扣", "zh-TW": "邀請碼 B2345 · 最高折扣", en: "Ref B2345 · Max Discount", es: "Código B2345 · Máximo descuento", pt: "Código B2345 · Máximo desconto" },
+  allPrices:   { "zh-CN": "← 返回行情总览", "zh-TW": "← 返回行情總覽", en: "← Back to Prices", es: "← Volver a Precios", pt: "← Voltar a Preços" },
+};
+
+const pageTitle = `${coin.name[lang]} (${coin.symbol}) ${L.livePrice[lang]}`;
+
+// Others coins for sidebar
+const otherCoins = MAJOR_COINS.filter(c => c.id !== coinId).slice(0, 6);
+---
+
+<Layout
+  title={`${pageTitle} | ${t("site.name")}`}
+  description={coin.description[lang]}
+>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://api.binance.com" />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FinancialProduct",
+      name: `${coin.name[lang]} (${coin.symbol})`,
+      description: coin.description[lang],
+      url: `${SITE.website}price/${coin.symbol.toLowerCase()}`,
+      category: "Cryptocurrency",
+      provider: { "@type": "Organization", name: SITE.title },
+    })} />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
+
+    <main class="main-col" id="main-content">
+
+      <!-- 面包屑 -->
+      <nav style="padding:12px 16px 0;font-size:13px;color:var(--fg-muted);" aria-label="breadcrumb">
+        <a href={lang === "zh-CN" ? "/" : `/${lang.toLowerCase()}/`} style="color:var(--fg-muted);text-decoration:none;">{t("nav.home")}</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <a href="/price" style="color:var(--fg-muted);text-decoration:none;">{L.allPrices[lang].replace("← ","")}</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="color:var(--fg);">{coin.name[lang]} ({coin.symbol})</span>
+      </nav>
+
+      <!-- ══ 价格 Hero ══ -->
+      <section style="padding:12px 16px 0;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <!-- 头部 -->
+          <div style="display:flex;align-items:center;gap:14px;padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+            <div style={`width:48px;height:48px;border-radius:50%;background:${coin.color}22;border:2px solid ${coin.color}44;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;`}>{coin.emoji}</div>
+            <div style="flex:1;min-width:150px;">
+              <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0;line-height:1.2;">{coin.name[lang]} <span style="font-size:14px;font-weight:400;color:var(--fg-muted);">{coin.symbol}</span></h1>
+              <p style="font-size:12px;color:var(--fg-muted);margin:3px 0 0;">{L.source[lang]}</p>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span id="rank-badge" class="ctag-blue">—</span>
+              {coin.consensus && <span class="ctag">{coin.consensus.split("(")[0].trim().slice(0,20)}</span>}
+            </div>
+          </div>
+
+          <!-- 价格网格 -->
+          <div class="coin-price-grid">
+            <div class="coin-price-cell coin-price-main">
+              <div class="coin-price-label">{L.priceUSD[lang]}</div>
+              <div id="coin-price" style="font-size:clamp(24px,5vw,32px);font-weight:800;color:var(--fg);font-variant-numeric:tabular-nums;">—</div>
+              <div id="coin-change" style="font-size:14px;margin-top:4px;font-weight:700;">—</div>
+            </div>
+            <div class="coin-price-cell">
+              <div class="coin-price-label">{L.high24h[lang]}</div>
+              <div id="coin-high" class="coin-price-num">—</div>
+              <div class="coin-price-label" style="margin-top:8px;">{L.low24h[lang]}</div>
+              <div id="coin-low" class="coin-price-num">—</div>
+            </div>
+            <div class="coin-price-cell">
+              <div class="coin-price-label">{L.vol24h[lang]}</div>
+              <div id="coin-vol" class="coin-price-num">—</div>
+              <div class="coin-price-label" style="margin-top:8px;">{L.mcap[lang]}</div>
+              <div id="coin-mcap" class="coin-price-num">—</div>
+            </div>
+            <div class="coin-price-cell">
+              <div class="coin-price-label">{L.supply[lang]}</div>
+              <div id="coin-supply" class="coin-price-num">—</div>
+              <div class="coin-price-label" style="margin-top:8px;">{L.maxSupply[lang]}</div>
+              <div class="coin-price-num" style={`color:${coin.color};`}>{coin.maxSupply || "∞"}</div>
+            </div>
+          </div>
+
+          <!-- K线图 -->
+          <div style="padding:16px 24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:14px;font-weight:700;color:var(--fg);">{L.trend[lang]}</span>
+              <div style="display:flex;gap:4px;" id="chart-btns">
+                {["1h","4h","1d","1w"].map((p, i) => (
+                  <button data-interval={p === "1h" ? "1m" : p === "4h" ? "5m" : p === "1d" ? "1h" : "1d"}
+                    data-limit={p === "1h" ? "60" : p === "4h" ? "48" : p === "1d" ? "24" : "30"}
+                    data-label={p}
+                    class:list={["chart-period-btn", { active: i === 2 }]}
+                  >{p}</button>
+                ))}
+              </div>
+            </div>
+            <div style="position:relative;height:220px;">
+              <canvas id="coin-chart"></canvas>
+            </div>
+          </div>
+
+          <div style="padding:8px 24px 14px;font-size:11px;color:var(--fg-light);">
+            {L.updated[lang]}：<span id="coin-updated">—</span> · {L.autoRefresh[lang]}
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ 币安购买 ══ -->
+      <div style="padding:0 16px;">
+        <BinanceBanner variant="article" lang={lang} />
+      </div>
+
+      <!-- ══ 项目信息 ══ -->
+      <section style="padding:0 16px 16px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;">
+          <h2 style="font-size:17px;font-weight:700;color:var(--fg);margin:0 0 18px;display:flex;align-items:center;gap:8px;">
+            <span style={`width:3px;height:18px;background:${coin.color};border-radius:2px;display:inline-block;`}></span>
+            {L.projectInfo[lang]}
+          </h2>
+
+          <!-- 简介 -->
+          <div style="background:var(--bg-elevated);border-radius:6px;padding:14px 16px;margin-bottom:16px;border-left:3px solid var(--accent);">
+            <div style="font-size:11px;font-weight:600;color:var(--fg-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;">{L.desc[lang]}</div>
+            <p style="font-size:14px;color:var(--fg);line-height:1.7;margin:0;">{coin.description[lang]}</p>
+          </div>
+
+          <!-- 详细信息网格 -->
+          <div class="coin-info-grid">
+            {[
+              [L.founder[lang], coin.founderFull?.[lang] || coin.founder || "—"],
+              [L.launchDate[lang], coin.launchDate || "—"],
+              [L.consensus[lang], coin.consensus || "—"],
+              [L.blockTime[lang], coin.blockTime || "—"],
+              [L.maxSupply[lang], coin.maxSupply || "∞"],
+              [L.useCase[lang], coin.useCase[lang]],
+            ].map(([label, value]) => (
+              <div class="coin-info-row">
+                <span class="coin-info-label">{label}</span>
+                <span class="coin-info-value">{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <!-- 官方链接 -->
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+            <div style="font-size:12px;font-weight:700;color:var(--fg-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">{L.links[lang]}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              {coin.officialWebsite && (
+                <a href={coin.officialWebsite} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:var(--tag-orange-bg);--btn-color:var(--accent);">
+                  🌐 {L.website[lang]}
+                </a>
+              )}
+              {coin.whitepaper && (
+                <a href={coin.whitepaper} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:var(--tag-blue-bg);--btn-color:var(--accent-blue);">
+                  📄 {L.whitepaper[lang]}
+                </a>
+              )}
+              {coin.blockExplorer && (
+                <a href={coin.blockExplorer} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:var(--tag-green-bg);--btn-color:var(--accent-green);">
+                  🔍 {L.explorer[lang]}
+                </a>
+              )}
+              {coin.github && (
+                <a href={coin.github} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:var(--bg-elevated);--btn-color:var(--fg-muted);">
+                  💻 {L.sourceCode[lang]}
+                </a>
+              )}
+              {coin.twitter && (
+                <a href={coin.twitter} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:rgba(29,155,240,.12);--btn-color:#1d9bf0;">
+                  𝕏 Twitter
+                </a>
+              )}
+              {coin.telegram && (
+                <a href={coin.telegram} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:rgba(0,136,204,.12);--btn-color:#0088cc;">
+                  ✈️ Telegram
+                </a>
+              )}
+              {coin.discord && (
+                <a href={coin.discord} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:rgba(88,101,242,.12);--btn-color:#5865f2;">
+                  💬 Discord
+                </a>
+              )}
+              {coin.reddit && (
+                <a href={coin.reddit} target="_blank" rel="noopener noreferrer" class="coin-link-btn" style="--btn-bg:rgba(255,69,0,.1);--btn-color:#ff4500;">
+                  📢 Reddit
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ 相关资讯 ══ -->
+      {relatedPosts.length > 0 && (
+        <section style="padding:0 16px 20px;">
+          <div class="sec-head" style="padding-left:0;margin-bottom:12px;">
+            <span class="sec-head-title">{coin.symbol} {L.news[lang]}</span>
+            <a href={`/tags/${coin.tags[0]}`} class="sec-head-more">{L.viewAll[lang]}</a>
+          </div>
+          <div style="background:var(--bg-card);border-radius:8px;border:1px solid var(--border);overflow:hidden;">
+            {relatedPosts.map((post, i) => (
+              <a href={getPath(post.id, post.filePath)}
+                style={`display:flex;gap:12px;padding:12px 16px;text-decoration:none;color:var(--fg);transition:background 0.12s;${i < relatedPosts.length - 1 ? 'border-bottom:1px solid var(--border-subtle);' : ''}`}
+                onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background='transparent'">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                    {post.data.title}
+                  </div>
+                  <div style="font-size:11px;color:var(--fg-light);margin-top:4px;">
+                    {new Date(post.data.pubDatetime).toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : lang === "pt" ? "pt-BR" : "zh-CN")}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- 返回行情 -->
+      <div style="padding:0 16px 20px;">
+        <a href="/price" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-muted);text-decoration:none;transition:color 0.12s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg-muted)'">{L.allPrices[lang]}</a>
+      </div>
+
+    </main>
+
+    <!-- 右侧栏 -->
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{L.quickBuy[lang]}</div>
+        <a href={`https://www.binance.com/en/register?ref=B2345`} target="_blank" rel="noopener noreferrer sponsored"
+          style={`display:block;padding:11px;background:${coin.color};color:#fff;border-radius:6px;text-decoration:none;font-size:13px;font-weight:700;text-align:center;margin-bottom:8px;transition:opacity 0.12s;`}
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          {L.buyOn[lang]} {coin.symbol} →
+        </a>
+        <p style="font-size:11px;color:var(--fg-muted);text-align:center;margin:0;">{L.refCode[lang]}</p>
+      </div>
+
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{L.otherCoins[lang]}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          {otherCoins.map(c => (
+            <a href={`/price/${c.symbol.toLowerCase()}`}
+              style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-elevated);border-radius:5px;text-decoration:none;color:var(--fg);font-size:13px;transition:background 0.12s;"
+              onmouseover="this.style.background='var(--nav-active-bg)'" onmouseout="this.style.background='var(--bg-elevated)'">
+              <span style="display:flex;align-items:center;gap:6px;">
+                <span style={`color:${c.color};`}>{c.emoji}</span> {c.name[lang]}
+              </span>
+              <span style="color:var(--fg-muted);font-size:11px;">{c.symbol}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="rsidebar-section">
+        <BinanceBanner variant="compact" lang={lang} />
+      </div>
+    </aside>
+  </div>
+  <Footer />
+</Layout>
+
+<style>
+  .coin-price-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+  .coin-price-cell {
+    padding: 16px 20px;
+    border-right: 1px solid var(--border);
+  }
+  .coin-price-cell:last-child { border-right: none; }
+  .coin-price-main { grid-column: span 1; }
+  .coin-price-label {
+    font-size: 11px;
+    color: var(--fg-muted);
+    margin-bottom: 4px;
+  }
+  .coin-price-num {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .coin-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .coin-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .coin-info-label {
+    font-size: 13px;
+    color: var(--fg-muted);
+    flex-shrink: 0;
+  }
+  .coin-info-value {
+    font-size: 13px;
+    color: var(--fg);
+    font-weight: 500;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .coin-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    background: var(--btn-bg);
+    color: var(--btn-color);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    transition: opacity 0.12s;
+  }
+  .coin-link-btn:hover { opacity: 0.75; }
+  .chart-period-btn {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .chart-period-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  @media (max-width: 768px) {
+    .coin-price-grid { grid-template-columns: 1fr 1fr; }
+    .coin-info-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .coin-price-grid { grid-template-columns: 1fr; }
+    .coin-price-cell { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+  }
+</style>
+
+<script is:inline define:vars={{ binanceSymbol: coin.binanceSymbol, coinId, coinColor: coin.color }}>
+(function(){
+  const fmt = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1e12) return "$"+(n/1e12).toFixed(2)+"T";
+    if (n >= 1e9) return "$"+(n/1e9).toFixed(2)+"B";
+    if (n >= 1e6) return "$"+(n/1e6).toFixed(1)+"M";
+    return "$"+n.toLocaleString("en-US",{maximumFractionDigits:0});
+  };
+  const fmtP = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1000) return "$"+n.toLocaleString("en-US",{maximumFractionDigits: n >= 10000 ? 0 : 2});
+    if (n >= 1) return "$"+n.toFixed(2);
+    return "$"+n.toFixed(4);
+  };
+
+  let chart = null;
+
+  // 1. Binance 24h ticker
+  async function fetchPrice() {
+    try {
+      const r = await fetch(
+        `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) return;
+      const t = await r.json();
+
+      const price = parseFloat(t.lastPrice);
+      const chg = parseFloat(t.priceChangePercent);
+      const isUp = chg >= 0;
+
+      document.getElementById("coin-price").textContent = fmtP(price);
+      const ce = document.getElementById("coin-change");
+      ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
+      ce.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+
+      document.getElementById("coin-high").textContent = fmtP(parseFloat(t.highPrice));
+      document.getElementById("coin-low").textContent = fmtP(parseFloat(t.lowPrice));
+      document.getElementById("coin-vol").textContent = fmt(parseFloat(t.quoteVolume));
+
+      document.getElementById("coin-updated").textContent =
+        new Date().toLocaleTimeString(undefined, {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    } catch(e) { console.warn("Price fetch error:", e); }
+  }
+
+  // 2. CoinGecko 市值/排名/流通量
+  async function fetchMarketData() {
+    try {
+      const r = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinId}&sparkline=false`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!r.ok) return;
+      const [d] = await r.json();
+      if (!d) return;
+
+      document.getElementById("coin-mcap").textContent = fmt(d.market_cap);
+      document.getElementById("coin-supply").textContent =
+        d.circulating_supply ? (d.circulating_supply / 1e6).toFixed(1) + "M" : "—";
+      document.getElementById("rank-badge").textContent = "#" + (d.market_cap_rank || "—");
+    } catch {}
+  }
+
+  // 3. Binance K线图
+  async function loadChart(interval, limit) {
+    try {
+      const r = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) return;
+      const data = await r.json();
+
+      const labels = data.map(k => {
+        const d = new Date(k[0]);
+        if (interval === "1m" || interval === "5m" || interval === "1h")
+          return d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+        return d.toLocaleDateString(undefined,{month:"numeric",day:"numeric"});
+      });
+      const closes = data.map(k => parseFloat(k[4]));
+      const isUp = closes[closes.length-1] >= closes[0];
+      const color = isUp ? "#00c896" : "#f04747";
+
+      if (chart) { chart.destroy(); chart = null; }
+
+      const ctx = document.getElementById("coin-chart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            data: closes,
+            borderColor: coinColor || color,
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true,
+            backgroundColor: (ctx) => {
+              const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+              g.addColorStop(0, (coinColor || color) + "33");
+              g.addColorStop(1, (coinColor || color) + "05");
+              return g;
+            },
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => "$" + ctx.raw.toLocaleString("en-US",{maximumFractionDigits: ctx.raw >= 1 ? 2 : 6}) }
+          }},
+          scales: {
+            x: { grid: { display: false }, ticks: { maxTicksLimit: 6, color: "#888", font: { size: 10 } }},
+            y: { grid: { color: "rgba(128,128,128,0.08)" }, ticks: { color: "#888", font: { size: 10 },
+              callback: v => v >= 1e6 ? "$"+(v/1e6).toFixed(0)+"M" : v >= 1000 ? "$"+(v/1000).toFixed(0)+"K" : "$"+v }},
+          },
+        },
+      });
+    } catch(e) { console.warn("Chart error:", e); }
+  }
+
+  // 切换按钮
+  document.getElementById("chart-btns")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-interval]");
+    if (!btn) return;
+    document.querySelectorAll(".chart-period-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    loadChart(btn.dataset.interval, parseInt(btn.dataset.limit));
+  });
+
+  // 初始化
+  fetchPrice();
+  fetchMarketData();
+  // 默认显示1d图（1h K线 × 24根）
+  loadChart("1h", 24);
+
+  setInterval(fetchPrice, 30000);
+  setInterval(fetchMarketData, 120000);
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>

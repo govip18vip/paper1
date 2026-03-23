@@ -1,0 +1,246 @@
+---
+// src/pages/article/[slug].astro
+// Ghost 文章详情 — SSR（Ghost发布即可见，Vercel ISR缓存5分钟）
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BackToTopButton from "@/components/BackToTopButton.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import ShareLinks from "@/components/ShareLinks.astro";
+import MobileTOC from "@/components/MobileTOC.astro";
+import Datetime from "@/components/Datetime.astro";
+import Tag from "@/components/Tag.astro";
+import { SITE } from "@/config";
+import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+import { getPostBySlug, getRelatedPosts, getTranslationSiblings, type GhostPost } from "@/utils/ghost";
+import { slugifyStr } from "@/utils/slugify";
+
+// ── 获取文章 ──────────────────────────────────────────────
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect("/404");
+
+let post: GhostPost | null = null;
+try {
+  post = await getPostBySlug(slug);
+} catch (e) {
+  console.error("Ghost error:", e);
+}
+if (!post) return Astro.redirect("/404");
+
+const lang: Lang = post.lang || "zh-CN";
+const t = useTranslations(lang);
+
+// ── 相关文章 & 翻译 ──────────────────────────────────────
+let related: GhostPost[] = [];
+let translations: GhostPost[] = [];
+try { related = await getRelatedPosts(post, 6); } catch {}
+try { if (post.translationKey) translations = await getTranslationSiblings(post.translationKey); } catch {}
+
+// ── 标签/元数据 ──────────────────────────────────────────
+const publicTags = (post.tags || []).filter(t => t.visibility === "public");
+const pageTitle = post.meta_title || `${post.title} | ${SITE.title}`;
+const description = post.meta_description || post.custom_excerpt || post.excerpt || "";
+const ogImage = post.og_image || post.feature_image || undefined;
+
+// ── HTML 处理：给 heading 加 id ──────────────────────────
+let counter = 0;
+const processedHtml = (post.html || "").replace(
+  /<h([23])([^>]*)>(.*?)<\/h\1>/gi,
+  (match, level, attrs, content) => {
+    if (attrs.includes('id="')) return match;
+    const text = content.replace(/<[^>]*>/g, "").trim();
+    const id = slugifyStr(text) || `h-${counter++}`;
+    return `<h${level}${attrs} id="${id}">${content}</h${level}>`;
+  }
+);
+
+// ── 提取 TOC headings ────────────────────────────────────
+const tocHeadings: Array<{depth:number;slug:string;text:string}> = [];
+const hRe = /<h([23])[^>]*id="([^"]*)"[^>]*>(.*?)<\/h[23]>/gi;
+let m;
+while ((m = hRe.exec(processedHtml)) !== null) {
+  tocHeadings.push({ depth: +m[1], slug: m[2], text: m[3].replace(/<[^>]*>/g, "") });
+}
+
+// ── 多语言 labels ────────────────────────────────────────
+const L: Record<string, Record<Lang, string>> = {
+  related: { "zh-CN":"相关文章","zh-TW":"相關文章",en:"Related",es:"Relacionados",pt:"Relacionados" },
+  trans:   { "zh-CN":"其他语言版本","zh-TW":"其他語言版本",en:"Other Languages",es:"Otros Idiomas",pt:"Outros Idiomas" },
+};
+const flags: Record<string, string> = {"zh-CN":"🇨🇳","zh-TW":"🇹🇼","en":"🇺🇸","es":"🇪🇸","pt":"🇧🇷"};
+const shortLabel: Record<string, string> = {"zh-CN":"简中","zh-TW":"繁中","en":"EN","es":"ES","pt":"PT"};
+
+// ── Schema.org ───────────────────────────────────────────
+const articleSchema = {
+  "@context":"https://schema.org","@type":"NewsArticle",
+  headline: post.title, description,
+  image: ogImage,
+  datePublished: post.published_at,
+  dateModified: post.updated_at,
+  author:{ "@type":"Person", name: post.primary_author?.name || SITE.author },
+  publisher:{ "@type":"Organization", name: SITE.title, url: SITE.website },
+  mainEntityOfPage: Astro.url.href,
+  inLanguage: lang,
+};
+---
+
+<Layout
+  title={pageTitle}
+  author={post.primary_author?.name}
+  description={description}
+  ogImage={ogImage}
+  pubDatetime={new Date(post.published_at)}
+  modDatetime={new Date(post.updated_at)}
+  scrollSmooth
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  </Fragment>
+
+  <Header />
+
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
+
+    <main class="main-col post-detail-col" id="main-content">
+
+      <!-- 面包屑 -->
+      <nav class="pd-breadcrumb" aria-label="breadcrumb">
+        <a href={lang === "zh-CN" ? "/" : `/${lang.toLowerCase()}/`}>{t("nav.home")}</a>
+        <span aria-hidden="true">›</span>
+        <a href="/articles/">{t("nav.news")}</a>
+        <span aria-hidden="true">›</span>
+        <span class="pd-breadcrumb-current">{post.title.length > 30 ? post.title.slice(0,30) + "…" : post.title}</span>
+      </nav>
+
+      <div class="pd-layout">
+        <div class="pd-article-col">
+
+          {/* Hero */}
+          {post.feature_image && (
+            <div class="pd-hero-img">
+              <img src={post.feature_image} alt={post.title} width="800" height="450" loading="eager" />
+            </div>
+          )}
+
+          {/* Tags */}
+          {publicTags.length > 0 && (
+            <div class="pd-tags">
+              {publicTags.map(tag => (
+                <a href={`/articles/?tag=${tag.slug}&lang=${lang}`} class="pd-tag">{tag.name}</a>
+              ))}
+            </div>
+          )}
+
+          {/* Title */}
+          <h1 class="pd-title" itemprop="headline">{post.title}</h1>
+
+          {/* 翻译切换 */}
+          {translations.length > 1 && (
+            <aside class="translation-box">
+              <span class="translation-label">{L.trans[lang]}</span>
+              <div class="translation-links" role="list">
+                {translations.map(tr => (
+                  <div role="listitem">
+                    {tr.id === post.id ? (
+                      <span class="tlang-btn current">{flags[tr.lang||"zh-CN"]||""} {shortLabel[tr.lang||"zh-CN"]||tr.lang}</span>
+                    ) : (
+                      <a href={`/article/${tr.slug}`} class="tlang-btn">{flags[tr.lang||"zh-CN"]||""} {shortLabel[tr.lang||"zh-CN"]||tr.lang}</a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </aside>
+          )}
+
+          {/* Meta */}
+          <div class="pd-meta">
+            <span class="pd-author">{post.primary_author?.name || SITE.author}</span>
+            <Datetime pubDatetime={post.published_at} modDatetime={post.updated_at > post.published_at ? post.updated_at : null} size="sm" />
+            {post.reading_time > 0 && <span style="color:var(--fg-light);font-size:12px;">{post.reading_time} min</span>}
+          </div>
+
+          {/* Excerpt */}
+          {post.custom_excerpt && <p class="pd-description">{post.custom_excerpt}</p>}
+
+          <MobileTOC headings={tocHeadings} />
+
+          {/* ★ 正文 ★ */}
+          <article id="article" class="app-prose pd-prose ghost-content" itemprop="articleBody">
+            <Fragment set:html={processedHtml} />
+          </article>
+
+          <div class="pd-banner-mid"><BinanceBanner variant="mid" lang={lang} /></div>
+          <div class="pd-banner-article"><BinanceBanner variant="article" lang={lang} /></div>
+          <hr class="pd-divider" />
+
+          {/* 底部标签 + 分享 */}
+          <div class="pd-bottom">
+            <div class="pd-bottom-tags">
+              <ul class="flex flex-wrap gap-2">
+                {publicTags.map(tag => <Tag tag={tag.slug} tagName={tag.name} size="sm" />)}
+              </ul>
+            </div>
+            <ShareLinks />
+          </div>
+
+          {/* 相关文章 */}
+          {related.length > 0 && (
+            <section style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
+              <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+                <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+                {L.related[lang]}
+              </h2>
+              {related.map((rp, i) => (
+                <a href={`/article/${rp.slug}`}
+                  style={`display:flex;gap:12px;padding:12px 0;text-decoration:none;color:var(--fg);transition:color 0.12s;${i < related.length-1 ? "border-bottom:1px solid var(--border-subtle);" : ""}`}
+                  onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'"
+                >
+                  {rp.feature_image && <img src={rp.feature_image} alt="" loading="lazy" style="width:80px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0;" />}
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{rp.title}</div>
+                    <div style="font-size:11px;color:var(--fg-light);margin-top:4px;">{new Date(rp.published_at).toLocaleDateString()}</div>
+                  </div>
+                </a>
+              ))}
+            </section>
+          )}
+        </div>
+
+        {/* 桌面 TOC */}
+        {tocHeadings.length > 2 && (
+          <aside class="pd-toc-sidebar">
+            <div class="pd-toc-sticky">
+              <div class="pd-toc-head"><span>{t("post.toc")}</span></div>
+              <nav>
+                <ul class="pd-toc-list">
+                  {tocHeadings.map(h => (
+                    <li class:list={["pd-toc-item", {"pd-toc-h3": h.depth===3}]}>
+                      <a href={`#${h.slug}`} class="pd-toc-link">{h.text}</a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              <div class="pd-toc-banner"><BinanceBanner variant="compact" lang={lang} /></div>
+            </div>
+          </aside>
+        )}
+      </div>
+    </main>
+  </div>
+
+  <BackToTopButton />
+  <Footer />
+</Layout>
+
+<style>
+.ghost-content :global(.kg-card) { margin: 1.5em 0; }
+.ghost-content :global(.kg-image-card img) { max-width:100%;height:auto;border-radius:6px; }
+.ghost-content :global(.kg-bookmark-card) { border:1px solid var(--border);border-radius:6px;overflow:hidden; }
+.ghost-content :global(.kg-gallery-card) { display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px; }
+.ghost-content :global(figcaption) { text-align:center;font-size:13px;color:var(--fg-muted);margin-top:8px; }
+.ghost-content :global(.kg-callout-card) { padding:16px;border-radius:6px;background:var(--bg-elevated);border-left:3px solid var(--accent); }
+</style>
