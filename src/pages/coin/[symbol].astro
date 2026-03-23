@@ -1,0 +1,238 @@
+---
+// src/pages/coin/[symbol].astro
+// 单个币种详情页面 — 包含行情、信息、新闻
+// ⚠️ 此文件从 src/pages/api/[symbol].astro 移动至此处
+
+import { getCollection } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import { MAJOR_COINS, COIN_DB, getCoinInfo } from "@/utils/coinInfo";
+import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+import { getPath } from "@/utils/getPath";
+
+export const getStaticPaths = (async () => {
+  return MAJOR_COINS.map(coin => ({
+    params: { symbol: coin.symbol.toLowerCase() },
+    props: { coinId: coin.id, coinSymbol: coin.symbol },
+  }));
+}) satisfies GetStaticPaths;
+
+const { coinId, coinSymbol } = Astro.props;
+const lang = getLang(Astro.url) as Lang;
+const t = useTranslations(lang);
+
+// 获取币种信息
+const coinInfo = getCoinInfo(coinId, lang);
+if (!coinInfo) return Astro.redirect("/404");
+
+// 获取相关资讯
+const allPosts = await getCollection("blog");
+const relatedPosts = allPosts
+  .filter(p => {
+    if (p.data.draft) return false;
+    const tags = (p.data.tags || []).map(t => t.toLowerCase());
+    return tags.includes(coinSymbol.toLowerCase()) ||
+           tags.includes(coinId.toLowerCase());
+  })
+  .sort((a, b) =>
+    new Date(b.data.pubDatetime).getTime() - new Date(a.data.pubDatetime).getTime()
+  )
+  .slice(0, 8);
+
+const pageTitle = `${coinSymbol} - ${coinInfo.name[lang]} | ${t("site.name")}`;
+const description = coinInfo.description[lang];
+---
+
+<Layout title={pageTitle} description={description}>
+  <Header />
+
+  <div class="site-outer">
+    <LeftSidebar />
+
+    <main class="main-col" id="main-content">
+
+      <!-- 币种 Hero 卡片 -->
+      <section style="padding:16px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <!-- 顶部信息 -->
+          <div style="display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+            <div style={`width:48px;height:48px;border-radius:50%;background:${coinInfo.color}22;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;flex-shrink:0;`}>
+              {coinInfo.emoji}
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:20px;font-weight:800;color:var(--fg);">{coinInfo.name[lang]}</div>
+              <div style="font-size:13px;color:var(--fg-muted);">{coinSymbol}</div>
+            </div>
+          </div>
+
+          <!-- 价格数据（客户端从 Binance 拉取）-->
+          <div id="coin-price-area" style="padding:20px 24px;">
+            <div style="font-size:28px;font-weight:800;color:var(--fg);" id={`price-${coinId}`}>加载中...</div>
+            <div style="font-size:13px;color:var(--fg-muted);margin-top:4px;" id={`change-${coinId}`}>—</div>
+          </div>
+
+          <!-- 更新时间 -->
+          <div style="padding:8px 24px 14px;font-size:11px;color:var(--fg-light);">
+            数据来源：Binance · <span id={`updated-${coinId}`}>—</span> · 每60秒自动刷新
+          </div>
+        </div>
+      </section>
+
+      <!-- 币种信息 -->
+      <section style="padding:0 16px 16px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;">
+          <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+            <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+            项目信息 / Project Info
+          </h2>
+
+          <div style="font-size:14px;color:var(--fg);line-height:1.7;margin-bottom:16px;">
+            {coinInfo.description[lang]}
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+            {[
+              ["使用场景", coinInfo.useCase[lang]],
+              ["共识机制", coinInfo.consensus || "—"],
+              ["出块时间", coinInfo.blockTime || "—"],
+              ["最大供应", coinInfo.maxSupply || "无限"],
+              ["创始人", coinInfo.founder || "—"],
+              ["上线日期", coinInfo.launchDate || "—"],
+            ].map(([label, value]) => (
+              <div style="border-bottom:1px solid var(--border-subtle);padding:8px 0;">
+                <div style="font-size:12px;color:var(--fg-muted);margin-bottom:3px;">{label}</div>
+                <div style="font-size:13px;color:var(--fg);font-weight:500;line-height:1.5;">{value}</div>
+              </div>
+            ))}
+          </div>
+
+          <!-- 官方链接 -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+            {coinInfo.officialWebsite && (
+              <a href={coinInfo.officialWebsite} target="_blank" rel="noopener noreferrer"
+                style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;background:var(--tag-orange-bg);color:var(--accent);text-decoration:none;font-size:12px;font-weight:600;">
+                🌐 官网
+              </a>
+            )}
+            {coinInfo.whitepaper && (
+              <a href={coinInfo.whitepaper} target="_blank" rel="noopener noreferrer"
+                style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;background:var(--tag-blue-bg);color:var(--accent-blue);text-decoration:none;font-size:12px;font-weight:600;">
+                📄 白皮书
+              </a>
+            )}
+            {coinInfo.blockExplorer && (
+              <a href={coinInfo.blockExplorer} target="_blank" rel="noopener noreferrer"
+                style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;background:var(--tag-green-bg);color:var(--accent-green);text-decoration:none;font-size:12px;font-weight:600;">
+                🔍 区块浏览器
+              </a>
+            )}
+            {coinInfo.twitter && (
+              <a href={coinInfo.twitter} target="_blank" rel="noopener noreferrer"
+                style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:5px;background:rgba(29,155,240,.15);color:#1d9bf0;text-decoration:none;font-size:12px;font-weight:600;">
+                𝕏 Twitter
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <!-- 币安购买 -->
+      <div style="padding:0 16px;">
+        <BinanceBanner variant="article" lang={lang} />
+      </div>
+
+      <!-- 相关资讯 -->
+      {relatedPosts.length > 0 && (
+        <section style="padding:0 16px 20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 0 10px;margin-bottom:12px;">
+            <div style="font-size:16px;font-weight:700;color:var(--fg);display:flex;align-items:center;gap:8px;">
+              <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+              相关资讯
+            </div>
+            <a href={`/tags/${coinSymbol.toLowerCase()}`} style="font-size:12.5px;color:var(--fg-muted);text-decoration:none;">
+              查看全部 →
+            </a>
+          </div>
+          <div style="background:var(--bg-card);border-radius:6px;border:1px solid var(--border);overflow:hidden;">
+            {relatedPosts.map((post, i) => (
+              <a href={getPath(post.id, post.filePath)}
+                style={`display:flex;gap:12px;padding:12px 16px;text-decoration:none;color:var(--fg);transition:background 0.12s;${i < relatedPosts.length - 1 ? 'border-bottom:1px solid var(--border-subtle);' : ''}`}>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                    {post.data.title}
+                  </div>
+                  <div style="font-size:11px;color:var(--fg-light);margin-top:4px;">
+                    {new Date(post.data.pubDatetime).toLocaleDateString()}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+    </main>
+
+    <!-- 右侧栏 -->
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">⚡ 快速操作</div>
+        <a href={`https://www.binance.com/en/register?ref=B2345`} target="_blank" rel="noopener noreferrer sponsored"
+          style="display:block;padding:10px;background:var(--accent);color:#fff;border-radius:5px;text-decoration:none;font-size:13px;font-weight:700;text-align:center;margin-bottom:8px;">
+          在币安购买 {coinSymbol}
+        </a>
+        <p style="font-size:10px;color:var(--fg-muted);text-align:center;margin:0;">邀请码 B2345 · 最高折扣</p>
+      </div>
+
+      <div class="rsidebar-section">
+        <BinanceBanner variant="compact" lang={lang} />
+      </div>
+    </aside>
+  </div>
+
+  <Footer />
+</Layout>
+
+<script is:inline define:vars={{coinId, binanceSymbol: coinInfo.binanceSymbol}}>
+(function(){
+  const fmtP = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1000) return "$" + n.toLocaleString("en-US", {maximumFractionDigits: n >= 10000 ? 0 : 2});
+    if (n >= 1) return "$" + n.toFixed(2);
+    return "$" + n.toFixed(4);
+  };
+
+  async function updatePrice() {
+    try {
+      const r = await fetch(
+        `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) return;
+      const t = await r.json();
+
+      const price = parseFloat(t.lastPrice);
+      const chg = parseFloat(t.priceChangePercent);
+      const isUp = chg >= 0;
+
+      const pe = document.getElementById("price-" + coinId);
+      const ce = document.getElementById("change-" + coinId);
+      const ue = document.getElementById("updated-" + coinId);
+
+      if (pe) pe.textContent = fmtP(price);
+      if (ce) {
+        ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "% (24h)";
+        ce.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+      }
+      if (ue) ue.textContent = new Date().toLocaleTimeString("zh-CN", {hour:"2-digit",minute:"2-digit"});
+    } catch(e) { console.warn("Price fetch error:", e); }
+  }
+
+  updatePrice();
+  setInterval(updatePrice, 60000);
+})();
+</script>

@@ -16,7 +16,7 @@ export default defineConfig({
   site: SITE.website,
 
   // ★ hybrid = 默认静态，文章页走 SSR
-  output: "hybrid",
+  output: "static",
   adapter: vercel({
     // Vercel ISR：SSR页面缓存5分钟，过期后台刷新
     // 用户永远秒开（读缓存），Ghost发布后最多5分钟生效

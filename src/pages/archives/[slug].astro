@@ -1,6 +1,7 @@
 ---
-// src/pages/article/[slug].astro
+// src/pages/archives/[slug].astro
 // Ghost 文章详情 — SSR（Ghost发布即可见，Vercel ISR缓存5分钟）
+// 加固版：Ghost 不可用时优雅降级
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -33,7 +34,7 @@ if (!post) return Astro.redirect("/404");
 const lang: Lang = post.lang || "zh-CN";
 const t = useTranslations(lang);
 
-// ── 相关文章 & 翻译 ──────────────────────────────────────
+// ── 相关文章 & 翻译（容错）──────────────────────────────
 let related: GhostPost[] = [];
 let translations: GhostPost[] = [];
 try { related = await getRelatedPosts(post, 6); } catch {}
@@ -49,7 +50,7 @@ const ogImage = post.og_image || post.feature_image || undefined;
 let counter = 0;
 const processedHtml = (post.html || "").replace(
   /<h([23])([^>]*)>(.*?)<\/h\1>/gi,
-  (match, level, attrs, content) => {
+  (match: string, level: string, attrs: string, content: string) => {
     if (attrs.includes('id="')) return match;
     const text = content.replace(/<[^>]*>/g, "").trim();
     const id = slugifyStr(text) || `h-${counter++}`;
@@ -111,7 +112,7 @@ const articleSchema = {
       <nav class="pd-breadcrumb" aria-label="breadcrumb">
         <a href={lang === "zh-CN" ? "/" : `/${lang.toLowerCase()}/`}>{t("nav.home")}</a>
         <span aria-hidden="true">›</span>
-        <a href="/articles/">{t("nav.news")}</a>
+        <a href="/archives/">{t("nav.news")}</a>
         <span aria-hidden="true">›</span>
         <span class="pd-breadcrumb-current">{post.title.length > 30 ? post.title.slice(0,30) + "…" : post.title}</span>
       </nav>
@@ -130,7 +131,7 @@ const articleSchema = {
           {publicTags.length > 0 && (
             <div class="pd-tags">
               {publicTags.map(tag => (
-                <a href={`/articles/?tag=${tag.slug}&lang=${lang}`} class="pd-tag">{tag.name}</a>
+                <a href={`/archives/?tag=${tag.slug}&lang=${lang}`} class="pd-tag">{tag.name}</a>
               ))}
             </div>
           )}
@@ -148,7 +149,7 @@ const articleSchema = {
                     {tr.id === post.id ? (
                       <span class="tlang-btn current">{flags[tr.lang||"zh-CN"]||""} {shortLabel[tr.lang||"zh-CN"]||tr.lang}</span>
                     ) : (
-                      <a href={`/article/${tr.slug}`} class="tlang-btn">{flags[tr.lang||"zh-CN"]||""} {shortLabel[tr.lang||"zh-CN"]||tr.lang}</a>
+                      <a href={`/archives/${tr.slug}`} class="tlang-btn">{flags[tr.lang||"zh-CN"]||""} {shortLabel[tr.lang||"zh-CN"]||tr.lang}</a>
                     )}
                   </div>
                 ))}
@@ -195,7 +196,7 @@ const articleSchema = {
                 {L.related[lang]}
               </h2>
               {related.map((rp, i) => (
-                <a href={`/article/${rp.slug}`}
+                <a href={`/archives/${rp.slug}`}
                   style={`display:flex;gap:12px;padding:12px 0;text-decoration:none;color:var(--fg);transition:color 0.12s;${i < related.length-1 ? "border-bottom:1px solid var(--border-subtle);" : ""}`}
                   onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'"
                 >

@@ -1,6 +1,7 @@
 ---
-// src/pages/articles/[...page].astro
+// src/pages/archives/[...page].astro
 // Ghost 文章列表 — SSR，支持 ?lang=en &tag=btc 过滤
+// 加固版：Ghost 不可用时显示友好提示而非 500 错误
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -20,16 +21,20 @@ const tagFilter = Astro.url.searchParams.get("tag") || undefined;
 const t = useTranslations(lang);
 
 let posts: GhostPost[] = [];
-let pagination: GhostPagination = { page:1, limit:20, pages:1, total:0, next:null, prev:null };
+let pagination: GhostPagination = { page: 1, limit: 20, pages: 1, total: 0, next: null, prev: null };
+let ghostError = false;
 
 try {
   const data = await getPosts({ page: currentPage, limit: 20, lang, tag: tagFilter });
   posts = data.posts;
   pagination = data.pagination;
-} catch (e) { console.error("Ghost error:", e); }
+} catch (e) {
+  console.error("Ghost error:", e);
+  ghostError = true;
+}
 
 function pageUrl(p: number): string {
-  const base = p === 1 ? "/articles" : `/articles/${p}`;
+  const base = p === 1 ? "/archives" : `/archives/${p}`;
   const params = new URLSearchParams();
   if (lang !== "zh-CN") params.set("lang", lang);
   if (tagFilter) params.set("tag", tagFilter);
@@ -66,17 +71,27 @@ const pageTitle = tagFilter ? `${tagFilter} — ${t("section.all")}` : t("sectio
         {(["zh-CN","zh-TW","en","es","pt"] as Lang[]).map(l => {
           const label = l==="zh-CN"?"简中":l==="zh-TW"?"繁中":l==="en"?"EN":l==="es"?"ES":"PT";
           const active = l === lang;
-          const href = `/articles${tagFilter ? `?tag=${tagFilter}&` : "?"}lang=${l}`;
+          const href = `/archives${tagFilter ? `?tag=${tagFilter}&` : "?"}lang=${l}`;
           return <a href={href} style={`display:inline-flex;align-items:center;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;border:1px solid ${active?"var(--accent)":"var(--border)"};color:${active?"#fff":"var(--fg-muted)"};background:${active?"var(--accent)":"transparent"};text-decoration:none;transition:all 0.12s;`}>{label}</a>;
         })}
       </div>
+
+      {/* Ghost 不可用提示 */}
+      {ghostError && (
+        <div style="padding:20px 16px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:16px;">
+            <p style="font-size:14px;color:var(--fg);margin:0 0 8px;font-weight:600;">⚠️ 内容暂时无法加载</p>
+            <p style="font-size:13px;color:var(--fg-muted);margin:0;">Ghost CMS 服务暂时不可用，请稍后刷新重试。您也可以访问 <a href="/posts" style="color:var(--accent);">静态文章列表</a>。</p>
+          </div>
+        </div>
+      )}
 
       {/* 列表 */}
       <div style="margin-top:8px;">
         {posts.length > 0 ? (
           <div class="alist">
             {posts.map(p => (
-              <a href={`/article/${p.slug}`} class="alist-item" style="text-decoration:none;color:inherit;">
+              <a href={`/archives/${p.slug}`} class="alist-item" style="text-decoration:none;color:inherit;">
                 {p.feature_image && (
                   <div class="alist-thumb"><img src={p.feature_image} alt={p.title} loading="lazy" /></div>
                 )}
@@ -94,7 +109,7 @@ const pageTitle = tagFilter ? `${tagFilter} — ${t("section.all")}` : t("sectio
               </a>
             ))}
           </div>
-        ) : (
+        ) : !ghostError && (
           <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
             <p style="font-size:20px;margin-bottom:8px;">📝</p>
             <p>{lang === "en" ? "No articles found" : "暂无文章"}</p>
@@ -123,7 +138,7 @@ const pageTitle = tagFilter ? `${tagFilter} — ${t("section.all")}` : t("sectio
         <div class="rsidebar-head">{t("section.tags")}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
           {["BTC","ETH","DeFi","NFT","Wallet","Beginner","Market"].map(tag => (
-            <a href={`/articles/?tag=${tag.toLowerCase()}&lang=${lang}`} class="ctag" style="text-decoration:none;">{tag}</a>
+            <a href={`/archives/?tag=${tag.toLowerCase()}&lang=${lang}`} class="ctag" style="text-decoration:none;">{tag}</a>
           ))}
         </div>
       </div>

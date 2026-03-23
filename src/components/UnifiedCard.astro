@@ -1,0 +1,149 @@
+---
+// src/components/UnifiedCard.astro
+// 统一卡片组件 — 同时支持本地 Markdown 和 Ghost CMS 文章
+// 与原 Card.astro 视觉效果一致
+
+import type { UnifiedPost } from "@/utils/mergedPosts";
+import Datetime from "./Datetime.astro";
+
+type Props = {
+  post: UnifiedPost;
+  variant?: "h2" | "h3";
+  size?: "hero" | "list" | "news" | "medium" | "small";
+};
+
+const { post, variant: Heading = "h3", size = "list" } = Astro.props;
+
+const primaryTag = post.tags?.[0] ?? "资讯";
+
+const tagColorMap: Record<string, string> = {
+  btc: "ctag", bitcoin: "ctag",
+  eth: "ctag-blue", ethereum: "ctag-blue",
+  defi: "ctag-green", wallet: "ctag-green",
+  market: "ctag-red",
+};
+const tagClass = tagColorMap[primaryTag.toLowerCase()] ?? "ctag";
+
+const grads = [
+  "from-orange-900/40 to-amber-900/20",
+  "from-blue-900/40 to-cyan-900/20",
+  "from-purple-900/40 to-violet-900/20",
+  "from-green-900/40 to-emerald-900/20",
+];
+const placeholderGrad = grads[post.title.length % grads.length];
+
+const dotClass =
+  primaryTag.toLowerCase() === "eth" || primaryTag.toLowerCase() === "defi" ? "blue" :
+  primaryTag.toLowerCase() === "wallet" ? "green" : "";
+
+// Ghost 标记
+const isGhost = post.source === "ghost";
+---
+
+{/* ══ LIST 样式（文章列表主力样式）══ */}
+{size === "list" && (
+  <article class="alist-item group" data-source={post.source}>
+    <a href={post.href} class="shrink-0 block focus-outline rounded overflow-hidden"
+      style="width:80px;height:56px;background:var(--bg-elevated);" tabindex="-1">
+      {post.ogImage ? (
+        <img src={post.ogImage} alt={post.title} loading="lazy" class="w-full h-full object-cover" />
+      ) : (
+        <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+          <span class="text-base opacity-20">{isGhost ? "📰" : "₿"}</span>
+        </div>
+      )}
+    </a>
+    <div class="flex-1 min-w-0">
+      <div class="mb-1 flex items-center gap-1.5">
+        <span class={tagClass}>{primaryTag}</span>
+        {isGhost && (
+          <span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(22,119,255,0.1);color:#1677ff;font-weight:600;">CMS</span>
+        )}
+      </div>
+      <a href={post.href} class="focus-outline">
+        <Heading
+          class="alist-title text-foreground font-medium text-sm leading-snug transition-colors line-clamp-2"
+        >{post.title}</Heading>
+      </a>
+      <div class="mt-1">
+        <Datetime pubDatetime={post.pubDatetime.toISOString()} modDatetime={post.modDatetime?.toISOString()} class="text-[11px]" />
+      </div>
+    </div>
+  </article>
+)}
+
+{/* ══ HERO 样式 ══ */}
+{size === "hero" && (
+  <a href={post.href}
+    class="hero-img-wrap block group focus-outline"
+    aria-label={post.title}
+  >
+    {post.ogImage ? (
+      <img src={post.ogImage} alt={post.title} loading="eager" fetchpriority="high"
+        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+    ) : (
+      <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+        <span class="text-5xl opacity-30">{isGhost ? "📰" : "₿"}</span>
+      </div>
+    )}
+    <div class="hero-overlay" />
+    <div class="hero-content">
+      <div class="mb-2">
+        <span class={tagClass}>{primaryTag}</span>
+        {isGhost && (
+          <span style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,0.2);color:#fff;font-weight:600;">CMS</span>
+        )}
+      </div>
+      <Heading
+        class="text-white text-xl sm:text-2xl font-bold leading-snug mb-2 group-hover:text-amber-200 transition-colors"
+      >{post.title}</Heading>
+      <p class="text-white/70 text-sm line-clamp-2 hidden sm:block">{post.description}</p>
+      <div class="mt-2">
+        <Datetime pubDatetime={post.pubDatetime.toISOString()} modDatetime={post.modDatetime?.toISOString()} class="text-white/50 text-xs" />
+      </div>
+    </div>
+  </a>
+)}
+
+{/* ══ NEWS 快讯样式 ══ */}
+{size === "news" && (
+  <div class="qnews-item">
+    <div class:list={["qnews-dot", { blue: dotClass === "blue", green: dotClass === "green" }]}
+      aria-hidden="true" />
+    <div class="qnews-body">
+      <a href={post.href} class="qnews-title" aria-label={post.title}>{post.title}</a>
+      <Datetime pubDatetime={post.pubDatetime.toISOString()} modDatetime={post.modDatetime?.toISOString()} class="qnews-time" />
+    </div>
+  </div>
+)}
+
+{/* ══ MEDIUM 卡片样式 ══ */}
+{size === "medium" && (
+  <article class="c-card group">
+    <a href={post.href} class="c-card-img block focus-outline" tabindex="-1" aria-hidden="true">
+      {post.ogImage ? (
+        <img src={post.ogImage} alt={post.title} loading="lazy" class="w-full h-full object-cover" />
+      ) : (
+        <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
+          <span class="text-3xl opacity-20">{isGhost ? "📰" : "₿"}</span>
+        </div>
+      )}
+    </a>
+    <div class="p-3.5">
+      <div class="mb-1.5">
+        <span class={tagClass}>{primaryTag}</span>
+        {isGhost && (
+          <span style="margin-left:4px;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(22,119,255,0.1);color:#1677ff;font-weight:600;">CMS</span>
+        )}
+      </div>
+      <a href={post.href} class="focus-outline">
+        <Heading
+          class="text-foreground font-semibold text-sm leading-snug group-hover:text-accent transition-colors line-clamp-2"
+        >{post.title}</Heading>
+      </a>
+      <div class="mt-2">
+        <Datetime pubDatetime={post.pubDatetime.toISOString()} modDatetime={post.modDatetime?.toISOString()} class="text-xs" />
+      </div>
+    </div>
+  </article>
+)}

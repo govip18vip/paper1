@@ -1,6 +1,6 @@
 // src/utils/ghost.ts
 // ─────────────────────────────────────────────────────────────
-// Ghost Content API 客户端（只读）
+// Ghost Content API 客户端（只读）— 生产环境加固版
 //
 // 工作流：Ghost 后台写文章 → 发布 → 网站自动显示
 //
@@ -73,7 +73,6 @@ export interface GhostPagination {
 
 // ── 语言 ↔ Ghost tag 映射 ────────────────────────────────
 
-// Ghost internal tag slug 格式: hash-lang-en
 const LANG_SLUG_MAP: Record<string, Lang> = {
   "hash-lang-zh-cn": "zh-CN",
   "hash-lang-zh-tw": "zh-TW",
@@ -104,7 +103,6 @@ function extractTranslationKey(post: GhostPost): string | undefined {
       return tag.slug.replace("hash-tk-", "");
     }
   }
-  // fallback: codeinjection_head
   const match = (post.codeinjection_head || "").match(/<!--\s*translationKey:\s*(.+?)\s*-->/);
   return match?.[1]?.trim();
 }
@@ -115,7 +113,7 @@ function enrichPost(post: GhostPost): GhostPost {
   return post;
 }
 
-// ── API 请求 ──────────────────────────────────────────────
+// ── API 请求（带重试和超时）──────────────────────────────
 
 function buildUrl(endpoint: string, params: Record<string, string> = {}): string {
   const url = new URL(`${CONTENT_API}${endpoint}`);
@@ -128,21 +126,52 @@ function buildUrl(endpoint: string, params: Record<string, string> = {}): string
 
 async function ghostFetch<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   const url = buildUrl(endpoint, params);
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(15000),
-    headers: { Accept: "application/json" },
-  });
 
-  if (!res.ok) {
-    throw new Error(`Ghost API ${res.status}: ${endpoint}`);
+  // 重试机制：最多重试 2 次
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(attempt === 0 ? 10000 : 15000),
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new GhostNotFoundError(`Ghost 404: ${endpoint}`);
+        }
+        throw new Error(`Ghost API ${res.status}: ${endpoint}`);
+      }
+      return await res.json();
+    } catch (e: any) {
+      lastError = e;
+      if (e instanceof GhostNotFoundError) throw e; // 404 不重试
+      if (attempt < 2) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // 退避
+      }
+    }
   }
-  return res.json();
+  throw lastError || new Error(`Ghost API failed: ${endpoint}`);
 }
+
+// 自定义 404 错误
+class GhostNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GhostNotFoundError";
+  }
+}
+
+// ── 空结果常量（Ghost 不可用时返回）────────────────────────
+const EMPTY_PAGINATION: GhostPagination = {
+  page: 1, limit: 20, pages: 1, total: 0, next: null, prev: null,
+};
 
 // ── 公开方法 ──────────────────────────────────────────────
 
 /**
  * 文章列表（分页 + 语言/标签过滤）
+ * 如果 Ghost 不可用，返回空列表而不是抛出错误
  */
 export async function getPosts(options: {
   page?: number;
@@ -170,19 +199,24 @@ export async function getPosts(options: {
   };
   if (filters.length > 0) params.filter = filters.join("+");
 
-  const data = await ghostFetch<{
-    posts: GhostPost[];
-    meta: { pagination: GhostPagination };
-  }>("/posts/", params);
+  try {
+    const data = await ghostFetch<{
+      posts: GhostPost[];
+      meta: { pagination: GhostPagination };
+    }>("/posts/", params);
 
-  return {
-    posts: data.posts.map(enrichPost),
-    pagination: data.meta.pagination,
-  };
+    return {
+      posts: data.posts.map(enrichPost),
+      pagination: data.meta.pagination,
+    };
+  } catch (e) {
+    console.error("[Ghost] getPosts failed:", e);
+    return { posts: [], pagination: EMPTY_PAGINATION };
+  }
 }
 
 /**
- * 单篇文章（by slug）
+ * 单篇文章（by slug）— 返回 null 而非抛错
  */
 export async function getPostBySlug(slug: string): Promise<GhostPost | null> {
   try {
@@ -192,8 +226,9 @@ export async function getPostBySlug(slug: string): Promise<GhostPost | null> {
     );
     return data.posts?.[0] ? enrichPost(data.posts[0]) : null;
   } catch (e: any) {
-    if (e.message?.includes("404")) return null;
-    throw e;
+    if (e instanceof GhostNotFoundError) return null;
+    console.error("[Ghost] getPostBySlug failed:", slug, e);
+    return null;
   }
 }
 
@@ -201,12 +236,17 @@ export async function getPostBySlug(slug: string): Promise<GhostPost | null> {
  * 所有公开标签
  */
 export async function getTags(limit = 100): Promise<GhostTag[]> {
-  const data = await ghostFetch<{ tags: GhostTag[] }>("/tags/", {
-    limit: String(limit),
-    order: "count.posts desc",
-    filter: "visibility:public",
-  });
-  return data.tags;
+  try {
+    const data = await ghostFetch<{ tags: GhostTag[] }>("/tags/", {
+      limit: String(limit),
+      order: "count.posts desc",
+      filter: "visibility:public",
+    });
+    return data.tags;
+  } catch (e) {
+    console.error("[Ghost] getTags failed:", e);
+    return [];
+  }
 }
 
 /**
@@ -214,11 +254,15 @@ export async function getTags(limit = 100): Promise<GhostTag[]> {
  */
 export async function getTranslationSiblings(translationKey: string): Promise<GhostPost[]> {
   if (!translationKey) return [];
-  const { posts } = await getPosts({
-    tag: `hash-tk-${translationKey}`,
-    limit: 10,
-  });
-  return posts;
+  try {
+    const { posts } = await getPosts({
+      tag: `hash-tk-${translationKey}`,
+      limit: 10,
+    });
+    return posts;
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -227,10 +271,27 @@ export async function getTranslationSiblings(translationKey: string): Promise<Gh
 export async function getRelatedPosts(post: GhostPost, limit = 6): Promise<GhostPost[]> {
   const tag = post.primary_tag?.slug;
   if (!tag) return [];
-  const { posts } = await getPosts({
-    tag,
-    lang: post.lang,
-    limit: limit + 1,
-  });
-  return posts.filter(p => p.id !== post.id).slice(0, limit);
+  try {
+    const { posts } = await getPosts({
+      tag,
+      lang: post.lang,
+      limit: limit + 1,
+    });
+    return posts.filter(p => p.id !== post.id).slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 检查 Ghost API 是否可用（用于健康检查）
+ */
+export async function isGhostAvailable(): Promise<boolean> {
+  try {
+    const url = buildUrl("/posts/", { limit: "1", fields: "id" });
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
