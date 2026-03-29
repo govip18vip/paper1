@@ -2,7 +2,7 @@
 // src/pages/index.astro
 // ─────────────────────────────────────────────────────────────
 // 首页 — 合并显示本地 Markdown + Ghost CMS 文章
-// output: "hybrid" 下，prerender = false 表示此页面走 SSR
+// output: "static" + prerender = false → 此页面走 SSR
 // Vercel ISR 缓存 5 分钟
 // ─────────────────────────────────────────────────────────────
 export const prerender = false;
@@ -23,6 +23,7 @@ import {
   mergePosts,
   type UnifiedPost,
 } from "@/utils/mergedPosts";
+import { TUTORIAL_TAGS } from "@/utils/homePage";
 
 const lang = getLang(Astro.url);
 const t = useTranslations(lang);
@@ -65,15 +66,17 @@ const listPosts = merged
   .filter(p => p !== hero && !thumbPosts.includes(p))
   .slice(0, 12);
 
-const newsPosts = merged.slice(0, 8);
-const hotPosts = merged.slice(0, 7);
+// 主区域已展示的文章集合
+const mainShown = new Set([hero, ...thumbPosts, ...listPosts].filter(Boolean));
+
+// 右侧栏：排除主区域已展示的文章，避免内容重复
+const newsPosts = merged.filter(p => !mainShown.has(p)).slice(0, 8);
+const hotPosts = merged
+  .filter(p => !mainShown.has(p) && !newsPosts.includes(p))
+  .slice(0, 7);
 const tutorialPosts = merged
   .filter(p =>
-    p.tags?.some(t =>
-      ["docs", "教程", "tutorial", "beginner", "新手", "新手入门"].includes(
-        t.toLowerCase()
-      )
-    )
+    p.tags?.some(t => TUTORIAL_TAGS.includes(t.toLowerCase()))
   )
   .slice(0, 5);
 
@@ -188,7 +191,7 @@ const websiteSchema = {
           )}
         </div>
 
-        {merged.length > 12 && (
+        {merged.length > (1 + thumbPosts.length + listPosts.length) && (
           <div style="padding:0 16px 16px;text-align:center;">
             <a
               href="/posts"

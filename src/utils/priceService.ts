@@ -258,4 +258,3 @@ class PriceService {
 }
 
 export const priceService = new PriceService();
-export type { PriceData };

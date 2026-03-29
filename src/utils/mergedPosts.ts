@@ -115,11 +115,17 @@ export function mergePosts(
   all.sort((a, b) => b.pubDatetime.getTime() - a.pubDatetime.getTime());
 
   // 去重（如果同一篇文章同时存在于本地和 Ghost，保留本地版）
-  const seen = new Set<string>();
+  // 使用 id 作为主键，title+lang 作为 fallback 防止跨源重复
+  const seenIds = new Set<string>();
+  const seenTitleLang = new Set<string>();
   return all.filter(p => {
-    const key = p.title.toLowerCase().trim();
-    if (seen.has(key)) return false;
-    seen.add(key);
+    if (seenIds.has(p.id)) return false;
+    seenIds.add(p.id);
+
+    const titleKey = `${p.lang}:${p.title.toLowerCase().trim()}`;
+    if (seenTitleLang.has(titleKey)) return false;
+    seenTitleLang.add(titleKey);
+
     return true;
   });
 }

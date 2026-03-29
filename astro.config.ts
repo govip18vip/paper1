@@ -15,14 +15,12 @@ import {
 // ─────────────────────────────────────────────────────────────
 // Astro 5.x Config
 //
-// output: "static" (默认) — Astro 5 已支持按页面 prerender = false
-// "hybrid" 已在 Astro 5 中移除，不要使用
+// output: "static" — 默认静态生成，个别页面通过 prerender = false 启用 SSR
 // ─────────────────────────────────────────────────────────────
 
 export default defineConfig({
   site: SITE.website,
 
-  // Astro 5: "static" 已原生支持 per-page SSR (prerender = false)
   output: "static",
 
   adapter: vercel({

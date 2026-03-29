@@ -97,7 +97,7 @@ const base = `/${langSeg}`;          // 本语言基础路径
             </div>
           )}
         </div>
-        {total > 12 && (
+        {total > (1 + thumbPosts.length + listPosts.length) && (
           <div style="padding:0 16px 16px;text-align:center;">
             <a href={`${base}/posts/`} class="more-btn" style="display:inline-block;max-width:280px;">
               {t("section.more")}
@@ -144,13 +144,13 @@ const base = `/${langSeg}`;          // 本语言基础路径
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
           {[
-            { label: "Bitcoin", href: "/tags/btc" },
-            { label: "Ethereum", href: "/tags/eth" },
-            { label: "DeFi", href: "/tags/defi" },
-            { label: "NFT", href: "/tags/nft" },
-            { label: "Wallet", href: "/tags/wallet" },
-            { label: "Beginner", href: "/tags/beginner" },
-            { label: "Web3", href: "/tags/defi" },
+            { label: "Bitcoin", href: `${base}/tags/btc` },
+            { label: "Ethereum", href: `${base}/tags/eth` },
+            { label: "DeFi", href: `${base}/tags/defi` },
+            { label: "NFT", href: `${base}/tags/nft` },
+            { label: "Wallet", href: `${base}/tags/wallet` },
+            { label: "Beginner", href: `${base}/tags/beginner` },
+            { label: "Web3", href: `${base}/tags/defi` },
           ].map(tag => (
             <a href={tag.href}
               style="display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:500;border:1px solid var(--border);color:var(--fg-muted);background:var(--bg-card);text-decoration:none;transition:all 0.12s;"
@@ -159,7 +159,7 @@ const base = `/${langSeg}`;          // 本语言基础路径
               {tag.label}
             </a>
           ))}
-          <a href="/tags"
+          <a href={`${base}/tags`}
             style="display:inline-block;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:600;border:1px solid var(--accent);color:var(--accent);background:var(--tag-orange-bg);text-decoration:none;">
             {t("section.topic")} →
           </a>

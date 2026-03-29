@@ -26,6 +26,8 @@ export function filterPostsByLang(
   });
 }
 
+export const TUTORIAL_TAGS = ["docs", "教程", "tutorial", "beginner", "新手", "新手入门"];
+
 export interface HomePageData {
   hero: CollectionEntry<"blog"> | undefined;
   thumbPosts: CollectionEntry<"blog">[];
@@ -50,12 +52,15 @@ export function buildHomePageData(
   const listPosts = posts
     .filter(p => p !== hero && !thumbPosts.includes(p))
     .slice(0, 12);
-  const newsPosts = posts.slice(0, 8);
-  const hotPosts = posts.slice(0, 7);
+  const mainShown = new Set([hero, ...thumbPosts, ...listPosts].filter(Boolean));
+  const newsPosts = posts.filter(p => !mainShown.has(p)).slice(0, 8);
+  const hotPosts = posts
+    .filter(p => !mainShown.has(p) && !newsPosts.includes(p))
+    .slice(0, 7);
   const tutorialPosts = posts
     .filter(p =>
       p.data.tags?.some(t =>
-        ["docs", "教程", "tutorial", "beginner", "新手"].includes(t.toLowerCase())
+        TUTORIAL_TAGS.includes(t.toLowerCase())
       )
     )
     .slice(0, 5);
