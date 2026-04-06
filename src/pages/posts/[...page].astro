@@ -1,32 +1,92 @@
 ---
 // src/pages/posts/[...page].astro
-// Default language (zh-CN) article listing: /posts/  /posts/2/  /posts/3/ ...
-import type { GetStaticPaths } from "astro";
+// 默认语言(zh-CN)全部文章列表 — SSR，合并本地 + Ghost
+export const prerender = false;
+
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import LeftSidebar from "@/components/LeftSidebar.astro";
-import Card from "@/components/Card.astro";
+import UnifiedCard from "@/components/UnifiedCard.astro";
 import Pagination from "@/components/Pagination.astro";
 import { SITE } from "@/config";
 import { DEFAULT_LANG, useTranslations } from "@/i18n/ui";
-import { filterPostsByLang } from "@/utils/homePage";
-
-export const getStaticPaths = (async ({ paginate }) => {
-  const allPosts = await getCollection("blog", ({ data }) => !data.draft);
-  const langPosts = filterPostsByLang(allPosts, DEFAULT_LANG);
-  return paginate(langPosts, { pageSize: SITE.postPerPage });
-}) satisfies GetStaticPaths;
+import getSortedPosts from "@/utils/getSortedPosts";
+import { getPath } from "@/utils/getPath";
+import {
+  localToUnified,
+  fetchGhostUnified,
+  mergePosts,
+  filterUnifiedByLang,
+} from "@/utils/mergedPosts";
 
 const lang = DEFAULT_LANG;
 const t = useTranslations(lang);
-const { page } = Astro.props;
+
+// ── 解析页码 ────────────────────────────────────────────
+const pageParam = Astro.params.page;
+const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
+if (isNaN(currentPage) || currentPage < 1) {
+  return Astro.redirect("/posts");
+}
+
+// ── 获取并合并文章 ──────────────────────────────────────
+import type { UnifiedPost } from "@/utils/mergedPosts";
+
+let localUnified: UnifiedPost[] = [];
+try {
+  const posts = await getCollection("blog");
+  const sorted = getSortedPosts(posts);
+  localUnified = sorted.map(p => localToUnified(p, getPath(p.id, p.filePath)));
+} catch (e) {
+  console.error("[posts] Local posts load failed:", e);
+}
+
+let ghostUnified: UnifiedPost[] = [];
+try {
+  ghostUnified = await fetchGhostUnified({ lang, limit: 100 });
+} catch (e) {
+  console.warn("[posts] Ghost unavailable");
+}
+
+const merged = mergePosts(localUnified, ghostUnified);
+const allPosts = filterUnifiedByLang(merged, lang);
+
+// ── 手动分页 ────────────────────────────────────────────
+const pageSize = SITE.postPerPage;
+const totalPages = Math.max(1, Math.ceil(allPosts.length / pageSize));
+
+if (currentPage > totalPages && totalPages > 0) {
+  return Astro.redirect("/posts");
+}
+
+const start = (currentPage - 1) * pageSize;
+const pagePosts = allPosts.slice(start, start + pageSize);
+
+const page = {
+  data: pagePosts,
+  start: start,
+  end: start + pagePosts.length - 1,
+  total: allPosts.length,
+  size: pageSize,
+  currentPage,
+  lastPage: totalPages,
+  url: {
+    current: currentPage === 1 ? "/posts" : `/posts/${currentPage}`,
+    prev: currentPage > 1 ? (currentPage === 2 ? "/posts" : `/posts/${currentPage - 1}`) : undefined,
+    next: currentPage < totalPages ? `/posts/${currentPage + 1}` : undefined,
+    first: "/posts",
+    last: totalPages > 1 ? `/posts/${totalPages}` : "/posts",
+  },
+};
 ---
 
 <Layout
   title={`${t("section.all")} | ${t("site.name")}`}
   description={t("site.desc")}
+  paginationPrev={page.url.prev}
+  paginationNext={page.url.next}
 >
   <Header />
 
@@ -54,13 +114,13 @@ const { page } = Astro.props;
       </div>
 
       <div style="margin-top:12px;">
-        {page.data.length > 0 ? (
+        {pagePosts.length > 0 ? (
           <div class="alist">
-            {page.data.map(data => <Card {...data} size="list" variant="h3" />)}
+            {pagePosts.map(p => <UnifiedCard post={p} size="list" variant="h3" />)}
           </div>
         ) : (
           <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
-            <p style="font-size:15px;margin-bottom:8px;">📝 暂无文章</p>
+            <p style="font-size:15px;margin-bottom:8px;">暂无文章</p>
           </div>
         )}
       </div>

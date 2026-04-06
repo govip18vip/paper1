@@ -2,8 +2,6 @@ import { defineConfig } from "astro/config";
 import vercel from "@astrojs/vercel";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
-import remarkToc from "remark-toc";
-import remarkCollapse from "remark-collapse";
 import { SITE } from "./src/config";
 import { transformerFileName } from "./src/utils/transformers/fileName.js";
 import {
@@ -80,10 +78,7 @@ export default defineConfig({
   ],
 
   markdown: {
-    remarkPlugins: [
-      remarkToc,
-      [remarkCollapse, { test: "Table of contents" }],
-    ],
+    remarkPlugins: [],
     shikiConfig: {
       themes: { light: "min-light", dark: "night-owl" },
       transformers: [

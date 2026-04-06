@@ -71,22 +71,24 @@ if (window.theme) {
 // Ensure theme is reflected (in case body wasn't ready when inline script ran)
 reflectPreference();
 
-function setThemeFeature(): void {
-  // set on load so screen readers can get the latest value on the button
-  reflectPreference();
-
-  // now this script can find and listen for clicks on the control
-  document.querySelector("#theme-btn")?.addEventListener("click", () => {
-    themeValue = themeValue === LIGHT ? DARK : LIGHT;
-    window.theme?.setTheme(themeValue);
-    setPreference();
-  });
+function handleThemeClick(): void {
+  themeValue = themeValue === LIGHT ? DARK : LIGHT;
+  window.theme?.setTheme(themeValue);
+  setPreference();
 }
 
-// Set up theme features after page load
-setThemeFeature();
+function setThemeFeature(): void {
+  reflectPreference();
 
-// Runs on view transitions navigation
+  const btn = document.querySelector("#theme-btn");
+  if (btn) {
+    // Remove previous listener to avoid stacking on view transitions
+    btn.removeEventListener("click", handleThemeClick);
+    btn.addEventListener("click", handleThemeClick);
+  }
+}
+
+setThemeFeature();
 document.addEventListener("astro:after-swap", setThemeFeature);
 
 // Set theme-color value before page transition

@@ -34,7 +34,7 @@ html[data-theme="light"] {
   --shadow-card:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-hover:  0 4px 12px rgba(0,0,0,0.1);
   --nav-active-bg: rgba(247,147,26,0.06);
-  --ticker-bg:     #f7931a;
+  --ticker-bg:     #080c16;
 }
 
 html[data-theme="dark"] {
@@ -64,7 +64,7 @@ html[data-theme="dark"] {
   --shadow-card:   0 1px 4px rgba(0,0,0,0.4);
   --shadow-hover:  0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(247,147,26,0.12);
   --nav-active-bg: rgba(247,147,26,0.08);
-  --ticker-bg:     #f7931a;
+  --ticker-bg:     #080c16;
 }
 
 @theme inline {
@@ -142,22 +142,72 @@ html[data-theme="dark"] {
 /* Ticker */
 .ticker-wrap {
   background: var(--ticker-bg);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   overflow: hidden;
   white-space: nowrap;
+  position: relative;
+}
+/* Left LIVE badge with gradient fade */
+.ticker-label {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 24px 0 12px;
+  background: linear-gradient(90deg, #080c16 62%, transparent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: #3ecf8e;
+  pointer-events: none;
+  user-select: none;
+}
+.ticker-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #3ecf8e;
+  box-shadow: 0 0 7px #3ecf8e;
+  animation: liveDot 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes liveDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.25; transform: scale(0.6); }
+}
+/* Right fade */
+.ticker-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 48px;
+  background: linear-gradient(90deg, transparent, #080c16);
+  pointer-events: none;
+  z-index: 5;
 }
 .ticker-inner {
   display: inline-flex;
   align-items: center;
   gap: 0;
   animation: ticker 45s linear infinite;
-  color: #fff;
+  color: #9ba3bc;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  padding-left: 80px;
 }
 .ticker-inner:hover { animation-play-state: paused; }
 @keyframes ticker {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
+}
+.ticker-sep {
+  color: rgba(255,255,255,0.12);
+  font-size: 11px;
+  margin: 0 4px;
+  pointer-events: none;
 }
 
 /* =====================================================

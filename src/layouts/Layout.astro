@@ -19,10 +19,13 @@ type Props = {
   profile?: string;
   description?: string;
   ogImage?: string;
+  ogType?: string;
   canonicalURL?: string;
   pubDatetime?: Date;
   modDatetime?: Date | null;
   scrollSmooth?: boolean;
+  paginationPrev?: string;
+  paginationNext?: string;
 };
 
 const {
@@ -31,10 +34,13 @@ const {
   profile = SITE.profile,
   description = UI[lang]?.["site.desc"] ?? SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
+  ogType = "website",
   canonicalURL = new URL(Astro.url.pathname, Astro.url),
   pubDatetime,
   modDatetime,
   scrollSmooth = false,
+  paginationPrev,
+  paginationNext,
 } = Astro.props;
 
 const socialImageURL = new URL(ogImage, Astro.url);
@@ -59,6 +65,12 @@ const socialImageURL = new URL(ogImage, Astro.url);
     ))}
     <link rel="alternate" hreflang="x-default" href={`${Astro.url.origin}${Astro.url.pathname}`} />
 
+    <!-- Search engine verification -->
+    {SITE.googleSiteVerification && <meta name="google-site-verification" content={SITE.googleSiteVerification} />}
+    {SITE.bingSiteVerification && <meta name="msvalidate.01" content={SITE.bingSiteVerification} />}
+    {SITE.baiduSiteVerification && <meta name="baidu-site-verification" content={SITE.baiduSiteVerification} />}
+    {SITE.yandexSiteVerification && <meta name="yandex-verification" content={SITE.yandexSiteVerification} />}
+
     <!-- SEO meta -->
     <title>{title}</title>
     <meta name="title"       content={title} />
@@ -66,7 +78,12 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <meta name="author"      content={author} />
     <link rel="sitemap"      href="/sitemap-index.xml" />
 
+    <!-- Pagination -->
+    {paginationPrev && <link rel="prev" href={paginationPrev} />}
+    {paginationNext && <link rel="next" href={paginationNext} />}
+
     <!-- Open Graph -->
+    <meta property="og:type"        content={ogType} />
     <meta property="og:title"       content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url"         content={canonicalURL} />
@@ -114,6 +131,24 @@ const socialImageURL = new URL(ogImage, Astro.url);
       "inLanguage": alternates.map(a => a.lang),
     })} />
 
+    <!-- Analytics: Plausible -->
+    {SITE.plausibleDomain && (
+      <script defer data-domain={SITE.plausibleDomain} src="https://plausible.io/js/script.js" is:inline />
+    )}
+
+    <!-- Analytics: Google Analytics -->
+    {SITE.googleAnalyticsId && (
+      <Fragment>
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`} is:inline />
+        <script is:inline define:vars={{ gaId: SITE.googleAnalyticsId }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', gaId);
+        </script>
+      </Fragment>
+    )}
+
     <slot name="head" />
   </head>
 
@@ -127,5 +162,6 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <script>
       import "@/i18n/detect.ts";
     </script>
+
   </body>
 </html>

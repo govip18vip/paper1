@@ -1,5 +1,5 @@
 ---
-// src/pages/search.astro  (替换原文件)
+// src/pages/search.astro
 // 搜索页增强：热门关键词快捷按钮 + 搜索框突出
 
 import "@pagefind/default-ui/css/ui.css";
@@ -9,18 +9,34 @@ import Footer from "@/components/Footer.astro";
 import LeftSidebar from "@/components/LeftSidebar.astro";
 import BinanceBanner from "@/components/BinanceBanner.astro";
 import { SITE } from "@/config";
+import { getLang, useTranslations, LANG_TO_PATH } from "@/i18n/ui";
 
+const lang = getLang(Astro.url);
+const t = useTranslations(lang);
+const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
 const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : "/";
 
-const hotKeywords = [
-  "比特币", "以太坊", "币安注册", "BTC价格",
-  "ETH教程", "DeFi", "钱包安全", "新手入门",
-  "MetaMask", "Ledger", "减半",
+const hotKeywords: Record<string, string[]> = {
+  "zh-CN": ["比特币", "以太坊", "币安注册", "BTC价格", "ETH教程", "DeFi", "钱包安全", "新手入门", "MetaMask", "Ledger", "减半"],
+  "zh-TW": ["比特幣", "以太坊", "幣安註冊", "BTC價格", "ETH教學", "DeFi", "錢包安全", "新手入門", "MetaMask", "Ledger", "減半"],
+  "en":    ["Bitcoin", "Ethereum", "Binance", "BTC Price", "ETH Tutorial", "DeFi", "Wallet Security", "Beginner", "MetaMask", "Ledger", "Halving"],
+  "es":    ["Bitcoin", "Ethereum", "Binance", "Precio BTC", "Tutorial ETH", "DeFi", "Seguridad Billetera", "Principiante", "MetaMask", "Ledger", "Halving"],
+  "pt":    ["Bitcoin", "Ethereum", "Binance", "Preço BTC", "Tutorial ETH", "DeFi", "Segurança Carteira", "Iniciante", "MetaMask", "Ledger", "Halving"],
+};
+const keywords = hotKeywords[lang] || hotKeywords["zh-CN"];
+
+const quickNav = [
+  { labelKey: "search.btc",      href: base + "/price/btc" },
+  { labelKey: "search.eth",      href: base + "/price/eth" },
+  { labelKey: "search.exchange", href: base + "/tags/docs" },
+  { labelKey: "search.beginner", href: base + "/tags/beginner" },
+  { labelKey: "search.wallet",   href: base + "/tags/wallet" },
+  { labelKey: "search.defi",     href: base + "/tags/defi" },
 ];
 ---
 
-<Layout title={`搜索 | ${SITE.title}`}
-  description="搜索区块链资讯、加密货币教程、比特币行情分析等内容。">
+<Layout title={`${t("search.title")} | ${SITE.title}`}
+  description={t("search.subtitle")}>
 
   <Header />
 
@@ -28,17 +44,15 @@ const hotKeywords = [
     <LeftSidebar />
 
     <main class="main-col" style="padding:20px 16px 40px;" id="main-content">
-      <!-- 标题 -->
       <div style="margin-bottom:20px;">
-        <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0 0 6px;">搜索</h1>
-        <p style="font-size:13px;color:var(--fg-muted);margin:0;">搜索文章、教程、行情分析…</p>
+        <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0 0 6px;">{t("search.title")}</h1>
+        <p style="font-size:13px;color:var(--fg-muted);margin:0;">{t("search.subtitle")}</p>
       </div>
 
-      <!-- 热门关键词 -->
       <div style="margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:var(--fg-light);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">热门搜索</div>
+        <div style="font-size:11px;font-weight:700;color:var(--fg-light);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">{t("search.hot")}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="hot-keywords">
-          {hotKeywords.map(kw => (
+          {keywords.map(kw => (
             <button
               data-kw={kw}
               class="hot-kw-btn"
@@ -47,37 +61,28 @@ const hotKeywords = [
         </div>
       </div>
 
-      <!-- Pagefind 搜索框 -->
       <div id="pagefind-search" transition:persist data-backurl={backUrl}></div>
 
-      <!-- 搜索后广告位 -->
       <div id="search-after-cta" style="display:none;margin-top:24px;">
-        <BinanceBanner variant="compact" lang="zh-CN" />
+        <BinanceBanner variant="compact" lang={lang} />
       </div>
     </main>
 
     <aside class="rsidebar" style="padding:16px 0;">
       <div class="rsidebar-section">
-        <div class="rsidebar-head">快速导航</div>
+        <div class="rsidebar-head">{t("search.quicknav")}</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          {[
-            { label: "BTC行情", href: "/price/btc" },
-            { label: "ETH行情", href: "/price/eth" },
-            { label: "币安教程", href: "/tags/docs" },
-            { label: "新手入门", href: "/tags/beginner" },
-            { label: "钱包安全", href: "/tags/wallet" },
-            { label: "DeFi资讯", href: "/tags/defi" },
-          ].map(item => (
+          {quickNav.map(item => (
             <a href={item.href} style="display:block;padding:7px 10px;background:var(--bg-elevated);border-radius:5px;text-decoration:none;color:var(--fg);font-size:13px;transition:background 0.12s;"
               onmouseover="this.style.background='var(--nav-active-bg)';this.style.color='var(--accent)';"
               onmouseout="this.style.background='var(--bg-elevated)';this.style.color='var(--fg)';">
-              {item.label}
+              {t(item.labelKey)}
             </a>
           ))}
         </div>
       </div>
       <div class="rsidebar-section">
-        <BinanceBanner variant="compact" lang="zh-CN" />
+        <BinanceBanner variant="compact" lang={lang} />
       </div>
     </aside>
   </div>

@@ -103,6 +103,21 @@ export async function fetchGhostUnified(options?: {
 }
 
 /**
+ * 按语言过滤统一格式文章
+ */
+export function filterUnifiedByLang(
+  posts: UnifiedPost[],
+  lang: Lang
+): UnifiedPost[] {
+  return posts.filter(p => {
+    if (lang === "zh-CN") {
+      return !p.lang || p.lang === "zh-CN";
+    }
+    return p.lang === lang;
+  });
+}
+
+/**
  * 合并本地和 Ghost 文章，按时间倒序排列
  */
 export function mergePosts(

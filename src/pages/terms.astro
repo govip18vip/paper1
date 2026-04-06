@@ -1,0 +1,112 @@
+---
+// src/pages/terms.astro — Terms of Service
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import { SITE } from "@/config";
+import { getLang, useTranslations } from "@/i18n/ui";
+
+const lang = getLang(Astro.url);
+const t = useTranslations(lang);
+const isZh = lang === "zh-CN" || lang === "zh-TW";
+---
+
+<Layout title={`${isZh ? "服务条款" : "Terms of Service"} | ${SITE.title}`} description={isZh ? "Bitaigen 服务条款" : "Bitaigen Terms of Service"}>
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+    <main class="main-col" style="padding:20px 20px 60px;" id="main-content">
+      <article class="app-prose" style="max-width:720px;">
+        {isZh ? (
+          <Fragment>
+            <h1>服务条款</h1>
+            <p><strong>最后更新：2026 年 3 月</strong></p>
+
+            <p>欢迎访问 Bitaigen（<a href={SITE.website}>{SITE.website}</a>）。使用本网站即表示您同意以下条款。如不同意，请停止使用本站。</p>
+
+            <h2>1. 内容性质</h2>
+            <p>本站提供的所有内容（包括文章、价格数据、教程和分析）仅供信息参考和教育目的。<strong>本站内容不构成投资建议、财务建议或交易建议。</strong></p>
+
+            <h2>2. 投资风险</h2>
+            <p>加密货币和数字资产投资具有高度风险，包括但不限于：</p>
+            <ul>
+              <li>价格波动剧烈，可能导致全部本金损失</li>
+              <li>监管环境不确定性</li>
+              <li>技术风险（如智能合约漏洞、交易所安全事件）</li>
+            </ul>
+            <p>在做出任何投资决策前，请咨询专业的财务顾问，并充分了解相关风险。</p>
+
+            <h2>3. 价格数据</h2>
+            <p>本站显示的加密货币价格数据来自第三方 API（如 CoinGecko、Binance）。我们不保证数据的准确性、完整性或实时性。价格数据仅供参考，不应作为交易决策的唯一依据。</p>
+
+            <h2>4. 联盟营销</h2>
+            <p>本站包含联盟营销链接（如币安推荐链接）。当您通过这些链接注册或交易时，本站可能获得佣金收入。这不会增加您的任何费用。我们仅推荐我们认为可靠的服务，但不对第三方平台的服务质量承担责任。</p>
+
+            <h2>5. 知识产权</h2>
+            <p>本站的原创内容（文字、图片、设计）受版权保护。未经授权，不得复制、分发或用于商业用途。引用本站内容时请注明出处。</p>
+
+            <h2>6. 外部链接</h2>
+            <p>本站可能包含指向第三方网站的链接。我们不对这些外部网站的内容、隐私政策或安全性承担责任。</p>
+
+            <h2>7. 免责声明</h2>
+            <p>本站内容按"现状"提供，不提供任何明示或暗示的保证。对于因使用本站内容而产生的任何直接或间接损失，本站不承担责任。</p>
+
+            <h2>8. 条款变更</h2>
+            <p>我们保留随时修改这些条款的权利。继续使用本站即表示您接受修改后的条款。</p>
+
+            <h2>9. 联系方式</h2>
+            <ul>
+              <li>Email: <a href="mailto:contact@bitaigen.com">contact@bitaigen.com</a></li>
+              <li>Telegram: <a href={SITE.telegram} target="_blank" rel="noopener noreferrer">@AllenAmbrose</a></li>
+            </ul>
+          </Fragment>
+        ) : (
+          <Fragment>
+            <h1>Terms of Service</h1>
+            <p><strong>Last updated: March 2026</strong></p>
+
+            <p>Welcome to Bitaigen (<a href={SITE.website}>{SITE.website}</a>). By using this website, you agree to the following terms. If you do not agree, please discontinue use.</p>
+
+            <h2>1. Nature of Content</h2>
+            <p>All content provided on this site (including articles, price data, tutorials, and analysis) is for informational and educational purposes only. <strong>Nothing on this site constitutes investment, financial, or trading advice.</strong></p>
+
+            <h2>2. Investment Risk</h2>
+            <p>Cryptocurrency and digital asset investments carry high risk, including but not limited to:</p>
+            <ul>
+              <li>Extreme price volatility and potential total loss of capital</li>
+              <li>Regulatory uncertainty</li>
+              <li>Technical risks (smart contract vulnerabilities, exchange security incidents)</li>
+            </ul>
+            <p>Consult a qualified financial advisor before making any investment decisions.</p>
+
+            <h2>3. Price Data</h2>
+            <p>Cryptocurrency prices displayed on this site are sourced from third-party APIs (CoinGecko, Binance). We do not guarantee the accuracy, completeness, or timeliness of this data.</p>
+
+            <h2>4. Affiliate Marketing</h2>
+            <p>This site contains affiliate links (such as Binance referral links). We may earn commissions when you sign up or trade through these links, at no additional cost to you. We only recommend services we believe to be reliable, but are not responsible for third-party service quality.</p>
+
+            <h2>5. Intellectual Property</h2>
+            <p>Original content on this site (text, images, design) is copyright protected. Reproduction or distribution without authorization is prohibited. Please credit the source when citing our content.</p>
+
+            <h2>6. External Links</h2>
+            <p>This site may contain links to third-party websites. We are not responsible for their content, privacy policies, or security.</p>
+
+            <h2>7. Disclaimer</h2>
+            <p>Content is provided "as is" without warranties of any kind. We are not liable for any direct or indirect damages arising from the use of this site.</p>
+
+            <h2>8. Changes to Terms</h2>
+            <p>We reserve the right to modify these terms at any time. Continued use of the site constitutes acceptance of updated terms.</p>
+
+            <h2>9. Contact</h2>
+            <ul>
+              <li>Email: <a href="mailto:contact@bitaigen.com">contact@bitaigen.com</a></li>
+              <li>Telegram: <a href={SITE.telegram} target="_blank" rel="noopener noreferrer">@AllenAmbrose</a></li>
+            </ul>
+          </Fragment>
+        )}
+      </article>
+    </main>
+  </div>
+  <Footer />
+</Layout>

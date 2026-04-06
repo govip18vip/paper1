@@ -86,6 +86,13 @@ export interface GhostPagination {
 // ── 语言 ↔ Ghost tag 映射 ────────────────────────────────
 
 const LANG_SLUG_MAP: Record<string, Lang> = {
+  // 新格式：#zh #en #zh-tw #es #pt
+  "hash-zh": "zh-CN",
+  "hash-zh-tw": "zh-TW",
+  "hash-en": "en",
+  "hash-es": "es",
+  "hash-pt": "pt",
+  // 旧格式兼容
   "hash-lang-zh-cn": "zh-CN",
   "hash-lang-zh-tw": "zh-TW",
   "hash-lang-en": "en",
@@ -94,11 +101,11 @@ const LANG_SLUG_MAP: Record<string, Lang> = {
 };
 
 const LANG_TO_SLUG: Record<Lang, string> = {
-  "zh-CN": "hash-lang-zh-cn",
-  "zh-TW": "hash-lang-zh-tw",
-  en: "hash-lang-en",
-  es: "hash-lang-es",
-  pt: "hash-lang-pt",
+  "zh-CN": "hash-zh",
+  "zh-TW": "hash-zh-tw",
+  en: "hash-en",
+  es: "hash-es",
+  pt: "hash-pt",
 };
 
 function extractLang(post: GhostPost): Lang {

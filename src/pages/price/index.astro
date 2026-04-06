@@ -42,7 +42,7 @@ const labels: Record<string, Record<Lang, string>> = {
   mcap:     { "zh-CN": "市值", "zh-TW": "市值", en: "Market Cap", es: "Cap. Mercado", pt: "Cap. Mercado" },
   vol:      { "zh-CN": "24h成交量", "zh-TW": "24h成交量", en: "24h Volume", es: "Vol. 24h", pt: "Vol. 24h" },
   rank:     { "zh-CN": "排名", "zh-TW": "排名", en: "Rank", es: "Rango", pt: "Rank" },
-  source:   { "zh-CN": "数据来源：Binance · 每30秒更新", "zh-TW": "數據來源：Binance · 每30秒更新", en: "Data: Binance · Updates every 30s", es: "Datos: Binance · Actualiza cada 30s", pt: "Dados: Binance · Atualiza a cada 30s" },
+  source:   { "zh-CN": "数据来源：Orbit / Binance · 每30秒更新", "zh-TW": "數據來源：CryptoBubbles / Binance · 每30秒更新", en: "Data: CryptoBubbles / Binance · Updates every 30s", es: "Datos: CryptoBubbles / Binance · Actualiza cada 30s", pt: "Dados: CryptoBubbles / Binance · Atualiza a cada 30s" },
   detail:   { "zh-CN": "热门币种详情", "zh-TW": "熱門幣種詳情", en: "Popular Coins", es: "Monedas Populares", pt: "Moedas Populares" },
   viewAll:  { "zh-CN": "查看详情 →", "zh-TW": "查看詳情 →", en: "View Details →", es: "Ver Detalles →", pt: "Ver Detalhes →" },
 };
@@ -89,19 +89,24 @@ const pricePageSchema = {
             <span style="flex:1;text-align:right;" class="hide-mobile-sm">{labels.change[lang]}</span>
             <span style="flex:1;text-align:right;" class="hide-tablet">{labels.vol[lang]}</span>
             <span style="flex:1;text-align:right;" class="hide-tablet">{labels.mcap[lang]}</span>
+            <span style="min-width:72px;text-align:right;" class="hide-mobile-sm">交易</span>
           </div>
 
           <!-- 币种行 -->
           <div id="price-table">
             {MAJOR_COINS.map((coin, i) => (
-              <a href={`/price/${coin.symbol.toLowerCase()}`}
-                class="price-row"
-                data-coin={coin.id}
+              <div class="price-row" data-coin={coin.id}
+                onclick={`location.href='/price/${coin.symbol.toLowerCase()}'`}
+                style="cursor:pointer;"
+                role="link" tabindex="0"
+                onkeydown={`if(event.key==='Enter')location.href='/price/${coin.symbol.toLowerCase()}'`}
               >
                 <span class="price-rank" id={`r-${coin.id}`}>{i + 1}</span>
                 <div class="price-coin-info">
-                  <div class="price-coin-icon" style={`background:${coin.color}22;border-color:${coin.color}44;color:${coin.color};`}>
-                    {coin.emoji}
+                  <div class="price-coin-icon" style={`background:${coin.color}22;border-color:${coin.color}44;overflow:hidden;`}>
+                    <img src={`/coins/${coin.symbol.toLowerCase()}.png`} alt={coin.symbol}
+                      width="20" height="20" style="width:20px;height:20px;object-fit:contain;"
+                      onerror={`this.outerHTML='<span style="color:${coin.color};font-size:14px">${coin.emoji}</span>'`} />
                   </div>
                   <div style="min-width:0;">
                     <div class="price-coin-name">{coin.name[lang]}</div>
@@ -112,7 +117,15 @@ const pricePageSchema = {
                 <div id={`c-${coin.id}`} class="price-change hide-mobile-sm">—</div>
                 <div id={`v-${coin.id}`} class="price-vol hide-tablet">—</div>
                 <div id={`m-${coin.id}`} class="price-mcap hide-tablet">—</div>
-              </a>
+                <div class="price-trade hide-mobile-sm" onclick="event.stopPropagation()">
+                  <a href={`https://www.binance.com/trade/${coin.symbol}_USDT?layout=pro&ref=B2345&type=spot`}
+                    target="_blank" rel="noopener noreferrer sponsored"
+                    class="trade-btn-bin" title={`Trade ${coin.symbol} on Binance`}>B</a>
+                  <a href={`https://www.okx.com/trade-spot/${coin.symbol.toLowerCase()}-usdt?channelid=B2345`}
+                    target="_blank" rel="noopener noreferrer sponsored"
+                    class="trade-btn-okx" title={`Trade ${coin.symbol} on OKX`}>O</a>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -134,8 +147,10 @@ const pricePageSchema = {
               class="coin-detail-card"
               style={`--coin-color:${coin.color};`}
             >
-              <div class="coin-detail-icon" style={`background:${coin.color}22;border-color:${coin.color}44;`}>
-                <span style={`color:${coin.color};font-size:18px;`}>{coin.emoji}</span>
+              <div class="coin-detail-icon" style={`background:${coin.color}22;border-color:${coin.color}44;overflow:hidden;`}>
+                <img src={`/coins/${coin.symbol.toLowerCase()}.png`} alt={coin.symbol}
+                  width="24" height="24" style="width:24px;height:24px;object-fit:contain;"
+                  onerror={`this.outerHTML='<span style="color:${coin.color};font-size:18px">${coin.emoji}</span>'`} />
               </div>
               <div style="min-width:0;">
                 <div style="font-size:13px;font-weight:700;color:var(--fg);">{coin.symbol}</div>
@@ -268,6 +283,30 @@ const pricePageSchema = {
     border: 1px solid;
   }
 
+  .price-trade {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    min-width: 72px;
+    justify-content: flex-end;
+  }
+  .trade-btn-bin, .trade-btn-okx {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .trade-btn-bin { background: #F0B90B; color: #111; }
+  .trade-btn-okx { background: #1a1a1a; color: #fff; }
+  .trade-btn-bin:hover, .trade-btn-okx:hover { opacity: 0.75; }
+
   @media (max-width: 768px) {
     .hide-tablet { display: none !important; }
   }
@@ -293,7 +332,41 @@ const pricePageSchema = {
     return "$" + n.toFixed(4);
   };
 
-  // Binance API 直接获取 24h ticker
+  // Symbol → coinId 映射
+  const symToCoinId = {
+    BTC:"bitcoin", ETH:"ethereum", BNB:"binancecoin", SOL:"solana", XRP:"ripple",
+    ADA:"cardano", DOGE:"dogecoin", TRX:"tron", DOT:"polkadot", LTC:"litecoin",
+    LINK:"chainlink", AVAX:"avalanche-2", UNI:"uniswap", XLM:"stellar", ATOM:"cosmos",
+    BCH:"bitcoin-cash", POL:"polygon", ARB:"arbitrum", OP:"optimism", SUI:"sui",
+  };
+
+  // 优先：Orbit（CoinGecko 兼容格式，含市值/排名/高低价）
+  async function fetchOrbit() {
+    try {
+      const r = await fetch(
+        "https://orbit.biyijia.com/api/coins?per_page=60",
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!r.ok) return null;
+      const coins = await r.json();
+      const map = {};
+      for (const c of coins) {
+        const sym = c.symbol?.toUpperCase();
+        if (sym && symToCoinId[sym]) {
+          map[sym] = {
+            price: c.current_price,
+            change: c.price_change_percentage_24h_in_currency ?? 0,
+            vol: c.total_volume,
+            mcap: c.market_cap,
+            rank: c.market_cap_rank,
+          };
+        }
+      }
+      return Object.keys(map).length > 0 ? map : null;
+    } catch { return null; }
+  }
+
+  // 备用：Binance（无市值/排名）
   async function fetchBinance() {
     const symbols = [
       "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT",
@@ -301,17 +374,15 @@ const pricePageSchema = {
       "LINKUSDT","AVAXUSDT","UNIUSDT","XLMUSDT","ATOMUSDT",
       "BCHUSDT","POLUSDT","ARBUSDT","OPUSDT","SUIUSDT"
     ];
-
     try {
       const symbolsParam = JSON.stringify(symbols);
       const r = await fetch(
         `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`,
         { signal: AbortSignal.timeout(8000) }
       );
-      if (!r.ok) throw new Error("Binance API error");
+      if (!r.ok) throw new Error();
       return await r.json();
     } catch {
-      // 回退：请求全量然后过滤
       try {
         const r = await fetch("https://data-api.binance.vision/api/v3/ticker/24hr",
           { signal: AbortSignal.timeout(10000) });
@@ -323,7 +394,7 @@ const pricePageSchema = {
     }
   }
 
-  // CoinGecko 补充市值数据
+  // 备用市值：CoinGecko（仅 Binance 回退时使用）
   async function fetchGeckoMarketCap() {
     try {
       const ids = "bitcoin,ethereum,binancecoin,solana,ripple,cardano,dogecoin,tron,polkadot,litecoin,chainlink,avalanche-2,uniswap,stellar,cosmos,bitcoin-cash,polygon-ecosystem-token,arbitrum,optimism,sui";
@@ -335,53 +406,55 @@ const pricePageSchema = {
       const data = await r.json();
       const map = {};
       for (const c of data) {
-        map[c.symbol.toUpperCase()] = {
-          mcap: c.market_cap,
-          rank: c.market_cap_rank,
-          vol: c.total_volume,
-        };
+        map[c.symbol.toUpperCase()] = { mcap: c.market_cap, rank: c.market_cap_rank };
       }
       return map;
     } catch { return {}; }
   }
 
-  // Symbol → coinId 映射
-  const symToCoinId = {
-    BTC:"bitcoin", ETH:"ethereum", BNB:"binancecoin", SOL:"solana", XRP:"ripple",
-    ADA:"cardano", DOGE:"dogecoin", TRX:"tron", DOT:"polkadot", LTC:"litecoin",
-    LINK:"chainlink", AVAX:"avalanche-2", UNI:"uniswap", XLM:"stellar", ATOM:"cosmos",
-    BCH:"bitcoin-cash", POL:"polygon", ARB:"arbitrum", OP:"optimism", SUI:"sui",
-  };
-
   async function updateAll() {
-    const [tickers, geckoMap] = await Promise.all([
-      fetchBinance(),
-      fetchGeckoMarketCap(),
-    ]);
+    // 优先 Orbit
+    const cbMap = await fetchOrbit();
+    if (cbMap) {
+      for (const [sym, d] of Object.entries(cbMap)) {
+        const coinId = symToCoinId[sym];
+        if (!coinId) continue;
+        const pe = document.getElementById("p-" + coinId);
+        const ce = document.getElementById("c-" + coinId);
+        const ve = document.getElementById("v-" + coinId);
+        const me = document.getElementById("m-" + coinId);
+        const re = document.getElementById("r-" + coinId);
+        if (pe) pe.textContent = fmtP(d.price);
+        if (ce) {
+          ce.textContent = (d.change >= 0 ? "▲ +" : "▼ ") + Math.abs(d.change).toFixed(2) + "%";
+          ce.style.color = d.change >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+        }
+        if (ve) ve.textContent = fmt(d.vol);
+        if (me) me.textContent = fmt(d.mcap);
+        if (re && d.rank) re.textContent = d.rank;
+      }
+      return;
+    }
 
+    // 回退：Binance + CoinGecko
+    const [tickers, geckoMap] = await Promise.all([fetchBinance(), fetchGeckoMarketCap()]);
     for (const t of tickers) {
       const sym = t.symbol.replace("USDT", "");
       const coinId = symToCoinId[sym];
       if (!coinId) continue;
-
       const pe = document.getElementById("p-" + coinId);
       const ce = document.getElementById("c-" + coinId);
       const ve = document.getElementById("v-" + coinId);
       const me = document.getElementById("m-" + coinId);
       const re = document.getElementById("r-" + coinId);
-
       const price = parseFloat(t.lastPrice);
       const chg = parseFloat(t.priceChangePercent);
-      const vol = parseFloat(t.quoteVolume);
-
       if (pe) pe.textContent = fmtP(price);
       if (ce) {
         ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
         ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
       }
-      if (ve) ve.textContent = fmt(vol);
-
-      // CoinGecko 市值数据
+      if (ve) ve.textContent = fmt(parseFloat(t.quoteVolume));
       const gecko = geckoMap[sym];
       if (gecko) {
         if (me) me.textContent = fmt(gecko.mcap);

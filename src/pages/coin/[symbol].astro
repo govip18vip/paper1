@@ -60,8 +60,10 @@ const description = coinInfo.description[lang];
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <!-- 顶部信息 -->
           <div style="display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
-            <div style={`width:48px;height:48px;border-radius:50%;background:${coinInfo.color}22;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;flex-shrink:0;`}>
-              {coinInfo.emoji}
+            <div style={`width:48px;height:48px;border-radius:50%;background:${coinInfo.color}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;`}>
+              <img src={`/coins/${coinSymbol.toLowerCase()}.png`} alt={coinSymbol}
+                width="32" height="32" style="width:32px;height:32px;object-fit:contain;"
+                onerror={`this.outerHTML='<span style="font-size:24px">${coinInfo.emoji}</span>'`} />
             </div>
             <div style="flex:1;">
               <div style="font-size:20px;font-weight:800;color:var(--fg);">{coinInfo.name[lang]}</div>
@@ -77,7 +79,7 @@ const description = coinInfo.description[lang];
 
           <!-- 更新时间 -->
           <div style="padding:8px 24px 14px;font-size:11px;color:var(--fg-light);">
-            数据来源：Binance · <span id={`updated-${coinId}`}>—</span> · 每60秒自动刷新
+            数据来源：CryptoBubbles / Binance · <span id={`updated-${coinId}`}>—</span> · 每60秒自动刷新
           </div>
         </div>
       </section>
@@ -181,9 +183,17 @@ const description = coinInfo.description[lang];
     <aside class="rsidebar" style="padding:16px 0;">
       <div class="rsidebar-section">
         <div class="rsidebar-head">⚡ 快速操作</div>
-        <a href={`https://www.binance.com/en/register?ref=B2345`} target="_blank" rel="noopener noreferrer sponsored"
-          style="display:block;padding:10px;background:var(--accent);color:#fff;border-radius:5px;text-decoration:none;font-size:13px;font-weight:700;text-align:center;margin-bottom:8px;">
-          在币安购买 {coinSymbol}
+        <a href={`https://www.binance.com/trade/${coinSymbol}_USDT?layout=pro&ref=B2345&type=spot`}
+          target="_blank" rel="noopener noreferrer sponsored"
+          style="display:block;padding:10px;background:#F0B90B;color:#111;border-radius:5px;text-decoration:none;font-size:13px;font-weight:800;text-align:center;margin-bottom:8px;transition:opacity 0.12s;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          ◈ Binance · {coinSymbol}/USDT →
+        </a>
+        <a href={`https://www.okx.com/trade-spot/${coinSymbol.toLowerCase()}-usdt?channelid=B2345`}
+          target="_blank" rel="noopener noreferrer sponsored"
+          style="display:block;padding:10px;background:#1a1a1a;color:#fff;border-radius:5px;text-decoration:none;font-size:13px;font-weight:800;text-align:center;margin-bottom:8px;transition:opacity 0.12s;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          OKX · {coinSymbol}/USDT →
         </a>
         <p style="font-size:10px;color:var(--fg-muted);text-align:center;margin:0;">邀请码 B2345 · 最高折扣</p>
       </div>
@@ -206,7 +216,38 @@ const description = coinInfo.description[lang];
     return "$" + n.toFixed(4);
   };
 
+  // 提取当前币种符号（去除 USDT 后缀）
+  const _coinSym = binanceSymbol.replace("USDT", "");
+
   async function updatePrice() {
+    // 优先：Orbit
+    try {
+      const r = await fetch(
+        "https://orbit.biyijia.com/api/coins?per_page=60",
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (r.ok) {
+        const coins = await r.json();
+        const coin = coins.find(c => c.symbol?.toUpperCase() === _coinSym);
+        if (coin) {
+          const price = coin.current_price;
+          const chg = coin.price_change_percentage_24h_in_currency ?? 0;
+          const isUp = chg >= 0;
+          const pe = document.getElementById("price-" + coinId);
+          const ce = document.getElementById("change-" + coinId);
+          const ue = document.getElementById("updated-" + coinId);
+          if (pe) pe.textContent = fmtP(price);
+          if (ce) {
+            ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "% (24h)";
+            ce.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+          }
+          if (ue) ue.textContent = new Date().toLocaleTimeString("zh-CN", {hour:"2-digit",minute:"2-digit"});
+          return;
+        }
+      }
+    } catch { /* fall through */ }
+
+    // 备用：Binance
     try {
       const r = await fetch(
         `https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
@@ -214,15 +255,12 @@ const description = coinInfo.description[lang];
       );
       if (!r.ok) return;
       const t = await r.json();
-
       const price = parseFloat(t.lastPrice);
       const chg = parseFloat(t.priceChangePercent);
       const isUp = chg >= 0;
-
       const pe = document.getElementById("price-" + coinId);
       const ce = document.getElementById("change-" + coinId);
       const ue = document.getElementById("updated-" + coinId);
-
       if (pe) pe.textContent = fmtP(price);
       if (ce) {
         ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "% (24h)";

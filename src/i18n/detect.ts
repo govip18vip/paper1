@@ -16,25 +16,13 @@ import type { Lang } from "./ui";
 function detectLangFromPath(): Lang {
   const firstSeg = window.location.pathname.split("/").filter(Boolean)[0] ?? "";
   if (firstSeg in LANG_PATH_MAP) return LANG_PATH_MAP[firstSeg];
-  return null as unknown as Lang; // 路径中无语言前缀
+  // 无语言前缀 = 默认语言（zh-CN），路径即语言，不应被浏览器语言覆盖
+  return DEFAULT_LANG;
 }
 
 function detectLang(): Lang {
-  // 1. URL 路径前缀（最高优先级，用户正在访问该语言页面）
-  const pathLang = detectLangFromPath();
-  if (pathLang) return pathLang;
-
-  // 2. localStorage（用户上次选择）
-  const stored = localStorage.getItem("cn-lang");
-  if (stored && stored in LANGUAGES) return stored as Lang;
-
-  // 3. 浏览器语言
-  const nav = navigator.language || (navigator as any).userLanguage || "";
-  if (BROWSER_LANG_MAP[nav]) return BROWSER_LANG_MAP[nav];
-  const prefix = nav.split("-")[0];
-  if (BROWSER_LANG_MAP[prefix]) return BROWSER_LANG_MAP[prefix];
-
-  return DEFAULT_LANG;
+  // URL 路径前缀决定语言（根路径 = zh-CN）
+  return detectLangFromPath();
 }
 
 // ── 切换语言（导航到对应静态页面）────────────────────────────

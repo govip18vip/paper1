@@ -245,3 +245,45 @@ const articleSchema = {
 .ghost-content :global(figcaption) { text-align:center;font-size:13px;color:var(--fg-muted);margin-top:8px; }
 .ghost-content :global(.kg-callout-card) { padding:16px;border-radius:6px;background:var(--bg-elevated);border-left:3px solid var(--accent); }
 </style>
+
+<script>
+  function initTocSpy() {
+    const tocLinks = document.querySelectorAll<HTMLAnchorElement>(".pd-toc-link");
+    if (!tocLinks.length) return;
+
+    const headingIds = Array.from(tocLinks).map(a => a.getAttribute("href")?.slice(1)).filter(Boolean) as string[];
+    const headingEls = headingIds.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (!headingEls.length) return;
+
+    let ticking = false;
+
+    function updateActive() {
+      const scrollY = window.scrollY;
+      let activeIdx = 0;
+
+      for (let i = 0; i < headingEls.length; i++) {
+        if (headingEls[i].offsetTop <= scrollY + 100) {
+          activeIdx = i;
+        }
+      }
+
+      tocLinks.forEach((link, i) => {
+        link.classList.toggle("active", i === activeIdx);
+      });
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(updateActive);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    updateActive();
+  }
+
+  initTocSpy();
+  document.addEventListener("astro:after-swap", initTocSpy);
+</script>

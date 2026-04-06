@@ -1,9 +1,6 @@
 ---
 // src/pages/archives/index.astro
-// ─────────────────────────────────────────────────────────────
-// Ghost 文章归档列表页（不是首页！）
-// SSR 模式，支持 ?lang=en &tag=btc 过滤
-// ─────────────────────────────────────────────────────────────
+// Ghost 文章归档列表页 — SSR，支持 ?lang=en &tag=btc 过滤
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -12,23 +9,17 @@ import Footer from "@/components/Footer.astro";
 import LeftSidebar from "@/components/LeftSidebar.astro";
 import BinanceBanner from "@/components/BinanceBanner.astro";
 import { SITE } from "@/config";
-import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+import { getLang, useTranslations, LANG_TO_PATH, LANGUAGES, type Lang } from "@/i18n/ui";
 import { getPosts, type GhostPost, type GhostPagination } from "@/utils/ghost";
 
 const langParam = Astro.url.searchParams.get("lang") as Lang | null;
 const lang: Lang = langParam || getLang(Astro.url);
 const tagFilter = Astro.url.searchParams.get("tag") || undefined;
 const t = useTranslations(lang);
+const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
 
 let posts: GhostPost[] = [];
-let pagination: GhostPagination = {
-  page: 1,
-  limit: 20,
-  pages: 1,
-  total: 0,
-  next: null,
-  prev: null,
-};
+let pagination: GhostPagination = { page: 1, limit: 20, pages: 1, total: 0, next: null, prev: null };
 let ghostError = false;
 
 try {
@@ -41,209 +32,156 @@ try {
 }
 
 function pageUrl(p: number): string {
-  const base = p === 1 ? "/archives" : `/archives/${p}`;
+  const path = p === 1 ? "/archives" : `/archives/${p}`;
   const params = new URLSearchParams();
   if (lang !== "zh-CN") params.set("lang", lang);
   if (tagFilter) params.set("tag", tagFilter);
   const qs = params.toString();
-  return qs ? `${base}?${qs}` : base;
+  return qs ? `${path}?${qs}` : path;
 }
 
-const pageTitle = tagFilter
-  ? `${tagFilter} — ${t("section.all")}`
-  : t("section.all");
+const pageTitle = tagFilter ? `${tagFilter} — ${t("section.all")}` : t("section.all");
+
+const sidebarTags = ["BTC", "ETH", "DeFi", "NFT", "Wallet", "Beginner", "Market"];
 ---
 
-<Layout
-  title={`${pageTitle} | ${t("site.name")}`}
-  description={t("site.desc")}
->
+<Layout title={`${pageTitle} | ${t("site.name")}`} description={t("site.desc")}>
   <Header />
-  
-  
   <div class="site-outer">
     <LeftSidebar currentLang={lang} />
 
-    <div class="main-col" style="padding-bottom:40px;">
-      <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
-        <a href="/" style="color:var(--fg-muted);text-decoration:none;">
-          {t("nav.home")}
-        </a>
-        <span style="margin:0 6px;opacity:0.5;">›</span>
-        <span style="color:var(--fg);">{pageTitle}</span>
+    <main class="main-col" style="padding-bottom:40px;" id="main-content">
+
+      <!-- Breadcrumb -->
+      <nav class="arc-breadcrumb">
+        <a href={base + "/"}>{t("nav.home")}</a>
+        <span aria-hidden="true">›</span>
+        <span class="arc-breadcrumb-current">{pageTitle}</span>
         {pagination.pages > 1 && (
-          <span style="color:var(--fg-light);">
-            {" "}
-            — 1/{pagination.pages}
-          </span>
+          <span class="arc-breadcrumb-page">1 / {pagination.pages}</span>
         )}
+      </nav>
+
+      <!-- Page header -->
+      <div class="arc-header">
+        <div class="arc-header-left">
+          <h1 class="arc-title">{pageTitle}</h1>
+          <p class="arc-count">
+            {pagination.total.toLocaleString()} {t("archives.articles")}
+          </p>
+        </div>
+        <!-- Language filter pills -->
+        <div class="arc-lang-pills">
+          {(Object.keys(LANGUAGES) as Lang[]).map(l => {
+            const label = l === "zh-CN" ? "简中" : l === "zh-TW" ? "繁中" : l.toUpperCase();
+            const active = l === lang;
+            const href = `/archives${tagFilter ? `?tag=${tagFilter}&` : "?"}lang=${l}`;
+            return (
+              <a href={href} class:list={["arc-lang-pill", { active }]}>{label}</a>
+            );
+          })}
+        </div>
       </div>
 
-      <div style="padding:10px 16px 0;">
-        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin:0 0 4px;">
-          {pageTitle}
-        </h1>
-        <p style="font-size:13px;color:var(--fg-muted);">
-          {pagination.total.toLocaleString()}{" "}
-          {lang === "en"
-            ? "articles"
-            : lang === "es"
-              ? "artículos"
-              : lang === "pt"
-                ? "artigos"
-                : "篇文章"}
-        </p>
-      </div>
+      <!-- Tag filter bar -->
+      {tagFilter && (
+        <div class="arc-tag-filter">
+          <span class="arc-tag-filter-label">{t("section.tags")}:</span>
+          <span class="arc-tag-filter-badge">{tagFilter}</span>
+          <a href={`/archives?lang=${lang}`} class="arc-tag-filter-clear" title="Clear filter">✕</a>
+        </div>
+      )}
 
-      {/* 语言切换 */}
-      <div style="padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;">
-        {(["zh-CN", "zh-TW", "en", "es", "pt"] as Lang[]).map(l => {
-          const label =
-            l === "zh-CN"
-              ? "简中"
-              : l === "zh-TW"
-                ? "繁中"
-                : l === "en"
-                  ? "EN"
-                  : l === "es"
-                    ? "ES"
-                    : "PT";
-          const active = l === lang;
-          const href = `/archives${tagFilter ? `?tag=${tagFilter}&` : "?"}lang=${l}`;
-          return (
-            <a
-              href={href}
-              style={`display:inline-flex;align-items:center;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;border:1px solid ${active ? "var(--accent)" : "var(--border)"};color:${active ? "#fff" : "var(--fg-muted)"};background:${active ? "var(--accent)" : "transparent"};text-decoration:none;transition:all 0.12s;`}
-            >
-              {label}
-            </a>
-          );
-        })}
-      </div>
-
-      {/* Ghost 不可用提示 */}
+      <!-- Ghost error state -->
       {ghostError && (
-        <div style="padding:20px 16px;">
-          <div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:6px;padding:16px;">
-            <p style="font-size:14px;color:var(--fg);margin:0 0 8px;font-weight:600;">
-              ⚠️ 内容暂时无法加载
-            </p>
-            <p style="font-size:13px;color:var(--fg-muted);margin:0;">
-              Ghost CMS 服务暂时不可用，请稍后刷新重试。您也可以访问{" "}
-              <a href="/posts" style="color:var(--accent);">
-                本地文章列表
-              </a>
-              。
+        <div class="arc-error">
+          <div class="arc-error-inner">
+            <p class="arc-error-title">⚠️ {t("archives.unavailable")}</p>
+            <p class="arc-error-desc">
+              {t("archives.unavailableDesc")}
+              <a href={base + "/posts"}>{t("archives.local")}</a>
             </p>
           </div>
         </div>
       )}
 
-      {/* 列表 */}
-      <div style="margin-top:8px;">
-        {posts.length > 0 ? (
-          <div class="alist">
-            {posts.map(p => (
-              <a
-                href={`/archives/${p.slug}`}
-                class="alist-item"
-                style="text-decoration:none;color:inherit;"
-              >
-                {p.feature_image && (
-                  <div class="alist-thumb">
-                    <img
-                      src={p.feature_image}
-                      alt={p.title}
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-                <div class="alist-body">
-                  {p.primary_tag && (
-                    <div class="alist-tag">
-                      <span class="ctag">{p.primary_tag.name}</span>
-                    </div>
-                  )}
-                  <div class="alist-title">{p.title}</div>
-                  {p.excerpt && (
-                    <div class="alist-desc">{p.excerpt.slice(0, 100)}</div>
-                  )}
-                  <div class="alist-meta">
-                    <span>{p.primary_author?.name || SITE.author}</span>
-                    <span>·</span>
-                    <span>
-                      {new Date(p.published_at).toLocaleDateString()}
-                    </span>
-                    {p.reading_time > 0 && (
-                      <>
-                        <span>·</span>
-                        <span>{p.reading_time} min</span>
-                      </>
-                    )}
-                  </div>
+      <!-- Article list -->
+      {posts.length > 0 ? (
+        <div class="arc-list">
+          {posts.map((p, i) => (
+            <a href={`/archives/${p.slug}`} class="arc-card">
+              {p.feature_image ? (
+                <div class="arc-card-thumb">
+                  <img src={p.feature_image} alt={p.title} loading={i < 3 ? "eager" : "lazy"} />
                 </div>
-              </a>
-            ))}
-          </div>
-        ) : (
-          !ghostError && (
-            <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
-              <p style="font-size:20px;margin-bottom:8px;">📝</p>
-              <p>{lang === "en" ? "No articles found" : "暂无文章"}</p>
-            </div>
-          )
-        )}
-      </div>
+              ) : (
+                <div class="arc-card-thumb arc-card-thumb-empty">
+                  <span>📄</span>
+                </div>
+              )}
+              <div class="arc-card-body">
+                {p.primary_tag && (
+                  <span class="arc-card-tag">{p.primary_tag.name}</span>
+                )}
+                <h2 class="arc-card-title">{p.title}</h2>
+                {p.excerpt && (
+                  <p class="arc-card-desc">{p.excerpt.slice(0, 120)}{p.excerpt.length > 120 ? "…" : ""}</p>
+                )}
+                <div class="arc-card-meta">
+                  <span>{p.primary_author?.name || SITE.author}</span>
+                  <span class="arc-dot">·</span>
+                  <time datetime={p.published_at}>{new Date(p.published_at).toLocaleDateString()}</time>
+                  {p.reading_time > 0 && (
+                    <>
+                      <span class="arc-dot">·</span>
+                      <span>{p.reading_time} min</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : !ghostError && (
+        <div class="arc-empty">
+          <span class="arc-empty-icon">📝</span>
+          <p>{t("archives.empty")}</p>
+        </div>
+      )}
 
-      {/* 分页 */}
+      <!-- Pagination -->
       {pagination.pages > 1 && (
-        <nav style="display:flex;align-items:center;justify-content:center;gap:12px;padding:20px 16px;">
+        <nav class="arc-pagination">
           {pagination.prev ? (
-            <a
-              href={pageUrl(pagination.prev)}
-              style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;color:var(--fg);text-decoration:none;"
-            >
-              ← {t("post.prev")}
+            <a href={pageUrl(pagination.prev)} class="arc-page-btn">
+              ← {t("pagination.prev")}
             </a>
           ) : (
-            <span style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--fg-muted);opacity:0.4;">
-              ← {t("post.prev")}
-            </span>
+            <span class="arc-page-btn disabled">← {t("pagination.prev")}</span>
           )}
-          <span style="font-size:14px;color:var(--fg-muted);">
-            1 / {pagination.pages}
-          </span>
+          <span class="arc-page-num">1 / {pagination.pages}</span>
           {pagination.next ? (
-            <a
-              href={pageUrl(pagination.next)}
-              style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;color:var(--fg);text-decoration:none;"
-            >
-              {t("post.next")} →
+            <a href={pageUrl(pagination.next)} class="arc-page-btn">
+              {t("pagination.next")} →
             </a>
           ) : (
-            <span style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--fg-muted);opacity:0.4;">
-              {t("post.next")} →
-            </span>
+            <span class="arc-page-btn disabled">{t("pagination.next")} →</span>
           )}
         </nav>
       )}
-    </div>
+
+    </main>
 
     <aside class="rsidebar" style="padding:16px 0;">
       <div class="rsidebar-section">
         <div class="rsidebar-head">{t("section.tags")}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          {["BTC", "ETH", "DeFi", "NFT", "Wallet", "Beginner", "Market"].map(
-            tag => (
-              <a
-                href={`/archives/?tag=${tag.toLowerCase()}&lang=${lang}`}
-                class="ctag"
-                style="text-decoration:none;"
-              >
-                {tag}
-              </a>
-            )
-          )}
+        <div class="arc-sidebar-tags">
+          {sidebarTags.map(tag => (
+            <a href={`/archives/?tag=${tag.toLowerCase()}&lang=${lang}`}
+              class:list={["arc-sidebar-tag", { active: tagFilter === tag.toLowerCase() }]}>
+              {tag}
+            </a>
+          ))}
         </div>
       </div>
       <div class="rsidebar-section">
@@ -253,3 +191,347 @@ const pageTitle = tagFilter
   </div>
   <Footer />
 </Layout>
+
+<style>
+  /* ── Breadcrumb ── */
+  .arc-breadcrumb {
+    padding: 14px 20px 0;
+    font-size: 13px;
+    color: var(--fg-muted);
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .arc-breadcrumb::-webkit-scrollbar { display: none; }
+  .arc-breadcrumb a {
+    color: var(--fg-muted);
+    text-decoration: none;
+    transition: color 0.12s;
+  }
+  .arc-breadcrumb a:hover { color: var(--accent); }
+  .arc-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+  .arc-breadcrumb-current { color: var(--fg); margin: 0 !important; opacity: 1 !important; }
+  .arc-breadcrumb-page { color: var(--fg-light); font-size: 12px; }
+
+  /* ── Page header ── */
+  .arc-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px 12px;
+    flex-wrap: wrap;
+  }
+  .arc-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--fg);
+    margin: 0 0 2px;
+    line-height: 1.3;
+  }
+  .arc-count {
+    font-size: 13px;
+    color: var(--fg-muted);
+    margin: 0;
+  }
+
+  /* ── Language pills ── */
+  .arc-lang-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .arc-lang-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+    background: transparent;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .arc-lang-pill:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .arc-lang-pill.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* ── Tag filter bar ── */
+  .arc-tag-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px 8px;
+    font-size: 13px;
+  }
+  .arc-tag-filter-label {
+    color: var(--fg-muted);
+  }
+  .arc-tag-filter-badge {
+    display: inline-flex;
+    padding: 2px 10px;
+    border-radius: 4px;
+    background: var(--tag-orange-bg);
+    color: var(--tag-orange);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .arc-tag-filter-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    color: var(--fg-muted);
+    font-size: 11px;
+    text-decoration: none;
+    transition: all 0.12s;
+  }
+  .arc-tag-filter-clear:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Error ── */
+  .arc-error {
+    padding: 20px 20px;
+  }
+  .arc-error-inner {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .arc-error-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg);
+    margin: 0 0 6px;
+  }
+  .arc-error-desc {
+    font-size: 13px;
+    color: var(--fg-muted);
+    margin: 0;
+  }
+  .arc-error-desc a {
+    color: var(--accent);
+    text-decoration: none;
+    margin-left: 4px;
+  }
+
+  /* ── Article list ── */
+  .arc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 12px;
+  }
+
+  .arc-card {
+    display: flex;
+    gap: 16px;
+    padding: 16px 12px;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 8px;
+    transition: background 0.12s;
+  }
+  .arc-card:hover {
+    background: var(--bg-elevated);
+  }
+
+  .arc-card-thumb {
+    width: 160px;
+    min-width: 160px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--bg-elevated);
+  }
+  .arc-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.25s;
+  }
+  .arc-card:hover .arc-card-thumb img {
+    transform: scale(1.05);
+  }
+  .arc-card-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    opacity: 0.4;
+  }
+
+  .arc-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .arc-card-tag {
+    display: inline-block;
+    width: fit-content;
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--tag-orange-bg);
+    color: var(--tag-orange);
+  }
+
+  .arc-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--fg);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.12s;
+  }
+  .arc-card:hover .arc-card-title {
+    color: var(--accent);
+  }
+
+  .arc-card-desc {
+    font-size: 13px;
+    color: var(--fg-muted);
+    line-height: 1.6;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .arc-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--fg-light);
+    margin-top: 2px;
+  }
+  .arc-dot { opacity: 0.4; }
+
+  /* ── Empty state ── */
+  .arc-empty {
+    padding: 80px 20px;
+    text-align: center;
+    color: var(--fg-muted);
+  }
+  .arc-empty-icon {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .arc-empty p {
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* ── Pagination ── */
+  .arc-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px 20px;
+  }
+  .arc-page-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .arc-page-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--bg-elevated);
+  }
+  .arc-page-btn.disabled {
+    color: var(--fg-muted);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .arc-page-num {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg-muted);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ── Sidebar tags ── */
+  .arc-sidebar-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .arc-sidebar-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--tag-orange-bg);
+    color: var(--tag-orange);
+    text-decoration: none;
+    transition: all 0.12s;
+  }
+  .arc-sidebar-tag:hover {
+    opacity: 0.8;
+  }
+  .arc-sidebar-tag.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .arc-header {
+      padding: 12px 14px 10px;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .arc-breadcrumb { padding: 10px 14px 0; }
+    .arc-list { padding: 0 6px; }
+    .arc-card { padding: 12px 8px; gap: 12px; }
+    .arc-card-thumb { width: 110px; min-width: 110px; height: 72px; }
+    .arc-card-title { font-size: 14px; }
+    .arc-card-desc { display: none; }
+  }
+
+  @media (max-width: 500px) {
+    .arc-card-thumb { width: 90px; min-width: 90px; height: 60px; border-radius: 6px; }
+    .arc-card-title { font-size: 13.5px; -webkit-line-clamp: 2; }
+  }
+</style>

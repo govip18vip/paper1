@@ -126,6 +126,7 @@ const faqSchema = faqs && faqs.length > 0 ? {
   author={author}
   description={description}
   ogImage={resolvedOgImage}
+  ogType="article"
   canonicalURL={canonicalURL}
   pubDatetime={pubDatetime}
   modDatetime={modDatetime}
@@ -321,6 +322,12 @@ const faqSchema = faqs && faqs.length > 0 ? {
       </aside>
     )}
   </div>
+
+  <!-- CoinOrbit hooks: auto-inject live price badges for crypto names in article text -->
+  <script is:inline src="https://orbit.biyijia.com/widget.js"
+    data-mode="hooks"
+    data-sidebar="true">
+  </script>
 
   <BinanceFloating />
   <BackToTopButton />
@@ -587,6 +594,9 @@ const faqSchema = faqs && faqs.length > 0 ? {
   .pd-toc-sticky {
     position: sticky;
     top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
   .pd-toc-head {
     font-size: 13px;
@@ -620,9 +630,13 @@ const faqSchema = faqs && faqs.length > 0 ? {
     border-left: 2px solid transparent;
     padding-left: 10px;
   }
-  .pd-toc-link:hover {
+  .pd-toc-link:hover,
+  .pd-toc-link.active {
     color: var(--accent);
     border-left-color: var(--accent);
+  }
+  .pd-toc-link.active {
+    font-weight: 600;
   }
   .pd-toc-banner {
     margin-top: 20px;
@@ -687,3 +701,57 @@ const faqSchema = faqs && faqs.length > 0 ? {
     .pd-breadcrumb { padding: 8px 10px 0; }
   }
 </style>
+
+<script>
+  function initTocSpy() {
+    const tocLinks = document.querySelectorAll<HTMLAnchorElement>(".pd-toc-link");
+    if (!tocLinks.length) return;
+
+    const headingIds = Array.from(tocLinks).map(a => a.getAttribute("href")?.slice(1)).filter(Boolean) as string[];
+    const headingEls = headingIds.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (!headingEls.length) return;
+
+    let ticking = false;
+
+    function updateActive() {
+      const scrollY = window.scrollY;
+      let activeIdx = 0;
+
+      for (let i = 0; i < headingEls.length; i++) {
+        if (headingEls[i].offsetTop <= scrollY + 100) {
+          activeIdx = i;
+        }
+      }
+
+      tocLinks.forEach((link, i) => {
+        link.classList.toggle("active", i === activeIdx);
+      });
+
+      // Scroll active link into view within the sticky container
+      const activeLink = tocLinks[activeIdx];
+      const container = activeLink?.closest(".pd-toc-sticky");
+      if (activeLink && container) {
+        const linkRect = activeLink.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
+          activeLink.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      }
+
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(updateActive);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    updateActive();
+  }
+
+  initTocSpy();
+  document.addEventListener("astro:after-swap", initTocSpy);
+</script>

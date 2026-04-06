@@ -1,46 +1,103 @@
 ---
 // src/pages/[lang]/posts/[...page].astro
-// Non-default language article listing: /en/posts/ /zh-tw/posts/ /es/posts/ /pt/posts/
-import type { GetStaticPaths } from "astro";
+// 非默认语言全部文章列表 — SSR，合并本地 + Ghost
+export const prerender = false;
+
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import LeftSidebar from "@/components/LeftSidebar.astro";
-import Card from "@/components/Card.astro";
+import UnifiedCard from "@/components/UnifiedCard.astro";
 import Pagination from "@/components/Pagination.astro";
 import { SITE } from "@/config";
 import {
-  LANGUAGES, DEFAULT_LANG, useTranslations,
-  LANG_TO_PATH, type Lang,
+  DEFAULT_LANG, useTranslations,
+  LANG_PATH_MAP, LANG_TO_PATH, type Lang,
 } from "@/i18n/ui";
-import { filterPostsByLang } from "@/utils/homePage";
+import getSortedPosts from "@/utils/getSortedPosts";
+import { getPath } from "@/utils/getPath";
+import {
+  localToUnified,
+  fetchGhostUnified,
+  mergePosts,
+  filterUnifiedByLang,
+} from "@/utils/mergedPosts";
 
-export const getStaticPaths = (async ({ paginate }) => {
-  const allPosts = await getCollection("blog", ({ data }) => !data.draft);
-  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
-    l => l !== DEFAULT_LANG
-  );
+// ── 解析语言 ────────────────────────────────────────────
+const langSeg = Astro.params.lang as string;
+const lang: Lang = LANG_PATH_MAP[langSeg];
+if (!lang || lang === DEFAULT_LANG) {
+  return Astro.redirect("/posts");
+}
 
-  return nonDefaultLangs.flatMap(lang => {
-    const langPosts = filterPostsByLang(allPosts, lang);
-    return paginate(langPosts, {
-      params: { lang: LANG_TO_PATH[lang] },
-      props: { lang },
-      pageSize: SITE.postPerPage,
-    });
-  });
-}) satisfies GetStaticPaths;
-
-const { lang } = Astro.props as { lang: Lang };
 const t = useTranslations(lang);
-const { page } = Astro.props;
 const base = `/${LANG_TO_PATH[lang]}`;
+
+// ── 解析页码 ────────────────────────────────────────────
+const pageParam = Astro.params.page;
+const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
+if (isNaN(currentPage) || currentPage < 1) {
+  return Astro.redirect(`${base}/posts`);
+}
+
+// ── 获取并合并文章 ──────────────────────────────────────
+import type { UnifiedPost } from "@/utils/mergedPosts";
+
+let localUnified: UnifiedPost[] = [];
+try {
+  const posts = await getCollection("blog");
+  const sorted = getSortedPosts(posts);
+  localUnified = sorted.map(p => localToUnified(p, getPath(p.id, p.filePath)));
+} catch (e) {
+  console.error("[posts] Local posts load failed:", e);
+}
+
+let ghostUnified: UnifiedPost[] = [];
+try {
+  ghostUnified = await fetchGhostUnified({ lang, limit: 100 });
+} catch (e) {
+  console.warn("[posts] Ghost unavailable");
+}
+
+const merged = mergePosts(localUnified, ghostUnified);
+const allPosts = filterUnifiedByLang(merged, lang);
+
+// ── 手动分页 ────────────────────────────────────────────
+const pageSize = SITE.postPerPage;
+const totalPages = Math.max(1, Math.ceil(allPosts.length / pageSize));
+
+if (currentPage > totalPages && totalPages > 0) {
+  return Astro.redirect(`${base}/posts`);
+}
+
+const start = (currentPage - 1) * pageSize;
+const pagePosts = allPosts.slice(start, start + pageSize);
+
+const basePath = `${base}/posts`;
+const page = {
+  data: pagePosts,
+  start: start,
+  end: start + pagePosts.length - 1,
+  total: allPosts.length,
+  size: pageSize,
+  currentPage,
+  lastPage: totalPages,
+  url: {
+    current: currentPage === 1 ? basePath : `${basePath}/${currentPage}`,
+    prev: currentPage > 1 ? (currentPage === 2 ? basePath : `${basePath}/${currentPage - 1}`) : undefined,
+    next: currentPage < totalPages ? `${basePath}/${currentPage + 1}` : undefined,
+    first: basePath,
+    last: totalPages > 1 ? `${basePath}/${totalPages}` : basePath,
+  },
+};
 ---
 
 <Layout
   title={`${t("section.all")} | ${t("site.name")}`}
   description={t("site.desc")}
+  paginationPrev={page.url.prev}
+  paginationNext={page.url.next}
 >
   <Header />
 
@@ -67,13 +124,13 @@ const base = `/${LANG_TO_PATH[lang]}`;
       </div>
 
       <div style="margin-top:12px;">
-        {page.data.length > 0 ? (
+        {pagePosts.length > 0 ? (
           <div class="alist">
-            {page.data.map((data: any) => <Card {...data} size="list" variant="h3" />)}
+            {pagePosts.map(p => <UnifiedCard post={p} size="list" variant="h3" />)}
           </div>
         ) : (
           <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
-            <p style="font-size:15px;margin-bottom:8px;">📝 No articles in this language yet.</p>
+            <p style="font-size:15px;margin-bottom:8px;">No articles in this language yet.</p>
           </div>
         )}
       </div>

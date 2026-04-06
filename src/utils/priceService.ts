@@ -1,7 +1,7 @@
 // src/utils/priceService.ts
 // ─────────────────────────────────────────────────────────────
-// 多源价格数据服务 — 优先使用 Binance 公开 API（无需认证）
-// 备用：CoinGecko
+// 多源价格数据服务 — 优先使用 orbit.biyijia.com API
+// 备用：Binance 公开 API（无需认证），再备用：CoinGecko
 // ─────────────────────────────────────────────────────────────
 
 import { MAJOR_COINS, COIN_DB, type CoinInfo } from "./coinInfo";
@@ -28,6 +28,9 @@ export interface PriceData {
 // Re-export for backward compatibility
 export { MAJOR_COINS, COIN_DB, type CoinInfo };
 
+// Orbit API（优先，CoinGecko 兼容格式，含价格/涨跌/高低/市值/排名）
+const ORBIT_URL = "https://orbit.biyijia.com/api/coins?per_page=60";
+
 // Binance API 端点（公开，无需认证）
 const BINANCE_ENDPOINTS = [
   "https://api.binance.com",
@@ -40,6 +43,54 @@ const BINANCE_ENDPOINTS = [
 class PriceService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheExpiry = 30 * 1000; // 30秒缓存
+
+  /**
+   * 从 Orbit 获取行情（优先数据源，CoinGecko 兼容格式）
+   * 包含价格、24h涨跌、高低价、市值、成交量、排名
+   */
+  async getPricesFromOrbit(ids?: string[]): Promise<Record<string, PriceData>> {
+    try {
+      const res = await fetch(ORBIT_URL, {
+        signal: AbortSignal.timeout(10000),
+        headers: { "Accept": "application/json" },
+      });
+      if (!res.ok) return {};
+
+      const data: any[] = await res.json();
+      const targetIds = new Set(ids || MAJOR_COINS.map(c => c.id));
+      const result: Record<string, PriceData> = {};
+
+      for (const item of data) {
+        const coinInfo = Object.values(COIN_DB).find(
+          c => c.symbol.toUpperCase() === item.symbol?.toUpperCase()
+        );
+        if (!coinInfo || !targetIds.has(coinInfo.id)) continue;
+
+        result[coinInfo.id] = {
+          symbol: item.symbol?.toUpperCase(),
+          name: coinInfo.name.en,
+          price: item.current_price || 0,
+          priceUSD: item.current_price || 0,
+          change24h: item.price_change_percentage_24h_in_currency || 0,
+          high24h: item.high_24h || 0,
+          low24h: item.low_24h || 0,
+          marketCap: item.market_cap || 0,
+          volume24h: item.total_volume || 0,
+          circulatingSupply: item.circulating_supply || 0,
+          totalSupply: item.total_supply || 0,
+          maxSupply: item.max_supply ?? null,
+          rank: item.market_cap_rank || 0,
+          ath: item.ath || 0,
+          atl: item.atl || 0,
+          lastUpdate: Date.now(),
+        };
+      }
+
+      return result;
+    } catch {
+      return {};
+    }
+  }
 
   /**
    * 从 Binance 获取24h行情（无认证，公开API）
@@ -184,36 +235,36 @@ class PriceService {
       return cached.data;
     }
 
-    // 1. 从 Binance 获取实时价格
-    const binanceSymbols = coinIds
-      .map(id => COIN_DB[id]?.binanceSymbol)
-      .filter(Boolean) as string[];
+    // 1. 优先从 Orbit 获取（含市值/排名/高低价）
+    let result = await this.getPricesFromOrbit(coinIds);
 
-    let result = await this.getPricesFromBinance(binanceSymbols);
+    // 2. CB 失败时，回退到 Binance
+    if (Object.keys(result).length === 0) {
+      const binanceSymbols = coinIds
+        .map(id => COIN_DB[id]?.binanceSymbol)
+        .filter(Boolean) as string[];
+      result = await this.getPricesFromBinance(binanceSymbols);
 
-    // 2. 如果需要市值数据，从 CoinGecko 补充
-    if (withMarketCap) {
-      const geckoData = await this.getPricesFromCoinGecko(coinIds);
-
-      // 合并：Binance价格优先，CoinGecko补充市值
-      for (const [id, gData] of Object.entries(geckoData)) {
-        if (result[id]) {
-          // 用 CoinGecko 补充 Binance 缺少的数据
-          result[id].marketCap = gData.marketCap;
-          result[id].circulatingSupply = gData.circulatingSupply;
-          result[id].totalSupply = gData.totalSupply;
-          result[id].maxSupply = gData.maxSupply;
-          result[id].rank = gData.rank;
-          result[id].ath = gData.ath;
-          result[id].atl = gData.atl;
-        } else {
-          // Binance 没有的，用 CoinGecko 数据
-          result[id] = gData;
+      // Binance 无市值，从 CoinGecko 补充
+      if (withMarketCap) {
+        const geckoData = await this.getPricesFromCoinGecko(coinIds);
+        for (const [id, gData] of Object.entries(geckoData)) {
+          if (result[id]) {
+            result[id].marketCap = gData.marketCap;
+            result[id].circulatingSupply = gData.circulatingSupply;
+            result[id].totalSupply = gData.totalSupply;
+            result[id].maxSupply = gData.maxSupply;
+            result[id].rank = gData.rank;
+            result[id].ath = gData.ath;
+            result[id].atl = gData.atl;
+          } else {
+            result[id] = gData;
+          }
         }
       }
     }
 
-    // 3. 如果都失败了，单独从 CoinGecko 获取
+    // 3. 最终回退：CoinGecko
     if (Object.keys(result).length === 0) {
       result = await this.getPricesFromCoinGecko(coinIds);
     }

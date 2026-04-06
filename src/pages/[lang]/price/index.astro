@@ -1,0 +1,448 @@
+---
+// src/pages/[lang]/price/index.astro
+// 非默认语言行情总览：/en/price  /zh-tw/price  /es/price  /pt/price
+
+import type { GetStaticPaths } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import { SITE } from "@/config";
+import {
+  LANGUAGES, DEFAULT_LANG, LANG_TO_PATH,
+  useTranslations, type Lang,
+} from "@/i18n/ui";
+import { MAJOR_COINS } from "@/utils/coinInfo";
+
+export const getStaticPaths = (async () => {
+  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
+    l => l !== DEFAULT_LANG
+  );
+  return nonDefaultLangs.map(lang => ({
+    params: { lang: LANG_TO_PATH[lang] },
+    props: { lang },
+  }));
+}) satisfies GetStaticPaths;
+
+const { lang } = Astro.props as { lang: Lang };
+const t = useTranslations(lang);
+const base = `/${LANG_TO_PATH[lang]}`;
+
+const pageTitle: Record<Lang, string> = {
+  "zh-CN": "加密货币实时行情",
+  "zh-TW": "加密貨幣即時行情",
+  en: "Cryptocurrency Live Prices",
+  es: "Precios Cripto en Vivo",
+  pt: "Preços Cripto ao Vivo",
+};
+
+const pageDesc: Record<Lang, string> = {
+  "zh-CN": "实时追踪 BTC、ETH 等主流加密货币价格，24h涨跌幅、市值排行",
+  "zh-TW": "即時追蹤 BTC、ETH 等主流加密貨幣價格，24h漲跌幅、市值排行",
+  en: "Track real-time BTC, ETH and major cryptocurrency prices with 24h changes & market cap",
+  es: "Siga precios de BTC, ETH y criptomonedas principales en tiempo real",
+  pt: "Acompanhe preços de BTC, ETH e principais criptomoedas em tempo real",
+};
+
+const labels: Record<string, Record<Lang, string>> = {
+  coin:    { "zh-CN": "币种",    "zh-TW": "幣種",    en: "Coin",       es: "Moneda",      pt: "Moeda" },
+  price:   { "zh-CN": "价格 (USD)", "zh-TW": "價格 (USD)", en: "Price (USD)", es: "Precio (USD)", pt: "Preço (USD)" },
+  change:  { "zh-CN": "24h涨跌", "zh-TW": "24h漲跌", en: "24h Change",  es: "24h Cambio",  pt: "24h Variação" },
+  mcap:    { "zh-CN": "市值",    "zh-TW": "市值",    en: "Market Cap", es: "Cap. Mercado", pt: "Cap. Mercado" },
+  vol:     { "zh-CN": "24h成交量", "zh-TW": "24h成交量", en: "24h Volume", es: "Vol. 24h",   pt: "Vol. 24h" },
+  rank:    { "zh-CN": "排名",    "zh-TW": "排名",    en: "Rank",       es: "Rango",       pt: "Rank" },
+  source:  { "zh-CN": "数据来源：Orbit / Binance · 每30秒更新", "zh-TW": "數據來源：CryptoBubbles / Binance · 每30秒更新", en: "Data: CryptoBubbles / Binance · Updates every 30s", es: "Datos: CryptoBubbles / Binance · Actualiza cada 30s", pt: "Dados: CryptoBubbles / Binance · Atualiza a cada 30s" },
+  detail:  { "zh-CN": "热门币种详情", "zh-TW": "熱門幣種詳情", en: "Popular Coins", es: "Monedas Populares", pt: "Moedas Populares" },
+  viewAll: { "zh-CN": "查看详情 →", "zh-TW": "查看詳情 →", en: "View Details →", es: "Ver Detalles →", pt: "Ver Detalhes →" },
+};
+
+const pricePageSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: pageTitle[lang],
+  description: pageDesc[lang],
+  url: `${SITE.website}${LANG_TO_PATH[lang]}/price`,
+  inLanguage: lang,
+};
+---
+
+<Layout
+  title={`${pageTitle[lang]} | ${t("site.name")}`}
+  description={pageDesc[lang]}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(pricePageSchema)} />
+    <link rel="preconnect" href="https://orbit.biyijia.com" />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
+    <main class="main-col" id="main-content">
+
+      <div style="padding:14px 16px 0;">
+        <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0 0 4px;">
+          {pageTitle[lang]}
+        </h1>
+        <p style="font-size:13px;color:var(--fg-muted);margin:0;">{labels.source[lang]}</p>
+      </div>
+
+      <!-- ══ 价格表格 ══ -->
+      <section style="padding:12px 16px 0;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div class="price-table-head">
+            <span style="min-width:30px;text-align:center;">#</span>
+            <span style="flex:2;">{labels.coin[lang]}</span>
+            <span style="flex:1;text-align:right;">{labels.price[lang]}</span>
+            <span style="flex:1;text-align:right;" class="hide-mobile-sm">{labels.change[lang]}</span>
+            <span style="flex:1;text-align:right;" class="hide-tablet">{labels.vol[lang]}</span>
+            <span style="flex:1;text-align:right;" class="hide-tablet">{labels.mcap[lang]}</span>
+            <span style="min-width:72px;text-align:right;" class="hide-mobile-sm">交易</span>
+          </div>
+
+          <div id="price-table">
+            {MAJOR_COINS.map((coin, i) => (
+              <div class="price-row" data-coin={coin.id}
+                onclick={`location.href='${base}/price/${coin.symbol.toLowerCase()}'`}
+                style="cursor:pointer;"
+                role="link" tabindex="0"
+                onkeydown={`if(event.key==='Enter')location.href='${base}/price/${coin.symbol.toLowerCase()}'`}
+              >
+                <span class="price-rank" id={`r-${coin.id}`}>{i + 1}</span>
+                <div class="price-coin-info">
+                  <div class="price-coin-icon" style={`background:${coin.color}22;border-color:${coin.color}44;overflow:hidden;`}>
+                    <img src={`/coins/${coin.symbol.toLowerCase()}.png`} alt={coin.symbol}
+                      width="20" height="20" style="width:20px;height:20px;object-fit:contain;"
+                      onerror={`this.outerHTML='<span style="color:${coin.color};font-size:14px">${coin.emoji}</span>'`} />
+                  </div>
+                  <div style="min-width:0;">
+                    <div class="price-coin-name">{coin.name[lang]}</div>
+                    <div class="price-coin-sym">{coin.symbol}</div>
+                  </div>
+                </div>
+                <div id={`p-${coin.id}`} class="price-val">—</div>
+                <div id={`c-${coin.id}`} class="price-change hide-mobile-sm">—</div>
+                <div id={`v-${coin.id}`} class="price-vol hide-tablet">—</div>
+                <div id={`m-${coin.id}`} class="price-mcap hide-tablet">—</div>
+                <div class="price-trade hide-mobile-sm" onclick="event.stopPropagation()">
+                  <a href={`https://www.binance.com/trade/${coin.symbol}_USDT?layout=pro&ref=B2345&type=spot`}
+                    target="_blank" rel="noopener noreferrer sponsored"
+                    class="trade-btn-bin" title={`Trade ${coin.symbol} on Binance`}>B</a>
+                  <a href={`https://www.okx.com/trade-spot/${coin.symbol.toLowerCase()}-usdt?channelid=B2345`}
+                    target="_blank" rel="noopener noreferrer sponsored"
+                    class="trade-btn-okx" title={`Trade ${coin.symbol} on OKX`}>O</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div style="padding:0 16px;">
+        <BinanceBanner variant="hero" lang={lang} />
+      </div>
+
+      <!-- ══ 热门币种卡片 ══ -->
+      <section style="padding:0 16px 20px;">
+        <div class="sec-head" style="padding-left:0;margin-bottom:12px;">
+          <span class="sec-head-title">{labels.detail[lang]}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+          {MAJOR_COINS.slice(0, 8).map(coin => (
+            <a href={`${base}/price/${coin.symbol.toLowerCase()}`}
+              class="coin-detail-card"
+              style={`--coin-color:${coin.color};`}
+            >
+              <div class="coin-detail-icon" style={`background:${coin.color}22;border-color:${coin.color}44;overflow:hidden;`}>
+                <img src={`/coins/${coin.symbol.toLowerCase()}.png`} alt={coin.symbol}
+                  width="24" height="24" style="width:24px;height:24px;object-fit:contain;"
+                  onerror={`this.outerHTML='<span style="color:${coin.color};font-size:18px">${coin.emoji}</span>'`} />
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:700;color:var(--fg);">{coin.symbol}</div>
+                <div style="font-size:11px;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{coin.name[lang]}</div>
+                <div style="font-size:10px;color:var(--fg-light);margin-top:2px;">{labels.viewAll[lang]}</div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+    </main>
+
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <BinanceBanner variant="compact" lang={lang} />
+      </div>
+    </aside>
+  </div>
+  <Footer />
+</Layout>
+
+<style>
+  .price-table-head {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .price-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    text-decoration: none;
+    color: var(--fg);
+    transition: background 0.12s;
+  }
+  .price-row:last-child { border-bottom: none; }
+  .price-row:hover { background: var(--bg-elevated); }
+  .price-rank {
+    min-width: 30px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+  .price-coin-info {
+    flex: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .price-coin-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+  .price-coin-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .price-coin-sym { font-size: 11px; color: var(--fg-muted); }
+  .price-val {
+    flex: 1;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .price-change { flex: 1; text-align: right; font-size: 12px; font-weight: 600; }
+  .price-vol, .price-mcap { flex: 1; text-align: right; font-size: 12px; color: var(--fg-muted); }
+  .coin-detail-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .coin-detail-card:hover {
+    border-color: var(--coin-color, var(--accent));
+    transform: translateY(-1px);
+  }
+  .coin-detail-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+  .price-trade {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    min-width: 72px;
+    justify-content: flex-end;
+  }
+  .trade-btn-bin, .trade-btn-okx {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 900;
+    text-decoration: none;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .trade-btn-bin { background: #F0B90B; color: #111; }
+  .trade-btn-okx { background: #1a1a1a; color: #fff; }
+  .trade-btn-bin:hover, .trade-btn-okx:hover { opacity: 0.75; }
+
+  @media (max-width: 768px) { .hide-tablet { display: none !important; } }
+  @media (max-width: 500px) {
+    .hide-mobile-sm { display: none !important; }
+    .price-row { padding: 10px 12px; }
+  }
+</style>
+
+<script is:inline>
+(function(){
+  const fmt = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1e12) return "$" + (n/1e12).toFixed(2) + "T";
+    if (n >= 1e9)  return "$" + (n/1e9).toFixed(2) + "B";
+    if (n >= 1e6)  return "$" + (n/1e6).toFixed(1) + "M";
+    return "$" + n.toLocaleString("en-US", {maximumFractionDigits:0});
+  };
+  const fmtP = n => {
+    if (!n || isNaN(n)) return "—";
+    if (n >= 1000) return "$" + n.toLocaleString("en-US", {maximumFractionDigits: n >= 10000 ? 0 : 2});
+    if (n >= 1) return "$" + n.toFixed(2);
+    return "$" + n.toFixed(4);
+  };
+
+  const symToCoinId = {
+    BTC:"bitcoin", ETH:"ethereum", BNB:"binancecoin", SOL:"solana", XRP:"ripple",
+    ADA:"cardano", DOGE:"dogecoin", TRX:"tron", DOT:"polkadot", LTC:"litecoin",
+    LINK:"chainlink", AVAX:"avalanche-2", UNI:"uniswap", XLM:"stellar", ATOM:"cosmos",
+    BCH:"bitcoin-cash", POL:"polygon", ARB:"arbitrum", OP:"optimism", SUI:"sui",
+  };
+
+  async function fetchOrbit() {
+    try {
+      const r = await fetch(
+        "https://orbit.biyijia.com/api/coins?per_page=60",
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!r.ok) return null;
+      const coins = await r.json();
+      const map = {};
+      for (const c of coins) {
+        const sym = c.symbol?.toUpperCase();
+        if (sym && symToCoinId[sym]) {
+          map[sym] = {
+            price: c.current_price,
+            change: c.price_change_percentage_24h_in_currency ?? 0,
+            vol: c.total_volume,
+            mcap: c.market_cap,
+            rank: c.market_cap_rank,
+          };
+        }
+      }
+      return Object.keys(map).length > 0 ? map : null;
+    } catch { return null; }
+  }
+
+  async function fetchBinance() {
+    const symbols = [
+      "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT",
+      "ADAUSDT","DOGEUSDT","TRXUSDT","DOTUSDT","LTCUSDT",
+      "LINKUSDT","AVAXUSDT","UNIUSDT","XLMUSDT","ATOMUSDT",
+      "BCHUSDT","POLUSDT","ARBUSDT","OPUSDT","SUIUSDT"
+    ];
+    try {
+      const r = await fetch(
+        `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(symbols))}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) throw new Error();
+      return await r.json();
+    } catch {
+      try {
+        const r = await fetch("https://data-api.binance.vision/api/v3/ticker/24hr",
+          { signal: AbortSignal.timeout(10000) });
+        if (!r.ok) return [];
+        const all = await r.json();
+        const set = new Set(symbols);
+        return all.filter(t => set.has(t.symbol));
+      } catch { return []; }
+    }
+  }
+
+  async function fetchGeckoMarketCap() {
+    try {
+      const ids = "bitcoin,ethereum,binancecoin,solana,ripple,cardano,dogecoin,tron,polkadot,litecoin,chainlink,avalanche-2,uniswap,stellar,cosmos,bitcoin-cash,polygon-ecosystem-token,arbitrum,optimism,sui";
+      const r = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=false`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!r.ok) return {};
+      const data = await r.json();
+      const map = {};
+      for (const c of data) map[c.symbol.toUpperCase()] = { mcap: c.market_cap, rank: c.market_cap_rank };
+      return map;
+    } catch { return {}; }
+  }
+
+  async function updateAll() {
+    const cbMap = await fetchOrbit();
+    if (cbMap) {
+      for (const [sym, d] of Object.entries(cbMap)) {
+        const coinId = symToCoinId[sym];
+        if (!coinId) continue;
+        const pe = document.getElementById("p-" + coinId);
+        const ce = document.getElementById("c-" + coinId);
+        const ve = document.getElementById("v-" + coinId);
+        const me = document.getElementById("m-" + coinId);
+        const re = document.getElementById("r-" + coinId);
+        if (pe) pe.textContent = fmtP(d.price);
+        if (ce) {
+          ce.textContent = (d.change >= 0 ? "▲ +" : "▼ ") + Math.abs(d.change).toFixed(2) + "%";
+          ce.style.color = d.change >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+        }
+        if (ve) ve.textContent = fmt(d.vol);
+        if (me) me.textContent = fmt(d.mcap);
+        if (re && d.rank) re.textContent = d.rank;
+      }
+      return;
+    }
+
+    const [tickers, geckoMap] = await Promise.all([fetchBinance(), fetchGeckoMarketCap()]);
+    for (const t of tickers) {
+      const sym = t.symbol.replace("USDT", "");
+      const coinId = symToCoinId[sym];
+      if (!coinId) continue;
+      const pe = document.getElementById("p-" + coinId);
+      const ce = document.getElementById("c-" + coinId);
+      const ve = document.getElementById("v-" + coinId);
+      const me = document.getElementById("m-" + coinId);
+      const re = document.getElementById("r-" + coinId);
+      const price = parseFloat(t.lastPrice);
+      const chg = parseFloat(t.priceChangePercent);
+      if (pe) pe.textContent = fmtP(price);
+      if (ce) {
+        ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
+        ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+      }
+      if (ve) ve.textContent = fmt(parseFloat(t.quoteVolume));
+      const gecko = geckoMap[sym];
+      if (gecko) {
+        if (me) me.textContent = fmt(gecko.mcap);
+        if (re && gecko.rank) re.textContent = gecko.rank;
+      }
+    }
+  }
+
+  updateAll();
+  setInterval(updateAll, 30000);
+})();
+</script>

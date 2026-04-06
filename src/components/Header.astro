@@ -5,10 +5,30 @@ import IconSearch from "@/assets/icons/IconSearch.svg";
 import IconMoon from "@/assets/icons/IconMoon.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import { SITE } from "@/config";
-import { getLang, useTranslations } from "@/i18n/ui";
+import {
+  getLang, useTranslations, LANG_TO_PATH, LANGUAGES,
+  stripLangPrefix, type Lang,
+} from "@/i18n/ui";
 
 const lang = getLang(Astro.url);
 const t = useTranslations(lang);
+const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
+const cleanPath = stripLangPrefix(Astro.url.pathname);
+
+const shortLabel: Record<Lang, string> = {
+  "zh-CN": "简中",
+  "zh-TW": "繁中",
+  "en":    "EN",
+  "es":    "ES",
+  "pt":    "PT",
+};
+
+function langHref(target: Lang): string {
+  const seg = LANG_TO_PATH[target];
+  const targetBase = seg ? `/${seg}` : "";
+  const path = cleanPath === "/" || cleanPath === "" ? "" : cleanPath;
+  return `${targetBase}${path}` || "/";
+}
 ---
 
 <!-- Top Utility Bar -->
@@ -18,7 +38,7 @@ const t = useTranslations(lang);
   >
     <!-- Left: useful navigation links -->
     <div style="display:flex;align-items:center;gap:14px;overflow:hidden;">
-      <a href="/price" style="white-space:nowrap;font-size:12.5px;display:flex;align-items:center;gap:4px;">
+      <a href={base + "/price"} style="white-space:nowrap;font-size:12.5px;display:flex;align-items:center;gap:4px;">
         <span style="font-size:10px;">📊</span>
         {t("topbar.prices")}
       </a>
@@ -36,7 +56,7 @@ const t = useTranslations(lang);
         </svg>
         X / Twitter
       </a>
-      <a href="/posts" class="topbar-hl" style="white-space:nowrap;">
+      <a href={base + "/posts"} class="topbar-hl" style="white-space:nowrap;">
         🔥 {t("section.latest")}
       </a>
     </div>
@@ -44,7 +64,7 @@ const t = useTranslations(lang);
     <!-- Right: search + theme + contact -->
     <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
       <a
-        href="/search"
+        href={base + "/search"}
         style="display:flex;align-items:center;gap:4px;font-size:12.5px;color:#9a9baa;text-decoration:none;white-space:nowrap;"
         aria-label={t("topbar.search")}
       >
@@ -55,15 +75,45 @@ const t = useTranslations(lang);
       {SITE.lightAndDarkMode && (
         <button
           id="theme-btn"
-          style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:#9a9baa;cursor:pointer;"
-          title="Toggle theme"
+          class="theme-toggle-apple"
+          title="切换主题"
           aria-label="auto"
           aria-live="polite"
+          onclick="var h=document.documentElement,c=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',c);localStorage.setItem('theme',c);this.setAttribute('aria-label',c);"
         >
-          <IconMoon style="position:absolute;width:13px;height:13px;transition:all 0.2s;" class="dark:scale-0 dark:-rotate-90 scale-100 rotate-0" />
-          <IconSunHigh style="position:absolute;width:13px;height:13px;transition:all 0.2s;" class="dark:scale-100 dark:rotate-0 scale-0 rotate-90" />
+          <span class="toggle-track">
+            <svg class="ti-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>
+            <span class="toggle-thumb"></span>
+            <svg class="ti-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
         </button>
       )}
+
+      <!-- Language switcher -->
+      <div class="topbar-lang" id="topbar-lang">
+        <button class="topbar-lang-current" id="topbar-lang-btn" aria-expanded="false" aria-haspopup="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          <span>{shortLabel[lang]}</span>
+          <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M3 5l3 3 3-3"/>
+          </svg>
+        </button>
+        <div class="topbar-lang-dropdown" id="topbar-lang-dropdown">
+          {(Object.entries(LANGUAGES) as [Lang, string][]).map(([code, label]) => (
+            <a
+              href={langHref(code)}
+              class:list={["topbar-lang-option", { active: lang === code }]}
+              data-lang-btn={code}
+            >
+              <span class="topbar-lang-short">{shortLabel[code]}</span>
+              <span class="topbar-lang-full">{label}</span>
+            </a>
+          ))}
+        </div>
+      </div>
 
       <a
         href={SITE.telegram}
@@ -80,26 +130,62 @@ const t = useTranslations(lang);
 </div>
 
 <!-- Live Price Ticker -->
-<div class="ticker-wrap" style="height:28px;overflow:hidden;" aria-label="Live prices" role="marquee">
-  <div class="ticker-inner" style="height:28px;line-height:28px;padding:0 20px;" id="price-ticker">
-    <span style="margin:0 20px;opacity:0.9;">⚡ <strong>BTC</strong> <span id="btc-p">$—</span></span>
-    <span style="margin:0 20px;">ETH <span id="eth-p">$—</span></span>
-    <span style="margin:0 20px;">BNB <span id="bnb-p">$—</span></span>
-    <span style="margin:0 20px;">SOL <span id="sol-p">$—</span></span>
-    <span style="margin:0 20px;">XRP <span id="xrp-p">$—</span></span>
-    <span style="margin:0 20px;opacity:0.7;">Bitaigen · Blockchain News · Noticias · Notícias</span>
+<div class="ticker-wrap" style="height:30px;overflow:hidden;" aria-label="Live prices" role="marquee">
+  <div class="ticker-label"><span class="ticker-dot"></span>LIVE</div>
+  <div class="ticker-inner" style="height:30px;line-height:30px;" id="price-ticker">
+    <a href="https://www.binance.com/trade/BTC_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item"><strong>BTC</strong> <span id="btc-p">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/ETH_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item"><strong>ETH</strong> <span id="eth-p">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/BNB_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item"><strong>BNB</strong> <span id="bnb-p">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/SOL_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item"><strong>SOL</strong> <span id="sol-p">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/XRP_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item"><strong>XRP</strong> <span id="xrp-p">$—</span></a>
+    <span style="margin:0 32px;color:rgba(255,255,255,0.18);font-size:11px;letter-spacing:2px;">· · · BITAIGEN · · ·</span>
     <!-- duplicate for seamless loop -->
-    <span style="margin:0 20px;opacity:0.9;">⚡ <strong>BTC</strong> <span>$—</span></span>
-    <span style="margin:0 20px;">ETH <span>$—</span></span>
-    <span style="margin:0 20px;">BNB <span>$—</span></span>
-    <span style="margin:0 20px;">SOL <span>$—</span></span>
-    <span style="margin:0 20px;">XRP <span>$—</span></span>
-    <span style="margin:0 20px;opacity:0.7;">Bitaigen · Blockchain News · Noticias · Notícias</span>
+    <a href="https://www.binance.com/trade/BTC_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item" aria-hidden="true"><strong>BTC</strong> <span id="btc-p2">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/ETH_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item" aria-hidden="true"><strong>ETH</strong> <span id="eth-p2">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/BNB_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item" aria-hidden="true"><strong>BNB</strong> <span id="bnb-p2">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/SOL_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item" aria-hidden="true"><strong>SOL</strong> <span id="sol-p2">$—</span></a><span class="ticker-sep">|</span>
+    <a href="https://www.binance.com/trade/XRP_USDT?layout=pro&ref=B2345&type=spot" target="_blank" rel="noopener noreferrer sponsored" class="ticker-item" aria-hidden="true"><strong>XRP</strong> <span id="xrp-p2">$—</span></a>
+    <span style="margin:0 32px;color:rgba(255,255,255,0.18);font-size:11px;letter-spacing:2px;">· · · BITAIGEN · · ·</span>
   </div>
 </div>
 
 <script>
+  const _fmtTicker = (n: number) => n >= 1000
+    ? "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 })
+    : "$" + n.toFixed(3);
+
   async function loadPrices() {
+    // 优先：Orbit
+    try {
+      const r = await fetch(
+        "https://orbit.biyijia.com/api/coins?per_page=60",
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (r.ok) {
+        const coins: any[] = await r.json();
+        const needed: Record<string, [string, string]> = {
+          BTC: ["btc-p", "btc-p2"], ETH: ["eth-p", "eth-p2"],
+          BNB: ["bnb-p", "bnb-p2"], SOL: ["sol-p", "sol-p2"], XRP: ["xrp-p", "xrp-p2"],
+        };
+        let found = 0;
+        for (const coin of coins) {
+          const ids = needed[coin.symbol?.toUpperCase()];
+          if (!ids) continue;
+          const chg = coin.price_change_percentage_24h_in_currency ?? 0;
+          const txt = _fmtTicker(coin.current_price) + " " + (chg >= 0 ? "▲" : "▼") + Math.abs(chg).toFixed(2) + "%";
+          const clr = chg >= 0 ? "#4caf82" : "#f0b429";
+          for (const id of ids) {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = txt; el.style.color = clr; }
+          }
+          found++;
+          if (found >= 5) break;
+        }
+        if (found > 0) return;
+      }
+    } catch { /* fall through to backup */ }
+
+    // 备用：CoinGecko
     try {
       const r = await fetch(
         "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,solana,ripple&vs_currencies=usd&include_24hr_change=true",
@@ -107,22 +193,21 @@ const t = useTranslations(lang);
       );
       if (!r.ok) return;
       const d = await r.json();
-      const fmt = (n: number) => n >= 1000
-        ? "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 })
-        : "$" + n.toFixed(3);
-      const pairs: [string, any][] = [
-        ["btc-p", d.bitcoin],
-        ["eth-p", d.ethereum],
-        ["bnb-p", d.binancecoin],
-        ["sol-p", d.solana],
-        ["xrp-p", d.ripple],
+      const pairs: [[string, string], any][] = [
+        [["btc-p", "btc-p2"], d.bitcoin],
+        [["eth-p", "eth-p2"], d.ethereum],
+        [["bnb-p", "bnb-p2"], d.binancecoin],
+        [["sol-p", "sol-p2"], d.solana],
+        [["xrp-p", "xrp-p2"], d.ripple],
       ];
-      for (const [id, coin] of pairs) {
-        const el = document.getElementById(id);
-        if (el && coin) {
-          const chg = coin.usd_24h_change ?? 0;
-          el.textContent = fmt(coin.usd) + " " + (chg >= 0 ? "▲" : "▼") + Math.abs(chg).toFixed(2) + "%";
-          el.style.color = chg >= 0 ? "rgba(255,255,255,0.95)" : "rgba(255,180,180,0.9)";
+      for (const [ids, coin] of pairs) {
+        if (!coin) continue;
+        const chg = coin.usd_24h_change ?? 0;
+        const txt = _fmtTicker(coin.usd) + " " + (chg >= 0 ? "▲" : "▼") + Math.abs(chg).toFixed(2) + "%";
+        const clr = chg >= 0 ? "#4caf82" : "#f0b429";
+        for (const id of ids) {
+          const el = document.getElementById(id);
+          if (el) { el.textContent = txt; el.style.color = clr; }
         }
       }
     } catch { /* silently ignore */ }
@@ -130,4 +215,211 @@ const t = useTranslations(lang);
 
   loadPrices();
   document.addEventListener("astro:after-swap", loadPrices);
+
+  // Language dropdown toggle
+  function initLangDropdown() {
+    const btn = document.getElementById("topbar-lang-btn");
+    const dropdown = document.getElementById("topbar-lang-dropdown");
+    if (!btn || !dropdown) return;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = dropdown.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    document.addEventListener("click", () => {
+      dropdown.classList.remove("open");
+      btn.setAttribute("aria-expanded", "false");
+    });
+
+    // Save preference on click
+    dropdown.querySelectorAll<HTMLAnchorElement>("[data-lang-btn]").forEach(a => {
+      a.addEventListener("click", () => {
+        const code = a.getAttribute("data-lang-btn");
+        if (code) localStorage.setItem("cn-lang", code);
+      });
+    });
+  }
+
+  initLangDropdown();
+  document.addEventListener("astro:after-swap", initLangDropdown);
 </script>
+
+<style>
+.ticker-item {
+  color: #c8cdd8;
+  text-decoration: none;
+  padding: 2px 10px;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.ticker-item:hover {
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+}
+.ticker-item strong {
+  color: #ffffff;
+  font-size: 11.5px;
+  margin-right: 4px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+</style>
+
+<style>
+.topbar-lang {
+  position: relative;
+}
+.topbar-lang-current {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9a9baa;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.topbar-lang-current:hover {
+  color: #f7931a;
+  border-color: #f7931a;
+}
+.topbar-lang-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: var(--bg-card, #1a1a2e);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 1000;
+  padding: 4px 0;
+  overflow: hidden;
+}
+.topbar-lang-dropdown.open {
+  display: block;
+}
+.topbar-lang-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  color: var(--fg-muted, #9a9baa);
+  text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+}
+.topbar-lang-option:hover {
+  background: var(--nav-active-bg, rgba(255,255,255,0.06));
+  color: var(--accent, #f7931a);
+}
+.topbar-lang-option.active {
+  color: var(--accent, #f7931a);
+  font-weight: 700;
+}
+.topbar-lang-option.active::after {
+  content: "✓";
+  margin-left: auto;
+  font-size: 11px;
+}
+.topbar-lang-short {
+  font-weight: 600;
+  min-width: 28px;
+}
+.topbar-lang-full {
+  opacity: 0.7;
+  font-size: 11.5px;
+}
+
+
+</style>
+
+<style is:global>
+/* ── Theme toggle (Apple style) ── */
+.theme-toggle-apple {
+  width: 48px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 13px;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  outline: none;
+}
+.theme-toggle-apple:focus-visible .toggle-track {
+  box-shadow: 0 0 0 3px rgba(247,147,26,0.4);
+}
+
+.toggle-track {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  background: #c7c7cc;
+  transition: background 0.35s ease;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .toggle-track {
+  background: #f7931a;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 2;
+  pointer-events: none;
+}
+
+html[data-theme="dark"] .toggle-thumb {
+  transform: translateX(22px);
+}
+
+.ti-sun, .ti-moon {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.2s;
+}
+.ti-sun {
+  left: 5px;
+  color: #fff8e7;
+  opacity: 0;
+}
+.ti-moon {
+  right: 5px;
+  color: #fff;
+  opacity: 0.7;
+}
+html[data-theme="dark"] .ti-sun {
+  opacity: 0.9;
+}
+html[data-theme="dark"] .ti-moon {
+  opacity: 0;
+}
+</style>
