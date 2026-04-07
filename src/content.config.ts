@@ -47,6 +47,17 @@ const blog = defineCollection({
           })
         )
         .optional(),
+
+      // ── HowTo steps（用于 type: howto 的文章）──────────────────
+      steps: z
+        .array(
+          z.object({
+            name: z.string(),
+            text: z.string(),
+            url: z.string().optional(),
+          })
+        )
+        .optional(),
     }),
 });
 

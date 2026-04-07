@@ -1,0 +1,182 @@
+---
+// src/pages/[lang]/about.astro
+// Non-default language About pages: /en/about  /zh-tw/about  /es/about  /pt/about
+
+import type { GetStaticPaths } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Breadcrumb from "@/components/Breadcrumb.astro";
+import { SITE } from "@/config";
+import {
+  LANGUAGES, DEFAULT_LANG, LANG_TO_PATH,
+  useTranslations, type Lang,
+} from "@/i18n/ui";
+
+export const getStaticPaths = (async () => {
+  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
+    l => l !== DEFAULT_LANG
+  );
+  return nonDefaultLangs.map(lang => ({
+    params: { lang: LANG_TO_PATH[lang] },
+    props: { lang },
+  }));
+}) satisfies GetStaticPaths;
+
+const { lang } = Astro.props as { lang: Lang };
+const t = useTranslations(lang);
+
+interface AboutContent {
+  title: string;
+  html: string;
+}
+
+const aboutContent: Record<string, AboutContent> = {
+  "en": {
+    title: "About Bitaigen",
+    html: `
+<h2>About Bitaigen</h2>
+<p><strong>Bitaigen</strong> is a professional multilingual blockchain news platform dedicated to providing high-quality market analysis, exchange tutorials, crypto wallet security guides, and in-depth DeFi coverage for investors worldwide.</p>
+<p>Our content spans five languages — <strong>Simplified Chinese, Traditional Chinese, English, Español, and Português</strong> — serving crypto communities across Asia, the Americas, and beyond.</p>
+<hr />
+<h2>Why Bitaigen</h2>
+<h3>Live Market Data</h3>
+<p>Real-time prices, 24-hour change figures, and historical charts for Bitcoin (BTC), Ethereum (ETH), and other major cryptocurrencies — everything you need to track the market at a glance.</p>
+<h3>Step-by-Step Tutorials</h3>
+<p>From your very first account registration to advanced trading strategies, our guides walk you through Binance, OKX, and other top exchanges clearly and thoroughly.</p>
+<h3>Security First</h3>
+<p>Practical wallet guides covering MetaMask, Ledger, Trust Wallet, and more — so you can confidently safeguard your digital assets at every step.</p>
+<h3>Genuinely Multilingual</h3>
+<p>Five languages, five communities. Our content is written and reviewed by native speakers — not machine-translated — to ensure accuracy and natural readability in every market we serve.</p>
+<hr />
+<h2>Contact Us</h2>
+<p>We welcome content partnerships, story submissions, and business inquiries.</p>
+<table>
+  <thead><tr><th>Channel</th><th>Link</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Telegram</strong></td><td><a href="${SITE.telegram}" target="_blank" rel="noopener">@AllenAmbrose</a></td></tr>
+    <tr><td><strong>X / Twitter</strong></td><td><a href="${SITE.twitter}" target="_blank" rel="noopener">@tanfyoo</a></td></tr>
+    <tr><td><strong>RSS Feed</strong></td><td><a href="/rss.xml">RSS</a></td></tr>
+  </tbody>
+</table>
+<hr />
+<h2>Disclaimer</h2>
+<p>All content on this site is for informational purposes only and does not constitute investment advice of any kind. Cryptocurrency markets are highly volatile. Please conduct your own research and consider your personal financial situation before making any investment decisions.</p>
+<p>Bitaigen maintains affiliate relationships with certain exchanges (including Binance). Registering through our referral links may generate commission revenue for the site; this does not affect the objectivity or editorial independence of our content.</p>
+`,
+  },
+  "zh-TW": {
+    title: "關於 Bitaigen",
+    html: `
+<h2>關於 Bitaigen</h2>
+<p><strong>Bitaigen</strong> 是一個專業的多語言區塊鏈資訊平台，致力於為全球加密貨幣投資者提供高品質的行情分析、交易所教學、加密錢包安全指南與 DeFi 深度解析。</p>
+<p>我們的內容涵蓋 <strong>簡體中文、繁體中文、English、Español、Português</strong> 五種語言，服務全球華語、英語、西班牙語及葡萄牙語用戶。</p>
+<hr />
+<h2>我們的優勢</h2>
+<h3>即時行情</h3>
+<p>提供比特幣（BTC）、以太坊（ETH）等主流加密貨幣的即時價格、24 小時漲跌幅與歷史走勢圖，讓您隨時掌握市場脈動。</p>
+<h3>深度教學</h3>
+<p>從零基礎到進階操作，完整涵蓋幣安、OKX 等主流交易所的註冊、KYC 驗證與交易流程教學，步驟清晰、易於跟隨。</p>
+<h3>安全指南</h3>
+<p>MetaMask、Ledger、Trust Wallet 等錢包使用指南，協助您安全保管數位資產，防範常見詐騙與釣魚攻擊。</p>
+<h3>真正在地化的多語言內容</h3>
+<p>五種語言、五個社群。我們的內容由母語編輯撰寫與審核，絕非機器翻譯，確保每個市場的讀者都能獲得準確、自然的閱讀體驗。</p>
+<hr />
+<h2>聯繫我們</h2>
+<p>歡迎內容合作、投稿報道及商務洽談。</p>
+<table>
+  <thead><tr><th>管道</th><th>連結</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Telegram</strong></td><td><a href="${SITE.telegram}" target="_blank" rel="noopener">@AllenAmbrose</a></td></tr>
+    <tr><td><strong>X / Twitter</strong></td><td><a href="${SITE.twitter}" target="_blank" rel="noopener">@tanfyoo</a></td></tr>
+    <tr><td><strong>RSS 訂閱</strong></td><td><a href="/rss.xml">RSS Feed</a></td></tr>
+  </tbody>
+</table>
+<hr />
+<h2>免責聲明</h2>
+<p>本站所有內容僅供資訊參考，不構成任何形式的投資建議。加密貨幣市場波動劇烈，投資前請充分瞭解相關風險，並依據自身情況審慎決策。</p>
+<p>本站與部分交易所（包括幣安）存在聯盟合作關係，透過推薦連結註冊可能為本站帶來佣金收入，但這不影響我們內容的客觀性與編輯獨立性。</p>
+`,
+  },
+  "es": {
+    title: "Acerca de Bitaigen",
+    html: `
+<h2>Acerca de Bitaigen</h2>
+<p><strong>Bitaigen</strong> es una plataforma profesional de noticias blockchain multilingüe dedicada a ofrecer análisis de mercado de alta calidad, tutoriales de exchanges, guías de seguridad para billeteras cripto y análisis en profundidad de protocolos DeFi para inversores de todo el mundo.</p>
+<p>Nuestro contenido abarca cinco idiomas — <strong>chino simplificado, chino tradicional, English, Español y Português</strong> — sirviendo a comunidades cripto en Asia, América Latina y más allá.</p>
+<hr />
+<h2>Nuestras ventajas</h2>
+<h3>Precios en tiempo real</h3>
+<p>Precios actualizados al instante, variaciones en 24 horas y gráficos históricos de Bitcoin (BTC), Ethereum (ETH) y otras criptomonedas líderes — todo lo que necesitas para seguir el mercado de un vistazo.</p>
+<h3>Tutoriales paso a paso</h3>
+<p>Desde tu primer registro hasta estrategias de trading avanzadas, nuestras guías te llevan de la mano por Binance, OKX y otros exchanges principales de forma clara y completa.</p>
+<h3>Seguridad ante todo</h3>
+<p>Guías prácticas para MetaMask, Ledger, Trust Wallet y otras billeteras — para que puedas proteger tus activos digitales con confianza en cada paso.</p>
+<h3>Multilingüe de verdad</h3>
+<p>Cinco idiomas, cinco comunidades. Nuestro contenido lo escriben y revisan hablantes nativos — sin traducciones automáticas — para garantizar precisión y lectura natural en cada mercado que servimos.</p>
+<hr />
+<h2>Contáctanos</h2>
+<p>Aceptamos colaboraciones de contenido, envío de noticias y consultas comerciales.</p>
+<table>
+  <thead><tr><th>Canal</th><th>Enlace</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Telegram</strong></td><td><a href="${SITE.telegram}" target="_blank" rel="noopener">@AllenAmbrose</a></td></tr>
+    <tr><td><strong>X / Twitter</strong></td><td><a href="${SITE.twitter}" target="_blank" rel="noopener">@tanfyoo</a></td></tr>
+    <tr><td><strong>RSS</strong></td><td><a href="/rss.xml">RSS Feed</a></td></tr>
+  </tbody>
+</table>
+<hr />
+<h2>Aviso legal</h2>
+<p>Todo el contenido de este sitio es únicamente informativo y no constituye asesoramiento de inversión de ningún tipo. Los mercados de criptomonedas son altamente volátiles. Realiza tu propia investigación y considera tu situación financiera personal antes de tomar cualquier decisión de inversión.</p>
+<p>Bitaigen mantiene relaciones de afiliado con ciertos exchanges (incluido Binance). El registro a través de nuestros enlaces de referido puede generar ingresos por comisión para el sitio; esto no afecta la objetividad ni la independencia editorial de nuestro contenido.</p>
+`,
+  },
+  "pt": {
+    title: "Sobre Bitaigen",
+    html: `
+<h2>Sobre Bitaigen</h2>
+<p><strong>Bitaigen</strong> é uma plataforma profissional e multilíngue de notícias sobre blockchain, dedicada a oferecer análises de mercado de alta qualidade, tutoriais de exchanges, guias de segurança para carteiras cripto e análises aprofundadas de protocolos DeFi para investidores ao redor do mundo.</p>
+<p>Nosso conteúdo abrange cinco idiomas — <strong>chinês simplificado, chinês tradicional, English, Español e Português</strong> — atendendo comunidades cripto na Ásia, nas Américas e além.</p>
+<hr />
+<h2>Nossas vantagens</h2>
+<h3>Preços em tempo real</h3>
+<p>Preços atualizados ao vivo, variações em 24 horas e gráficos históricos do Bitcoin (BTC), Ethereum (ETH) e outras criptomoedas principais — tudo o que você precisa para acompanhar o mercado de relance.</p>
+<h3>Tutoriais passo a passo</h3>
+<p>Do seu primeiro cadastro às estratégias avançadas de trading, nossos guias percorrem com você a Binance, a OKX e outras exchanges líderes de forma clara e completa.</p>
+<h3>Segurança em primeiro lugar</h3>
+<p>Guias práticos para MetaMask, Ledger, Trust Wallet e outras carteiras — para que você possa proteger seus ativos digitais com confiança a cada etapa.</p>
+<h3>Verdadeiramente multilíngue</h3>
+<p>Cinco idiomas, cinco comunidades. Nosso conteúdo é escrito e revisado por falantes nativos — sem traduções automáticas — para garantir precisão e leitura natural em cada mercado que atendemos.</p>
+<hr />
+<h2>Entre em contato</h2>
+<p>Aceitamos parcerias de conteúdo, envio de pautas e consultas comerciais.</p>
+<table>
+  <thead><tr><th>Canal</th><th>Link</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Telegram</strong></td><td><a href="${SITE.telegram}" target="_blank" rel="noopener">@AllenAmbrose</a></td></tr>
+    <tr><td><strong>X / Twitter</strong></td><td><a href="${SITE.twitter}" target="_blank" rel="noopener">@tanfyoo</a></td></tr>
+    <tr><td><strong>RSS</strong></td><td><a href="/rss.xml">RSS Feed</a></td></tr>
+  </tbody>
+</table>
+<hr />
+<h2>Aviso legal</h2>
+<p>Todo o conteúdo deste site é apenas para fins informativos e não constitui conselho de investimento de qualquer natureza. Os mercados de criptomoedas são altamente voláteis. Faça sua própria pesquisa e considere sua situação financeira pessoal antes de tomar qualquer decisão de investimento.</p>
+<p>O Bitaigen mantém relações de afiliado com determinadas exchanges (incluindo a Binance). O cadastro por meio de nossos links de indicação pode gerar receita de comissão para o site; isso não afeta a objetividade nem a independência editorial do nosso conteúdo.</p>
+`,
+  },
+};
+
+const content = aboutContent[lang] ?? aboutContent["en"];
+---
+
+<Layout title={`${content.title} | ${SITE.title}`}>
+  <Header />
+  <Breadcrumb />
+  <main id="main-content" class="app-layout">
+    <section id="about" class="app-prose mb-28 max-w-app prose-img:border-0">
+      <h1 class="text-2xl tracking-wider sm:text-3xl">{content.title}</h1>
+      <Fragment set:html={content.html} />
+    </section>
+  </main>
+  <Footer />
+</Layout>

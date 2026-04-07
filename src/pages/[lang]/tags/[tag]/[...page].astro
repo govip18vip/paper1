@@ -1,0 +1,75 @@
+---
+// src/pages/[lang]/tags/[tag]/[...page].astro
+// 多语言标签文章列表页：/en/tags/btc/ /es/tags/defi/ 等
+import type { GetStaticPathsOptions } from "astro";
+import { getCollection } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import Card from "@/components/Card.astro";
+import Pagination from "@/components/Pagination.astro";
+import getUniqueTags from "@/utils/getUniqueTags";
+import getPostsByTag from "@/utils/getPostsByTag";
+import { SITE } from "@/config";
+import {
+  LANGUAGES,
+  DEFAULT_LANG,
+  LANG_TO_PATH,
+  useTranslations,
+  type Lang,
+} from "@/i18n/ui";
+
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  const posts = await getCollection("blog");
+  const tags = getUniqueTags(posts);
+
+  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
+    l => l !== DEFAULT_LANG
+  );
+
+  return nonDefaultLangs.flatMap(lang =>
+    tags.flatMap(({ tag, tagName }) => {
+      const tagPosts = getPostsByTag(posts, tag);
+      return paginate(tagPosts, {
+        params: { lang: LANG_TO_PATH[lang], tag },
+        props: { tagName, lang },
+        pageSize: SITE.postPerPage,
+      });
+    })
+  );
+}
+
+const { tag } = Astro.params;
+const { page, tagName, lang } = Astro.props as {
+  page: import("astro").Page<any>;
+  tagName: string;
+  lang: Lang;
+};
+
+const t = useTranslations(lang);
+const langSeg = LANG_TO_PATH[lang];
+
+const pageDescMap: Record<Lang, string> = {
+  "zh-CN": `所有标签为「${tagName}」的文章`,
+  "zh-TW": `所有標籤為「${tagName}」的文章`,
+  "en":    `All articles tagged "${tagName}"`,
+  "es":    `Todos los artículos con la etiqueta "${tagName}"`,
+  "pt":    `Todos os artigos com a tag "${tagName}"`,
+};
+const pageDesc = pageDescMap[lang] ?? `All articles tagged "${tagName}"`;
+---
+
+<Layout title={`${tagName} | ${SITE.title}`} description={pageDesc}>
+  <Header />
+  <main class="app-layout pb-4">
+    <h1 class="text-2xl font-semibold sm:text-3xl" transition:name={`lang-${langSeg}-${tag}`}>
+      {t("section.tags")}: {tagName}
+    </h1>
+    <p class="mt-2 mb-6 italic">{pageDesc}</p>
+    <ul>
+      {page.data.map((data: any) => <Card {...data} />)}
+    </ul>
+  </main>
+  <Pagination {page} {lang} />
+  <Footer noMarginTop={page.lastPage > 1} />
+</Layout>

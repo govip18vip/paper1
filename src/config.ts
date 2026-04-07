@@ -28,13 +28,13 @@ export const SITE = {
   // ── Analytics ──────────────────────────────────────────
   // Plausible: set domain to enable (e.g., "bitaigen.com")
   plausibleDomain: "",
-  // Google Analytics: set measurement ID to enable (e.g., "G-XXXXXXXXXX")
-  googleAnalyticsId: "",
+  // Google Analytics 4: 读取环境变量 PUBLIC_GA_ID（Vercel Dashboard 中配置）
+  googleAnalyticsId: import.meta.env.PUBLIC_GA_ID ?? "",
 
   // ── Search Engine Verification ─────────────────────────
-  // Paste the content attribute value from the verification meta tag
-  googleSiteVerification: "",
-  bingSiteVerification: "",
+  // 读取环境变量；在 Vercel Dashboard → Settings → Environment Variables 中配置
+  googleSiteVerification: import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION ?? "",
+  bingSiteVerification:   import.meta.env.PUBLIC_BING_SITE_VERIFICATION ?? "",
   baiduSiteVerification: "",
   yandexSiteVerification: "",
 } as const;

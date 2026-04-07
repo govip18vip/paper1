@@ -75,10 +75,10 @@ const isActive = (p: string) => {
     </a>
 
     <!-- 学习中心 -->
-    <a href="/learn/" class:list={["lnav-item", { active: isActive("/learn") }]}>
+    <a href={base + "/learn/"} class:list={["lnav-item", { active: isActive("/learn") }]}>
       <span style="display:flex;align-items:center;gap:6px;">
         <span style="font-size:12px;">🎓</span>
-        <span>学习中心</span>
+        <span data-i18n="nav.learn">{t("nav.learn")}</span>
       </span>
     </a>
 

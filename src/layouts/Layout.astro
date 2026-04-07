@@ -63,7 +63,8 @@ const socialImageURL = new URL(ogImage, Astro.url);
     {alternates.map(a => (
       <link rel="alternate" hreflang={a.lang} href={a.href} />
     ))}
-    <link rel="alternate" hreflang="x-default" href={`${Astro.url.origin}${Astro.url.pathname}`} />
+    <!-- x-default 固定指向根域名（中文主站），告知 Google 默认版本 -->
+    <link rel="alternate" hreflang="x-default" href={Astro.url.origin + "/"} />
 
     <!-- Search engine verification -->
     {SITE.googleSiteVerification && <meta name="google-site-verification" content={SITE.googleSiteVerification} />}
@@ -178,15 +179,22 @@ const socialImageURL = new URL(ogImage, Astro.url);
       <script defer data-domain={SITE.plausibleDomain} src="https://plausible.io/js/script.js" is:inline />
     )}
 
-    <!-- Analytics: Google Analytics -->
-    {SITE.googleAnalyticsId && (
+    <!-- Analytics: Google Analytics 4 (gtag.js) -->
+    {import.meta.env.PUBLIC_GA_ID && (
       <Fragment>
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`} is:inline />
-        <script is:inline define:vars={{ gaId: SITE.googleAnalyticsId }}>
+        <script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.PUBLIC_GA_ID}`}
+          is:inline
+        />
+        <script is:inline define:vars={{ gaId: import.meta.env.PUBLIC_GA_ID }}>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', gaId);
+          gtag('config', gaId, {
+            send_page_view: true,
+            anonymize_ip: true,
+          });
         </script>
       </Fragment>
     )}

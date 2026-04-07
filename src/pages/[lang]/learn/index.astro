@@ -1,0 +1,197 @@
+---
+// src/pages/[lang]/learn/index.astro
+// 多语言学习中心 — /en/learn/ /zh-tw/learn/ /es/learn/ /pt/learn/
+import type { GetStaticPaths } from "astro";
+import { getCollection } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import { SITE } from "@/config";
+import { getPath } from "@/utils/getPath";
+import {
+  LANGUAGES, DEFAULT_LANG, useTranslations,
+  LANG_TO_PATH, type Lang,
+} from "@/i18n/ui";
+
+export const getStaticPaths = (async () => {
+  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
+    l => l !== DEFAULT_LANG
+  );
+  return nonDefaultLangs.map(lang => ({
+    params: { lang: LANG_TO_PATH[lang] },
+    props: { lang },
+  }));
+}) satisfies GetStaticPaths;
+
+const { lang } = Astro.props as { lang: Lang };
+const t = useTranslations(lang);
+const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
+
+const allPosts = await getCollection("blog");
+const published = allPosts.filter(p => !p.data.draft);
+
+// Cluster definitions — titles/descs localized per language
+const clusterDefs: Record<Lang, { id: string; icon: string; color: string; title: string; desc: string; tags: string[]; href: string }[]> = {
+  "zh-CN": [], // default lang, not used here
+  "zh-TW": [
+    { id: "bitcoin",  icon: "₿",  color: "#F7931A", title: "比特幣 (Bitcoin) 完全指南",     desc: "從入門到精通：BTC 是什麼、如何購買、如何存儲、價格走勢分析。",                       tags: ["btc","bitcoin","比特币"], href: base + "/coin/btc/" },
+    { id: "ethereum", icon: "Ξ",  color: "#627EEA", title: "以太坊 (Ethereum) 完全指南",     desc: "ETH 技術原理、智能合約、DeFi 生態、質押收益全解析。",                               tags: ["eth","ethereum","以太坊"], href: base + "/coin/eth/" },
+    { id: "exchange", icon: "🏦", color: "#F0B90B", title: "加密貨幣交易所教學",             desc: "幣安 Binance、OKX 註冊、入金、交易、提現全流程教學。",                               tags: ["exchange","交易所","binance","okx"], href: base + "/tags/exchange/" },
+    { id: "defi",     icon: "🔗", color: "#00D395", title: "DeFi 去中心化金融",             desc: "流動性挖礦、借貸協議、DEX 使用指南，理解 Web3 金融新範式。",                          tags: ["defi","web3"], href: base + "/tags/blockchain/" },
+    { id: "beginner", icon: "🎓", color: "#A78BFA", title: "新手入門必讀",                   desc: "零基礎學加密貨幣：錢包創建、安全防騙、第一筆交易全指導。",                             tags: ["beginner","新手入门"], href: base + "/tags/beginner/" },
+    { id: "prices",   icon: "📊", color: "#38BDF8", title: "即時行情與價格分析",             desc: "主流幣種即時價格、K 線走勢、市值排行，輔助投資決策。",                                tags: ["btc","eth","sol","xrp"], href: base + "/price/" },
+  ],
+  "en": [
+    { id: "bitcoin",  icon: "₿",  color: "#F7931A", title: "Complete Bitcoin Guide",        desc: "What is BTC, how to buy, store, and analyze price trends — from beginner to expert.", tags: ["btc","bitcoin","比特币"], href: base + "/coin/btc/" },
+    { id: "ethereum", icon: "Ξ",  color: "#627EEA", title: "Complete Ethereum Guide",       desc: "ETH technology, smart contracts, DeFi ecosystem, and staking rewards explained.",      tags: ["eth","ethereum","以太坊"], href: base + "/coin/eth/" },
+    { id: "exchange", icon: "🏦", color: "#F0B90B", title: "Crypto Exchange Tutorials",     desc: "Step-by-step guides for Binance, OKX — sign up, deposit, trade, and withdraw.",       tags: ["exchange","交易所","binance","okx"], href: base + "/tags/exchange/" },
+    { id: "defi",     icon: "🔗", color: "#00D395", title: "DeFi — Decentralized Finance",  desc: "Yield farming, lending protocols, DEX guides — understand the Web3 financial paradigm.", tags: ["defi","web3"], href: base + "/tags/blockchain/" },
+    { id: "beginner", icon: "🎓", color: "#A78BFA", title: "Beginner's Essential Reading",  desc: "Learn crypto from scratch: create a wallet, stay safe, and make your first trade.",     tags: ["beginner","新手入门"], href: base + "/tags/beginner/" },
+    { id: "prices",   icon: "📊", color: "#38BDF8", title: "Live Prices & Market Analysis", desc: "Real-time prices, candlestick charts, and market cap rankings to inform your decisions.", tags: ["btc","eth","sol","xrp"], href: base + "/price/" },
+  ],
+  "es": [
+    { id: "bitcoin",  icon: "₿",  color: "#F7931A", title: "Guía Completa de Bitcoin",      desc: "Qué es BTC, cómo comprar, almacenar y analizar tendencias de precios, de principiante a experto.", tags: ["btc","bitcoin","比特币"], href: base + "/coin/btc/" },
+    { id: "ethereum", icon: "Ξ",  color: "#627EEA", title: "Guía Completa de Ethereum",     desc: "Tecnología ETH, contratos inteligentes, ecosistema DeFi y recompensas de staking.",    tags: ["eth","ethereum","以太坊"], href: base + "/coin/eth/" },
+    { id: "exchange", icon: "🏦", color: "#F0B90B", title: "Tutoriales de Exchanges",        desc: "Guías paso a paso para Binance, OKX — registro, depósito, trading y retiros.",         tags: ["exchange","交易所","binance","okx"], href: base + "/tags/exchange/" },
+    { id: "defi",     icon: "🔗", color: "#00D395", title: "DeFi — Finanzas Descentralizadas", desc: "Yield farming, protocolos de préstamo, guías de DEX — entiende el paradigma Web3.",  tags: ["defi","web3"], href: base + "/tags/blockchain/" },
+    { id: "beginner", icon: "🎓", color: "#A78BFA", title: "Lectura Esencial para Principiantes", desc: "Aprende cripto desde cero: crea una billetera, protégete y realiza tu primera operación.", tags: ["beginner","新手入门"], href: base + "/tags/beginner/" },
+    { id: "prices",   icon: "📊", color: "#38BDF8", title: "Precios en Vivo y Análisis",    desc: "Precios en tiempo real, gráficos de velas y rankings de capitalización de mercado.",    tags: ["btc","eth","sol","xrp"], href: base + "/price/" },
+  ],
+  "pt": [
+    { id: "bitcoin",  icon: "₿",  color: "#F7931A", title: "Guia Completo do Bitcoin",      desc: "O que é BTC, como comprar, armazenar e analisar tendências de preço, do iniciante ao expert.", tags: ["btc","bitcoin","比特币"], href: base + "/coin/btc/" },
+    { id: "ethereum", icon: "Ξ",  color: "#627EEA", title: "Guia Completo do Ethereum",     desc: "Tecnologia ETH, contratos inteligentes, ecossistema DeFi e recompensas de staking.",   tags: ["eth","ethereum","以太坊"], href: base + "/coin/eth/" },
+    { id: "exchange", icon: "🏦", color: "#F0B90B", title: "Tutoriais de Exchanges",         desc: "Guias passo a passo para Binance, OKX — cadastro, depósito, negociação e saques.",      tags: ["exchange","交易所","binance","okx"], href: base + "/tags/exchange/" },
+    { id: "defi",     icon: "🔗", color: "#00D395", title: "DeFi — Finanças Descentralizadas", desc: "Yield farming, protocolos de empréstimo, guias de DEX — entenda o paradigma Web3.",  tags: ["defi","web3"], href: base + "/tags/blockchain/" },
+    { id: "beginner", icon: "🎓", color: "#A78BFA", title: "Leitura Essencial para Iniciantes", desc: "Aprenda cripto do zero: crie uma carteira, fique seguro e faça sua primeira transação.", tags: ["beginner","新手入门"], href: base + "/tags/beginner/" },
+    { id: "prices",   icon: "📊", color: "#38BDF8", title: "Preços ao Vivo e Análise",      desc: "Preços em tempo real, gráficos de velas e rankings de capitalização de mercado.",       tags: ["btc","eth","sol","xrp"], href: base + "/price/" },
+  ],
+};
+
+const clusters = clusterDefs[lang];
+
+const clustersWithPosts = clusters.map(c => {
+  const posts = published
+    .filter(p => p.data.tags?.some(tg => c.tags.includes(tg.toLowerCase())))
+    .sort((a, b) => new Date(b.data.pubDatetime).getTime() - new Date(a.data.pubDatetime).getTime())
+    .slice(0, 4);
+  return { ...c, posts };
+});
+
+const totalPosts = published.length;
+
+// Page meta per language
+const pageMeta: Record<Lang, { title: string; description: string; h1: string; sub: string }> = {
+  "zh-CN": { title: "", description: "", h1: "", sub: "" }, // not used
+  "zh-TW": {
+    title:       `加密貨幣學習中心 — 系統掌握比特幣、以太坊、DeFi | ${SITE.title}`,
+    description: "系統學習比特幣、以太坊、DeFi、交易所使用教學。從新手入門到專業分析，Bitaigen 主題集群式知識庫。",
+    h1:          "加密貨幣學習中心",
+    sub:         "系統化學習比特幣、以太坊及區塊鏈生態。從新手到專業，按主題聚合深度內容，助你建立完整的知識體系。",
+  },
+  "en": {
+    title:       `Crypto Learning Center — Master Bitcoin, Ethereum & DeFi | ${SITE.title}`,
+    description: "Systematically learn Bitcoin, Ethereum, DeFi, and exchange tutorials. From beginner to expert — Bitaigen's topic-cluster knowledge base.",
+    h1:          "Crypto Learning Center",
+    sub:         "Systematically learn Bitcoin, Ethereum, and the blockchain ecosystem. Topic-clustered deep content to help you build a complete knowledge base.",
+  },
+  "es": {
+    title:       `Centro de Aprendizaje Cripto — Domina Bitcoin, Ethereum y DeFi | ${SITE.title}`,
+    description: "Aprende sistemáticamente sobre Bitcoin, Ethereum, DeFi y tutoriales de exchanges. De principiante a experto — la base de conocimientos de Bitaigen.",
+    h1:          "Centro de Aprendizaje Cripto",
+    sub:         "Aprende Bitcoin, Ethereum y el ecosistema blockchain de forma sistemática. Contenido profundo agrupado por temas para construir una base de conocimiento completa.",
+  },
+  "pt": {
+    title:       `Centro de Aprendizado Cripto — Domine Bitcoin, Ethereum e DeFi | ${SITE.title}`,
+    description: "Aprenda sistematicamente sobre Bitcoin, Ethereum, DeFi e tutoriais de exchanges. Do iniciante ao expert — a base de conhecimento da Bitaigen.",
+    h1:          "Centro de Aprendizado Cripto",
+    sub:         "Aprenda Bitcoin, Ethereum e o ecossistema blockchain de forma sistemática. Conteúdo aprofundado agrupado por temas para construir uma base de conhecimento completa.",
+  },
+};
+
+const meta = pageMeta[lang];
+const viewAllMap: Record<string, string> = { "zh-TW": "查看全部 →", "en": "View All →", "es": "Ver Todo →", "pt": "Ver Tudo →" };
+const viewAll = viewAllMap[lang] ?? "View All →";
+const updatingMap: Record<string, string> = { "zh-TW": "內容整理中，敬請期待…", "en": "Content coming soon…", "es": "Contenido próximamente…", "pt": "Conteúdo em breve…" };
+const updating = updatingMap[lang] ?? "Content coming soon…";
+const statsLabelMap: Record<string, string> = { "zh-TW": `共 ${totalPosts} 篇深度內容 · 持續更新`, "en": `${totalPosts} in-depth articles · Continuously updated`, "es": `${totalPosts} artículos en profundidad · Actualizado continuamente`, "pt": `${totalPosts} artigos aprofundados · Atualizado continuamente` };
+const statsLabel = statsLabelMap[lang] ?? `${totalPosts} articles`;
+---
+
+<Layout title={meta.title} description={meta.description}>
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
+
+    <main class="main-col" id="main-content" style="padding-bottom:48px;">
+
+      <!-- Hero -->
+      <section style="padding:28px 20px 24px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="width:3px;height:20px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+          <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0;">{meta.h1}</h1>
+        </div>
+        <p style="font-size:14px;color:var(--fg-muted);margin:0 0 16px;line-height:1.65;max-width:640px;">
+          {meta.sub}
+        </p>
+        <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-light);background:var(--bg-elevated);padding:5px 12px;border-radius:20px;border:1px solid var(--border);">
+          <span style="width:6px;height:6px;border-radius:50%;background:#4caf82;"></span>
+          {statsLabel}
+        </div>
+      </section>
+
+      <!-- 主题集群网格 -->
+      {clustersWithPosts.map(cluster => (
+        <section style="padding:0 16px 20px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+
+            <!-- 集群标题 -->
+            <div style={`display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,${cluster.color}0d 0%,transparent 60%);`}>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style={`font-size:22px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:${cluster.color}22;border:1.5px solid ${cluster.color}44;`}>
+                  {cluster.icon}
+                </span>
+                <div>
+                  <h2 style={`font-size:15px;font-weight:700;color:var(--fg);margin:0 0 2px;`}>{cluster.title}</h2>
+                  <p style="font-size:12px;color:var(--fg-muted);margin:0;">{cluster.desc}</p>
+                </div>
+              </div>
+              <a href={cluster.href}
+                style={`flex-shrink:0;font-size:12px;font-weight:700;color:${cluster.color};text-decoration:none;padding:5px 12px;border-radius:5px;border:1.5px solid ${cluster.color}55;transition:background .15s;white-space:nowrap;`}
+                onmouseover={`this.style.background='${cluster.color}18'`}
+                onmouseout="this.style.background='transparent'">
+                {viewAll}
+              </a>
+            </div>
+
+            <!-- 文章列表 -->
+            {cluster.posts.length > 0 ? (
+              <div>
+                {cluster.posts.map((post, i) => (
+                  <a href={getPath(post.id, post.filePath)}
+                    style={`display:flex;align-items:flex-start;gap:12px;padding:12px 20px;text-decoration:none;color:var(--fg);transition:background .12s;${i < cluster.posts.length - 1 ? 'border-bottom:1px solid var(--border-subtle);' : ''}`}
+                    onmouseover="this.style.background='var(--bg-elevated)'"
+                    onmouseout="this.style.background='transparent'">
+                    <span style={`width:6px;height:6px;border-radius:50%;background:${cluster.color};margin-top:6px;flex-shrink:0;`}></span>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:13.5px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                        {post.data.title}
+                      </div>
+                      <div style="font-size:11px;color:var(--fg-light);margin-top:3px;">
+                        {new Date(post.data.pubDatetime).toLocaleDateString(lang === "zh-TW" ? "zh-TW" : lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { year:"numeric", month:"short", day:"numeric" })}
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div style="padding:20px;font-size:13px;color:var(--fg-muted);">{updating}</div>
+            )}
+          </div>
+        </section>
+      ))}
+
+    </main>
+  </div>
+  <Footer />
+</Layout>
