@@ -1,0 +1,115 @@
+---
+// src/pages/flash/[slug].astro
+// 快讯详情页（SSR，实时拉取 Sanity）
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { sanityClient } from "@/utils/sanity";
+import { SITE } from "@/config";
+import type { SanityFlash } from "@/utils/sanity";
+
+const { slug } = Astro.params;
+
+const flash = await sanityClient.fetch<SanityFlash | null>(`
+  *[_type == "btgFlash" && slug.current == $slug && draft != true][0] {
+    _id, title, slug, content, lang, importance, tags, pubDatetime, sourceUrl, sourceName
+  }
+`, { slug });
+
+if (!flash) {
+  return Astro.redirect("/404");
+}
+
+const importanceColor: Record<string, string> = {
+  high:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  low:    "bg-skin-fill text-skin-muted",
+};
+const importanceLabel: Record<string, string> = {
+  high: "重大", medium: "快讯", low: "动态",
+};
+
+const pubDate = new Date(flash.pubDatetime).toLocaleDateString("zh-CN", {
+  year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+});
+---
+
+<Layout
+  title={`${flash.title} | ${SITE.title}`}
+  description={flash.content.slice(0, 160)}
+>
+  <Header />
+
+  <main class="mx-auto max-w-2xl px-4 py-8">
+    <!-- 面包屑 -->
+    <nav class="mb-6 text-sm text-skin-muted">
+      <a href="/" class="hover:underline">首页</a>
+      <span class="mx-2">/</span>
+      <a href="/flash" class="hover:underline">快讯</a>
+      <span class="mx-2">/</span>
+      <span class="text-skin-base">{flash.title.slice(0, 40)}{flash.title.length > 40 ? "…" : ""}</span>
+    </nav>
+
+    <article>
+      <!-- 重要性标签 + 时间 -->
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <span class={`rounded px-2 py-0.5 text-xs font-medium ${importanceColor[flash.importance] || importanceColor.low}`}>
+          {importanceLabel[flash.importance] || "快讯"}
+        </span>
+        <time datetime={flash.pubDatetime} class="text-xs text-skin-muted">{pubDate}</time>
+        {flash.sourceName && (
+          <span class="text-xs text-skin-muted">来源: {flash.sourceName}</span>
+        )}
+      </div>
+
+      <!-- 标题 -->
+      <h1 class="mb-6 text-2xl font-bold leading-tight text-skin-base">
+        {flash.title}
+      </h1>
+
+      <!-- 正文 -->
+      <div class="rounded-lg border border-skin-line bg-skin-card p-6">
+        <p class="text-base text-skin-base leading-relaxed whitespace-pre-wrap">
+          {flash.content}
+        </p>
+      </div>
+
+      <!-- 标签 -->
+      {(flash.tags || []).length > 0 && (
+        <div class="mt-4 flex flex-wrap gap-2">
+          {(flash.tags || []).map((tag: string) => (
+            <a href={`/tags/${tag}`}
+               class="rounded bg-skin-fill px-2 py-0.5 text-xs text-skin-muted hover:text-skin-accent">
+              #{tag}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <!-- 原文链接 -->
+      {flash.sourceUrl && (
+        <p class="mt-6 text-xs text-skin-muted">
+          原文来源：
+          <a href={flash.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
+             class="text-skin-accent hover:underline">
+            {flash.sourceName || flash.sourceUrl}
+          </a>
+        </p>
+      )}
+
+      <!-- 免责声明 -->
+      <div class="mt-6 rounded-lg bg-skin-fill p-4 text-xs text-skin-muted border border-skin-line">
+        ⚠️ 风险提示：加密货币价格波动极大，本文不构成任何投资建议，请理性投资，风险自担。
+      </div>
+
+      <!-- 返回 -->
+      <div class="mt-6">
+        <a href="/flash" class="text-sm text-skin-accent hover:underline">← 返回快讯列表</a>
+      </div>
+    </article>
+  </main>
+
+  <Footer />
+</Layout>

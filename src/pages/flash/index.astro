@@ -63,7 +63,9 @@ function timeAgo(dt: string): string {
 
               <div class="flex-1 min-w-0">
                 <h2 class="font-semibold text-skin-base leading-snug mb-1">
-                  {f.title}
+                  <a href={`/flash/${f.slug.current}`} class="hover:text-skin-accent">
+                    {f.title}
+                  </a>
                 </h2>
                 <p class="text-sm text-skin-muted leading-relaxed">
                   {f.content}

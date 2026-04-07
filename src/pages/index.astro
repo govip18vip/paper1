@@ -25,6 +25,8 @@ import {
   mergePosts,
   type UnifiedPost,
 } from "@/utils/mergedPosts";
+import { getSanityFlashes } from "@/utils/sanity";
+import type { SanityFlash } from "@/utils/sanity";
 import { TUTORIAL_TAGS } from "@/utils/homePage";
 
 const lang = getLang(Astro.url);
@@ -55,6 +57,14 @@ try {
   sanityUnified = await fetchSanityUnified({ limit: 30 });
 } catch (e) {
   console.warn("[index] Sanity unavailable:", e);
+}
+
+// ── 3b. Sanity 快讯（首页侧边展示）──────────────────────
+let recentFlashes: SanityFlash[] = [];
+try {
+  recentFlashes = await getSanityFlashes({ limit: 6 });
+} catch (e) {
+  // 容错：快讯拉取失败不影响主内容
 }
 
 // ── 4. 合并 & 排序 ─────────────────────────────────────
@@ -213,6 +223,29 @@ const websiteSchema = {
           </div>
         )}
       </section>
+
+      {/* ══ FLASH SECTION ══ */}
+      {recentFlashes.length > 0 && (
+        <section aria-label="实时快讯" class="anim-3">
+          <div class="sec-head" style="padding-top:16px;">
+            <span class="sec-head-title">⚡ 实时快讯</span>
+            <a href="/flash" class="sec-head-more">全部快讯 →</a>
+          </div>
+          <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;">
+            {recentFlashes.map((f: SanityFlash) => (
+              <a
+                href={`/flash/${f.slug.current}`}
+                style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);transition:border-color 0.2s;"
+              >
+                <span style={`flex-shrink:0;margin-top:2px;font-size:10px;font-weight:600;border-radius:3px;padding:1px 6px;${f.importance === 'high' ? 'background:rgba(239,68,68,0.15);color:#ef4444;' : f.importance === 'medium' ? 'background:rgba(234,179,8,0.15);color:#ca8a04;' : 'background:var(--bg-elevated);color:var(--fg-muted);'}`}>
+                  {f.importance === 'high' ? '重大' : f.importance === 'medium' ? '快讯' : '动态'}
+                </span>
+                <span style="font-size:13px;color:var(--fg);line-height:1.5;flex:1;">{f.title}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ══ ABOUT BLOCK ══ */}
       <section
