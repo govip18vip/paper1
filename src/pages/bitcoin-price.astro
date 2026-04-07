@@ -1,0 +1,545 @@
+---
+// src/pages/bitcoin-price.astro
+// ─────────────────────────────────────────────────────────────
+// 关键词落地页：比特币价格 / Bitcoin Price
+// 目标关键词：比特币价格、比特币今日价格、BTC价格、比特币行情
+// ISR: 每5分钟刷新（服务端预取实时价格，SEO爬虫可读到真实数据）
+// ─────────────────────────────────────────────────────────────
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import SubscribeForm from "@/components/SubscribeForm.astro";
+import { SITE } from "@/config";
+import { getCollection } from "astro:content";
+import { getPath } from "@/utils/getPath";
+
+// ── 服务端预取 BTC 实时价格 ────────────────────────────────
+interface BtcPrice {
+  priceUSD: number;
+  change24h: number;
+  high24h: number;
+  low24h: number;
+  volume24h: number;
+  marketCap: number;
+}
+let price: BtcPrice | null = null;
+try {
+  const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=60",
+    { signal: AbortSignal.timeout(5000) });
+  if (r.ok) {
+    const coins: any[] = await r.json();
+    const btc = coins.find(c => c.symbol?.toUpperCase() === "BTC");
+    if (btc) {
+      price = {
+        priceUSD:  btc.current_price ?? 0,
+        change24h: btc.price_change_percentage_24h_in_currency ?? 0,
+        high24h:   btc.high_24h ?? 0,
+        low24h:    btc.low_24h ?? 0,
+        volume24h: btc.total_volume ?? 0,
+        marketCap: btc.market_cap ?? 0,
+      };
+    }
+  }
+} catch { /* 客户端 JS 会兜底 */ }
+
+// ── 相关文章 ──────────────────────────────────────────────
+const allPosts = await getCollection("blog");
+const relatedPosts = allPosts
+  .filter(p => !p.data.draft && p.data.tags?.some(t =>
+    ["btc", "bitcoin", "比特币"].includes(t.toLowerCase())
+  ))
+  .sort((a, b) => new Date(b.data.pubDatetime).getTime() - new Date(a.data.pubDatetime).getTime())
+  .slice(0, 6);
+
+// ── 格式化工具 ────────────────────────────────────────────
+const fmt = (n: number, decimals = 0) =>
+  n.toLocaleString("zh-CN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+const fmtUSD = (n: number) => `$${n >= 1000 ? fmt(n) : n.toFixed(2)}`;
+const fmtB = (n: number) => n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : `$${(n / 1e6).toFixed(0)}M`;
+
+const isUp = (price?.change24h ?? 0) >= 0;
+const changeStr = price ? `${isUp ? "+" : ""}${price.change24h.toFixed(2)}%` : "—";
+const priceStr = price ? fmtUSD(price.priceUSD) : "获取中…";
+
+const pageTitle = `比特币(Bitcoin)实时价格 — 今日 BTC 行情 | ${SITE.title}`;
+const pageDesc  = `比特币最新实时价格、24小时涨跌幅、交易量与市值数据。深度解析影响比特币价格的核心因素，帮助您做出明智的投资决策。`;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "FinancialProduct",
+      "@id": `${SITE.website}bitcoin-price#product`,
+      name: "比特币 (Bitcoin / BTC)",
+      alternateName: ["BTC", "Bitcoin", "比特币"],
+      description: pageDesc,
+      url: `${SITE.website}bitcoin-price`,
+      category: "Cryptocurrency",
+      sameAs: "https://bitcoin.org",
+      provider: {
+        "@type": "Organization",
+        "@id": `${new URL(SITE.website).origin}/#organization`,
+        name: SITE.title,
+      },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
+        { "@type": "ListItem", position: 2, name: "行情", item: `${SITE.website}price/` },
+        { "@type": "ListItem", position: 3, name: "比特币价格" },
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "比特币现在价格是多少？",
+          acceptedAnswer: { "@type": "Answer", text: "比特币价格实时波动，请查看本页顶部的实时价格数据，数据来源于 Binance 等主流交易所。" },
+        },
+        {
+          "@type": "Question",
+          name: "是什么影响比特币价格？",
+          acceptedAnswer: { "@type": "Answer", text: "影响比特币价格的主要因素包括：供需关系（减半机制限制供应）、机构投资者入场、监管政策变化、宏观经济环境（美元指数、通胀预期）、市场情绪与链上数据等。" },
+        },
+        {
+          "@type": "Question",
+          name: "如何购买比特币？",
+          acceptedAnswer: { "@type": "Answer", text: "购买比特币最简单的方式是通过合规加密货币交易所，如币安(Binance)、OKX。注册账号 → 完成实名认证(KYC) → 人民币入金 → 购买BTC → 可选择转入硬件钱包保存。" },
+        },
+      ],
+    },
+  ],
+};
+---
+
+<Layout title={pageTitle} description={pageDesc}>
+  <Fragment slot="head">
+    <link rel="canonical" href={`${SITE.website}bitcoin-price`} />
+    <link rel="alternate" hreflang="zh-CN" href={`${SITE.website}bitcoin-price`} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+
+    <main class="main-col" id="main-content">
+
+      <!-- Breadcrumb -->
+      <nav class="bp-breadcrumb" aria-label="breadcrumb">
+        <a href="/">首页</a><span>›</span>
+        <a href="/price/">行情</a><span>›</span>
+        <span>比特币价格</span>
+      </nav>
+
+      <!-- ── Hero Price Block ── -->
+      <section class="bp-hero">
+        <div class="bp-hero-left">
+          <div class="bp-coin-ident">
+            <div class="bp-coin-icon">₿</div>
+            <div>
+              <h1 class="bp-coin-name">比特币 <span class="bp-coin-symbol">BTC</span></h1>
+              <span class="bp-coin-rank"># 1 加密货币市值排名</span>
+            </div>
+          </div>
+
+          <div class="bp-price-display">
+            <div class="bp-price-usd" id="bp-price">{priceStr}</div>
+            <div class:list={["bp-price-change", isUp ? "up" : "down"]} id="bp-change">
+              {isUp ? "▲" : "▼"} {changeStr} (24h)
+            </div>
+          </div>
+
+          {price && (
+            <div class="bp-stats-grid">
+              <div class="bp-stat">
+                <span class="bp-stat-label">24h 最高</span>
+                <span class="bp-stat-value">{fmtUSD(price.high24h)}</span>
+              </div>
+              <div class="bp-stat">
+                <span class="bp-stat-label">24h 最低</span>
+                <span class="bp-stat-value">{fmtUSD(price.low24h)}</span>
+              </div>
+              <div class="bp-stat">
+                <span class="bp-stat-label">24h 成交量</span>
+                <span class="bp-stat-value">{fmtB(price.volume24h)}</span>
+              </div>
+              <div class="bp-stat">
+                <span class="bp-stat-label">市值</span>
+                <span class="bp-stat-value">{fmtB(price.marketCap)}</span>
+              </div>
+            </div>
+          )}
+
+          <div class="bp-cta-row">
+            <a href="/price/btc" class="bp-btn-primary">📊 实时图表 & 深度行情</a>
+            <a href="/go/binance" class="bp-btn-secondary" target="_blank" rel="noopener noreferrer sponsored">
+              🔶 在币安购买 BTC
+            </a>
+          </div>
+          <p class="bp-update-note">⚡ 数据实时更新 · 来源：Binance &amp; CoinGecko</p>
+        </div>
+
+        <!-- TradingView Chart Card -->
+        <div class="bp-chart-wrap">
+          <a href="/price/btc" class="bp-chart-card">
+            <div class="bp-chart-preview" id="bp-tv-chart"></div>
+            <div class="bp-chart-overlay">
+              <span class="bp-chart-label">📊 查看 BTC/USDT 实时K线图</span>
+              <span class="bp-chart-sub">TradingView 专业图表 · 点击查看完整行情 →</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- ── 比特币价格影响因素 ── -->
+      <section class="bp-section">
+        <h2 class="bp-section-title">影响比特币价格的核心因素</h2>
+        <div class="bp-factors-grid">
+          <div class="bp-factor-card">
+            <div class="bp-factor-icon">⚡</div>
+            <h3>减半机制</h3>
+            <p>每4年一次的"减半"事件将矿工奖励减少50%，从根本上限制新增供应。历史上每次减半后约6-18个月出现价格大幅上涨。下次减半约在2028年。</p>
+          </div>
+          <div class="bp-factor-card">
+            <div class="bp-factor-icon">🏛️</div>
+            <h3>机构入场</h3>
+            <p>贝莱德(BlackRock)、富达等传统金融机构推出比特币ETF，将数十亿美元机构资金引入市场。比特币ETF日均交易量已超过黄金ETF。</p>
+          </div>
+          <div class="bp-factor-card">
+            <div class="bp-factor-icon">📜</div>
+            <h3>监管政策</h3>
+            <p>各国对加密货币的监管态度直接影响市场信心。美国SEC、欧盟MiCA法规等重大政策变化往往引发价格大幅波动。</p>
+          </div>
+          <div class="bp-factor-card">
+            <div class="bp-factor-icon">🌐</div>
+            <h3>宏观经济</h3>
+            <p>美联储利率决策、美元走势、通胀数据均对比特币价格产生影响。降息周期通常有利于风险资产，包括比特币。</p>
+          </div>
+          <div class="bp-factor-card">
+            <div class="bp-factor-icon">🐳</div>
+            <h3>大户链上行为</h3>
+            <p>链上数据（矿工持仓、交易所净流量、巨鲸钱包动向）是预判价格走势的重要指标。Glassnode、Santiment等平台提供此类数据。</p>
+          </div>
+          <div class="bp-factor-card">
+            <div class="bp-factor-icon">📱</div>
+            <h3>市场情绪</h3>
+            <p>恐惧贪婪指数(Fear & Greed Index)、社交媒体热度、Google搜索量等情绪指标与价格走势高度相关。极度恐惧往往是买入时机。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 比特币价格历史里程碑 ── -->
+      <section class="bp-section">
+        <h2 class="bp-section-title">比特币价格历史里程碑</h2>
+        <div class="bp-timeline">
+          {[
+            { year: "2009", event: "创世区块诞生", price: "$0（无市场价格）", note: "中本聪挖出第一个区块" },
+            { year: "2010", event: "首笔实物交易", price: "$0.003", note: "1万BTC购买两个披萨" },
+            { year: "2013", event: "首次突破$1,000", price: "$1,242", note: "中国交易所爆发推动" },
+            { year: "2017", event: "牛市高峰", price: "$19,783", note: "ICO热潮与零售散户涌入" },
+            { year: "2021", event: "历史新高", price: "$68,789", note: "机构采用 + El Salvador 法币" },
+            { year: "2024", event: "现货ETF获批", price: "$73,000+", note: "美国比特币现货ETF上市" },
+          ].map(m => (
+            <div class="bp-milestone">
+              <div class="bp-milestone-year">{m.year}</div>
+              <div class="bp-milestone-content">
+                <strong>{m.event}</strong>
+                <span class="bp-milestone-price">{m.price}</span>
+                <span class="bp-milestone-note">{m.note}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- ── FAQ ── -->
+      <section class="bp-section bp-faq">
+        <h2 class="bp-section-title">常见问题</h2>
+        <details>
+          <summary>比特币价格多久更新一次？</summary>
+          <p>本页面价格数据每5分钟自动刷新（服务端ISR）。如需毫秒级实时数据，请访问 <a href="/price/btc">BTC 实时行情页</a>，数据每30秒刷新。</p>
+        </details>
+        <details>
+          <summary>比特币最高价格是多少？</summary>
+          <p>比特币历史最高价（ATH）约为 $73,750，创于2024年3月。此后随着市场情绪变化有所回落，但长期上升趋势未变。</p>
+        </details>
+        <details>
+          <summary>如何安全购买比特币？</summary>
+          <p>推荐通过持牌合规交易所购买，如 <a href="/go/binance" rel="noopener noreferrer">币安(Binance)</a>。购买后建议将大额资产转入 Ledger、Trezor 等硬件钱包保管，避免交易所安全风险。详见我们的 <a href="/how-to-buy-bitcoin">比特币购买指南</a>。</p>
+        </details>
+        <details>
+          <summary>比特币有多少总量？</summary>
+          <p>比特币总量上限为 2100 万枚，由协议硬编码决定，任何人无法更改。截至2025年，已有约1930万枚BTC被挖出流通，剩余约170万枚待开采（预计2140年挖完）。稀缺性是比特币价值存储叙事的核心。</p>
+        </details>
+      </section>
+
+      <!-- ── 相关文章 ── -->
+      {relatedPosts.length > 0 && (
+        <section class="bp-section">
+          <h2 class="bp-section-title">相关比特币资讯</h2>
+          <div class="bp-posts-list">
+            {relatedPosts.map(p => (
+              <a href={getPath(p.id, p.filePath)} class="bp-post-item">
+                <span class="bp-post-title">{p.data.title}</span>
+                <span class="bp-post-date">{new Date(p.data.pubDatetime).toLocaleDateString("zh-CN")}</span>
+              </a>
+            ))}
+          </div>
+          <a href="/tags/btc/" class="bp-more-link">查看全部 BTC 资讯 →</a>
+        </section>
+      )}
+
+      <!-- ── 订阅 ── -->
+      <section class="bp-section bp-subscribe">
+        <SubscribeForm variant="full" />
+      </section>
+
+    </main>
+  </div>
+  <Footer />
+</Layout>
+
+<style>
+  /* ── Breadcrumb ───────────────────────────────────────────── */
+  .bp-breadcrumb {
+    padding: 12px 20px 0;
+    font-size: 13px;
+    color: var(--fg-muted);
+  }
+  .bp-breadcrumb a { color: var(--fg-muted); text-decoration: none; }
+  .bp-breadcrumb a:hover { color: var(--accent); }
+  .bp-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+
+  /* ── Hero ─────────────────────────────────────────────────── */
+  .bp-hero {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 28px;
+    padding: 20px 20px 0;
+    align-items: start;
+  }
+  .bp-coin-ident {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .bp-coin-icon {
+    width: 52px; height: 52px;
+    background: #f7931a;
+    border-radius: 50%;
+    font-size: 26px; font-weight: 900; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .bp-coin-name {
+    font-size: 24px; font-weight: 900; color: var(--fg);
+    margin: 0 0 4px;
+  }
+  .bp-coin-symbol {
+    font-size: 16px; color: var(--fg-muted); font-weight: 600;
+  }
+  .bp-coin-rank {
+    font-size: 12px; color: var(--fg-muted);
+    background: var(--bg-elevated);
+    padding: 2px 8px; border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .bp-price-display { margin-bottom: 18px; }
+  .bp-price-usd {
+    font-size: 40px; font-weight: 900; color: var(--fg);
+    line-height: 1.1; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .bp-price-change {
+    font-size: 18px; font-weight: 700; margin-top: 4px;
+  }
+  .bp-price-change.up   { color: var(--accent-green); }
+  .bp-price-change.down { color: var(--accent-red); }
+
+  .bp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .bp-stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .bp-stat-label { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .bp-stat-value { font-size: 14px; font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; }
+
+  .bp-cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .bp-btn-primary {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 8px;
+    background: var(--accent); color: #fff;
+    font-size: 14px; font-weight: 700; text-decoration: none;
+    transition: opacity 0.12s;
+  }
+  .bp-btn-primary:hover { opacity: 0.88; }
+  .bp-btn-secondary {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 8px;
+    background: var(--tag-orange-bg);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    font-size: 14px; font-weight: 700; text-decoration: none;
+    transition: all 0.12s;
+  }
+  .bp-btn-secondary:hover { background: var(--accent); color: #fff; }
+  .bp-update-note { font-size: 11.5px; color: var(--fg-light); margin: 0; }
+
+  .bp-chart-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+  .bp-chart-card {
+    display: block;
+    position: relative;
+    height: 280px;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+    overflow: hidden;
+  }
+  .bp-chart-preview {
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200'%3E%3Cpolyline fill='none' stroke='%23f7931a' stroke-width='2' opacity='0.3' points='0,150 50,130 100,140 150,80 200,100 250,60 300,90 350,40 400,70'/%3E%3C/svg%3E") center/cover no-repeat;
+    opacity: 0.6;
+  }
+  .bp-chart-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px;
+    background: color-mix(in srgb, var(--bg-card) 50%, transparent);
+    transition: background 0.15s;
+  }
+  .bp-chart-card:hover .bp-chart-overlay {
+    background: color-mix(in srgb, var(--bg-card) 30%, transparent);
+  }
+  .bp-chart-label {
+    font-size: 15px; font-weight: 700; color: var(--fg);
+  }
+  .bp-chart-sub {
+    font-size: 12px; color: var(--fg-muted);
+  }
+
+  /* ── Sections ─────────────────────────────────────────────── */
+  .bp-section {
+    padding: 0 20px;
+    margin: 32px 0 0;
+  }
+  .bp-section-title {
+    font-size: 18px; font-weight: 800; color: var(--fg);
+    margin: 0 0 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bp-section-title::before {
+    content: ''; display: block;
+    width: 3px; height: 18px;
+    background: var(--accent); border-radius: 2px;
+  }
+
+  /* ── Factors grid ─────────────────────────────────────────── */
+  .bp-factors-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .bp-factor-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .bp-factor-icon { font-size: 22px; margin-bottom: 8px; }
+  .bp-factor-card h3 { font-size: 14px; font-weight: 700; color: var(--fg); margin: 0 0 6px; }
+  .bp-factor-card p  { font-size: 12.5px; color: var(--fg-muted); line-height: 1.65; margin: 0; }
+
+  /* ── Timeline ─────────────────────────────────────────────── */
+  .bp-timeline { display: flex; flex-direction: column; gap: 0; }
+  .bp-milestone {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .bp-milestone:last-child { border-bottom: none; }
+  .bp-milestone-year {
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    background: var(--tag-orange-bg);
+    padding: 3px 8px; border-radius: 4px;
+    white-space: nowrap; flex-shrink: 0; min-width: 44px;
+    text-align: center;
+  }
+  .bp-milestone-content { display: flex; flex-direction: column; gap: 2px; }
+  .bp-milestone-content strong { font-size: 14px; font-weight: 700; color: var(--fg); }
+  .bp-milestone-price  { font-size: 13px; color: var(--accent-green); font-weight: 600; }
+  .bp-milestone-note   { font-size: 12px; color: var(--fg-muted); }
+
+  /* ── FAQ ──────────────────────────────────────────────────── */
+  .bp-faq details {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--bg-card);
+  }
+  .bp-faq summary {
+    padding: 14px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--fg);
+    list-style: none;
+  }
+  .bp-faq summary::-webkit-details-marker { display: none; }
+  .bp-faq details > p { padding: 0 16px 14px; font-size: 13.5px; color: var(--fg-muted); line-height: 1.7; margin: 0; }
+  .bp-faq details > p a { color: var(--accent); }
+
+  /* ── Related posts ────────────────────────────────────────── */
+  .bp-posts-list { display: flex; flex-direction: column; gap: 4px; }
+  .bp-post-item {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    text-decoration: none;
+    transition: color 0.12s;
+  }
+  .bp-post-item:hover .bp-post-title { color: var(--accent); }
+  .bp-post-title { font-size: 13.5px; font-weight: 500; color: var(--fg); flex: 1; line-height: 1.4; }
+  .bp-post-date  { font-size: 12px; color: var(--fg-muted); white-space: nowrap; flex-shrink: 0; }
+  .bp-more-link  { display: inline-block; margin-top: 12px; font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 600; }
+
+  /* ── Subscribe ────────────────────────────────────────────── */
+  .bp-subscribe {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px !important;
+    margin-bottom: 32px;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 1000px) {
+    .bp-hero { grid-template-columns: 1fr; }
+    .bp-chart-wrap { display: none; }
+    .bp-factors-grid { grid-template-columns: repeat(2, 1fr); }
+    .bp-stats-grid   { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .bp-factors-grid { grid-template-columns: 1fr; }
+    .bp-price-usd { font-size: 30px; }
+  }
+</style>

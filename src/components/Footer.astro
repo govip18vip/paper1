@@ -3,6 +3,7 @@
 import type { HTMLAttributes } from "astro/types";
 import { SITE } from "@/config";
 import { getLang, useTranslations, LANG_TO_PATH } from "@/i18n/ui";
+import SubscribeForm from "@/components/SubscribeForm.astro";
 
 const lang = getLang(Astro.url);
 const t = useTranslations(lang);
@@ -44,10 +45,10 @@ const footerCols = [
     heading: t("footer.col.links"),
     links: [
       { label: t("footer.link.all"),      href: base + "/posts" },
-      { label: t("footer.link.tags"),     href: "/tags" },
+      { label: t("footer.link.tags"),     href: base + "/tags" },
       { label: t("footer.link.archives"), href: "/archives" },
       { label: t("nav.search"),           href: base + "/search" },
-      { label: t("nav.about"),            href: "/about" },
+      { label: t("nav.about"),            href: base ? base + "/about" : "/about" },
     ],
   },
   {
@@ -67,6 +68,19 @@ const footerCols = [
   itemscope
   itemtype="https://schema.org/WPFooter"
 >
+  <!-- ── Subscribe Banner ── -->
+  <div class="footer-subscribe">
+    <div class="footer-subscribe-inner">
+      <div class="footer-subscribe-copy">
+        <strong>{t("subscribe.title")}</strong>
+        <span>{t("subscribe.desc")}</span>
+      </div>
+      <div class="footer-subscribe-form">
+        <SubscribeForm variant="compact" lang={lang} />
+      </div>
+    </div>
+  </div>
+
   <div class="footer-grid">
 
     <!-- Brand column -->
@@ -146,6 +160,44 @@ const footerCols = [
     background: var(--bg-sidebar);
     border-top: 1px solid var(--border);
     margin-top: auto;
+  }
+
+  /* ── Subscribe banner ─── */
+  .footer-subscribe {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+  }
+  .footer-subscribe-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .footer-subscribe-copy {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .footer-subscribe-copy strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .footer-subscribe-copy span {
+    font-size: 12.5px;
+    color: var(--fg-muted);
+  }
+  .footer-subscribe-form {
+    flex: 0 0 380px;
+    max-width: 100%;
+  }
+  @media (max-width: 700px) {
+    .footer-subscribe-form { flex: 1 1 100%; }
   }
 
   .footer-grid {

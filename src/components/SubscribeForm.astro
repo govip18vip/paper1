@@ -1,0 +1,252 @@
+---
+// src/components/SubscribeForm.astro
+// 邮件订阅表单 — 调用 /api/subscribe (Resend)
+// Props:
+//   variant?: "full" | "compact"  (默认 "full")
+//   lang?: Lang
+
+import { getLang, useTranslations, type Lang } from "@/i18n/ui";
+
+interface Props {
+  variant?: "full" | "compact";
+  lang?: Lang;
+}
+const { variant = "full", lang: langProp } = Astro.props;
+const lang = langProp ?? getLang(Astro.url);
+const t = useTranslations(lang);
+
+// Unique ID to allow multiple instances on the same page
+const uid = Math.random().toString(36).slice(2, 8);
+---
+
+<div class:list={["sub-wrap", `sub-${variant}`]} data-lang={lang} id={`sub-${uid}`}>
+  {variant === "full" && (
+    <div class="sub-header">
+      <h3 class="sub-title">{t("subscribe.title")}</h3>
+      <p class="sub-desc">{t("subscribe.desc")}</p>
+    </div>
+  )}
+
+  <form class="sub-form" novalidate>
+    <input
+      type="email"
+      name="email"
+      autocomplete="email"
+      class="sub-input"
+      placeholder={t("subscribe.placeholder")}
+      required
+      aria-label={t("subscribe.placeholder")}
+    />
+    <button type="submit" class="sub-btn">
+      <span class="sub-btn-text">{t("subscribe.btn")}</span>
+      <svg class="sub-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+    </button>
+  </form>
+
+  <div class="sub-msg" aria-live="polite"></div>
+
+  {variant === "full" && (
+    <p class="sub-privacy">🔒 {t("subscribe.privacy")}</p>
+  )}
+</div>
+
+<style>
+  .sub-wrap {
+    width: 100%;
+  }
+
+  /* ── Header ─────────────────────────────────────── */
+  .sub-header { margin-bottom: 14px; }
+  .sub-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--fg);
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sub-title::before {
+    content: '✉';
+    font-size: 16px;
+  }
+  .sub-desc {
+    font-size: 13px;
+    color: var(--fg-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── Form row ───────────────────────────────────── */
+  .sub-form {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .sub-full .sub-form {
+    flex-wrap: wrap;
+  }
+
+  .sub-input {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-page);
+    color: var(--fg);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .sub-input::placeholder { color: var(--fg-light); }
+  .sub-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .sub-input.error {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-red) 10%, transparent);
+  }
+
+  .sub-btn {
+    height: 40px;
+    padding: 0 18px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: opacity 0.15s, transform 0.1s;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .sub-btn:hover:not(:disabled) { opacity: 0.88; }
+  .sub-btn:active:not(:disabled) { transform: scale(0.97); }
+  .sub-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Spinner (hidden by default) */
+  .sub-spinner {
+    display: none;
+    animation: spin 0.7s linear infinite;
+  }
+  .sub-btn.loading .sub-btn-text { display: none; }
+  .sub-btn.loading .sub-spinner  { display: block; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Message ────────────────────────────────────── */
+  .sub-msg {
+    min-height: 20px;
+    font-size: 13px;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .sub-msg.success { color: var(--accent-green); font-weight: 600; }
+  .sub-msg.error   { color: var(--accent-red); }
+
+  /* ── Privacy note ───────────────────────────────── */
+  .sub-privacy {
+    font-size: 11.5px;
+    color: var(--fg-light);
+    margin: 8px 0 0;
+    opacity: 0.8;
+  }
+
+  /* ── compact variant ────────────────────────────── */
+  .sub-compact .sub-input  { height: 36px; font-size: 13px; }
+  .sub-compact .sub-btn    { height: 36px; padding: 0 14px; font-size: 13px; }
+</style>
+
+<script>
+function initSubscribeForm(wrap: HTMLElement) {
+  const form   = wrap.querySelector<HTMLFormElement>(".sub-form");
+  const input  = wrap.querySelector<HTMLInputElement>(".sub-input");
+  const btn    = wrap.querySelector<HTMLButtonElement>(".sub-btn");
+  const msgEl  = wrap.querySelector<HTMLElement>(".sub-msg");
+  const lang   = wrap.getAttribute("data-lang") ?? "zh-CN";
+
+  if (!form || !input || !btn || !msgEl) return;
+
+  // i18n messages (pulled from window.__i18nDict or fallbacks)
+  function getMsg(key: string, fallback: string): string {
+    try {
+      const dict = (window as any).__i18nDict;
+      return dict?.[lang]?.[key] ?? dict?.["zh-CN"]?.[key] ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function setMsg(text: string, type: "success" | "error" | "") {
+    if (!msgEl) return;
+    msgEl.textContent = text;
+    msgEl.className = `sub-msg ${type}`;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = input.value.trim();
+
+    // Client-side validation
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      input.classList.add("error");
+      setMsg(getMsg("subscribe.invalid", "请输入有效的邮箱地址"), "error");
+      input.focus();
+      return;
+    }
+
+    input.classList.remove("error");
+    btn.classList.add("loading");
+    btn.disabled = true;
+    setMsg("", "");
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, lang }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
+        setMsg(getMsg("subscribe.success", "✓ 订阅成功！感谢关注"), "success");
+        input.value = "";
+        form.style.display = "none";
+      } else {
+        const errKey = data.error === "invalid_email" ? "subscribe.invalid" : "subscribe.error";
+        setMsg(getMsg(errKey, "订阅失败，请稍后重试"), "error");
+      }
+    } catch {
+      setMsg(getMsg("subscribe.error", "订阅失败，请检查网络后重试"), "error");
+    } finally {
+      btn.classList.remove("loading");
+      btn.disabled = false;
+    }
+  });
+
+  // Clear error on input change
+  input.addEventListener("input", () => {
+    input.classList.remove("error");
+    if (msgEl.classList.contains("error")) setMsg("", "");
+  });
+}
+
+// Init all subscribe forms (including after Astro view transitions)
+function initAll() {
+  document.querySelectorAll<HTMLElement>(".sub-wrap").forEach(initSubscribeForm);
+}
+
+initAll();
+document.addEventListener("astro:after-swap", initAll);
+</script>

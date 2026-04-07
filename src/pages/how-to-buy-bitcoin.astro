@@ -1,0 +1,487 @@
+---
+// src/pages/how-to-buy-bitcoin.astro
+// ─────────────────────────────────────────────────────────────
+// 关键词落地页：如何购买比特币 / 比特币购买教程
+// 目标关键词：如何购买比特币、购买比特币教程、新手买比特币、比特币怎么买
+// 静态预渲染 + HowTo Schema
+// ─────────────────────────────────────────────────────────────
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import SubscribeForm from "@/components/SubscribeForm.astro";
+import { SITE } from "@/config";
+
+const pageTitle = `如何购买比特币(BTC) — 2025年新手完整教程 | ${SITE.title}`;
+const pageDesc  = "2025年购买比特币完整新手教程。从选择交易所、注册账户、KYC认证、人民币入金到安全存储，手把手带您完成第一笔BTC购买，附币安注册优惠链接。";
+const canonical = `${SITE.website}how-to-buy-bitcoin`;
+
+const steps = [
+  {
+    num: 1,
+    icon: "🏦",
+    title: "选择合规加密货币交易所",
+    duration: "5分钟",
+    detail: "选择有良好口碑、通过监管审计的主流交易所。推荐新手选择**币安(Binance)**——全球交易量最大、支持人民币充值、中文界面完善，安全记录良好。",
+    tips: ["推荐：币安(Binance)、OKX、Bybit", "避免使用来路不明的小平台", "检查是否支持您所在国家/地区"],
+    cta: { text: "注册币安账户（邀请码优惠）", href: "/go/binance" },
+  },
+  {
+    num: 2,
+    icon: "📧",
+    title: "注册并验证账户",
+    duration: "10分钟",
+    detail: "填写邮箱地址 → 设置强密码（建议使用密码管理器）→ 完成邮箱验证码验证 → 开启双重身份认证(2FA，强烈推荐使用 Google Authenticator)。",
+    tips: ["密码至少16位，包含大小写字母、数字和符号", "2FA是防止账户被盗的最重要防线", "记录好备份码并离线保存"],
+  },
+  {
+    num: 3,
+    icon: "🪪",
+    title: "完成实名认证 (KYC)",
+    duration: "15-30分钟",
+    detail: "根据监管要求，提交身份证/护照照片及自拍照完成实名认证(KYC)。通过认证后可解锁更高提现限额和全部交易功能。审核通常在几分钟到24小时内完成。",
+    tips: ["准备身份证正反面照片或护照", "自拍照要求光线充足、五官清晰", "避免使用他人证件，严禁借用账户"],
+  },
+  {
+    num: 4,
+    icon: "💴",
+    title: "入金 (充值人民币)",
+    duration: "10-60分钟",
+    detail: "KYC通过后，选择 C2C/P2P 场外交易或银行卡快捷购买的方式将人民币换成稳定币(USDT)。首次入金建议小额试水（100-500元），确认流程顺畅后再大额充值。",
+    tips: ["P2P入金：选择「认证商家」，交易量大、好评多", "银行卡备注栏不要填写任何加密货币相关字样", "入金到账后先保存截图"],
+  },
+  {
+    num: 5,
+    icon: "₿",
+    title: "购买比特币 (BTC)",
+    duration: "1分钟",
+    detail: "进入「快捷买币」或「现货交易」→ 选择 BTC/USDT 交易对 → 输入购买金额 → 确认价格（建议使用限价单）→ 点击「买入」。交易即时成交，BTC到账现货钱包。",
+    tips: ["新手推荐使用「快捷买币」，操作简单", "现货市价单会有少量价格滑点", "小额分批买入可降低时机风险（定投策略）"],
+  },
+  {
+    num: 6,
+    icon: "🔐",
+    title: "安全存储比特币",
+    duration: "建议立即",
+    detail: "长期持有的BTC建议转入个人钱包，不要长期放在交易所（「Not your keys, not your coins」）。少量资产可用MetaMask等软件钱包；超过5000美元以上强烈建议使用Ledger/Trezor硬件钱包。",
+    tips: ["助记词必须离线手写，不能截图/云端存储", "硬件钱包从官网购买，防止供应链攻击", "分散存储：冷热钱包结合"],
+  },
+];
+
+const howToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "@id": `${canonical}#howto`,
+  name: "如何购买比特币(BTC) — 2025年新手教程",
+  description: pageDesc,
+  totalTime: "PT60M",
+  estimatedCost: {
+    "@type": "MonetaryAmount",
+    currency: "CNY",
+    value: "100",
+    minValue: "100",
+  },
+  tool: [
+    { "@type": "HowToTool", name: "手机或电脑" },
+    { "@type": "HowToTool", name: "身份证或护照" },
+    { "@type": "HowToTool", name: "银行卡或支付宝/微信（入金用）" },
+  ],
+  step: steps.map((s, i) => ({
+    "@type": "HowToStep",
+    position: i + 1,
+    name: s.title,
+    text: s.detail.replace(/\*\*/g, ""),
+    url: `${canonical}#step-${s.num}`,
+  })),
+  author: {
+    "@type": "Organization",
+    "@id": `${new URL(SITE.website).origin}/#organization`,
+    name: SITE.title,
+  },
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
+    { "@type": "ListItem", position: 2, name: "学习中心", item: `${SITE.website}learn/` },
+    { "@type": "ListItem", position: 3, name: "如何购买比特币" },
+  ],
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "购买比特币需要多少钱起步？",
+      acceptedAnswer: { "@type": "Answer", text: "比特币支持按小数购买（最小单位为「聪」，1BTC=1亿聪）。在主流交易所，最低可从约10元人民币起购买比特币，非常适合新手从小额开始体验。" },
+    },
+    {
+      "@type": "Question",
+      name: "在中国可以购买比特币吗？",
+      acceptedAnswer: { "@type": "Answer", text: "中国大陆居民可通过境外合规交易所（如币安）的P2P场外交易购买比特币，但需注意遵守当地法律法规，不建议使用国内银行卡直接充值。购买行为属于个人金融行为，具体合规性建议咨询专业法律人士。" },
+    },
+    {
+      "@type": "Question",
+      name: "比特币购买后放在哪里？",
+      acceptedAnswer: { "@type": "Answer", text: "短期交易资产可放在交易所，长期持有建议转入个人钱包。软件钱包（如MetaMask、Trust Wallet）适合日常使用；大额资产推荐Ledger、Trezor等硬件冷钱包，私钥完全由自己掌控。" },
+    },
+    {
+      "@type": "Question",
+      name: "购买比特币安全吗？",
+      acceptedAnswer: { "@type": "Answer", text: "选择合规交易所、开启2FA、使用强密码、不轻信陌生人的「高收益」项目，就能大幅降低风险。比特币本身的区块链协议极为安全，风险主要来自于个人操作失误和第三方平台安全漏洞。" },
+    },
+  ],
+};
+---
+
+<Layout title={pageTitle} description={pageDesc}>
+  <Fragment slot="head">
+    <link rel="canonical" href={canonical} />
+    <script type="application/ld+json" set:html={JSON.stringify(howToSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+
+    <main class="main-col" id="main-content">
+
+      <!-- Breadcrumb -->
+      <nav class="htb-breadcrumb" aria-label="breadcrumb">
+        <a href="/">首页</a><span>›</span>
+        <a href="/learn/">学习中心</a><span>›</span>
+        <span>如何购买比特币</span>
+      </nav>
+
+      <!-- Hero -->
+      <div class="htb-hero">
+        <div class="htb-hero-badge">📖 新手教程</div>
+        <h1 class="htb-title">如何购买比特币 (BTC)</h1>
+        <p class="htb-subtitle">2025年最新完整教程 — 从零开始，30分钟完成第一笔BTC购买</p>
+        <div class="htb-meta">
+          <span>⏱ 预计耗时：30-60分钟</span>
+          <span>💰 最低起购：约10元</span>
+          <span>✅ 已验证步骤：6步完成</span>
+        </div>
+        <a href="/go/binance" class="htb-hero-cta" target="_blank" rel="noopener noreferrer sponsored">
+          🔶 立即开始 — 注册币安账户
+        </a>
+      </div>
+
+      <!-- Steps -->
+      <section class="htb-steps" aria-label="购买比特币步骤">
+        {steps.map(s => (
+          <div class="htb-step" id={`step-${s.num}`} itemscope itemtype="https://schema.org/HowToStep">
+            <div class="htb-step-num" aria-hidden="true">{s.num}</div>
+            <div class="htb-step-body">
+              <div class="htb-step-header">
+                <span class="htb-step-icon">{s.icon}</span>
+                <h2 class="htb-step-title" itemprop="name">{s.title}</h2>
+                <span class="htb-step-duration">⏱ {s.duration}</span>
+              </div>
+              <p class="htb-step-detail" itemprop="text">{s.detail.replace(/\*\*/g, "")}</p>
+              {s.tips && (
+                <ul class="htb-step-tips">
+                  {s.tips.map(tip => <li>{tip}</li>)}
+                </ul>
+              )}
+              {s.cta && (
+                <a href={s.cta.href} class="htb-step-cta" target={s.cta.href.startsWith("http") ? "_blank" : undefined}
+                  rel={s.cta.href.startsWith("http") ? "noopener noreferrer sponsored" : undefined}>
+                  {s.cta.text} →
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <!-- Safety Tips -->
+      <section class="htb-section htb-safety">
+        <h2 class="htb-section-title">🔐 买币安全守则</h2>
+        <div class="htb-safety-grid">
+          {[
+            { icon: "✅", title: "使用官方应用", desc: "只从App Store / Google Play下载官方APP，不点击陌生链接" },
+            { icon: "✅", title: "开启2FA双重验证", desc: "使用 Google Authenticator，不要用短信验证（SIM卡可被劫持）" },
+            { icon: "✅", title: "助记词离线保存", desc: "手写备份，不拍照不截图不存云盘" },
+            { icon: "✅", title: "警惕「高收益」项目", desc: "承诺每天5%以上收益的均为骗局" },
+            { icon: "✅", title: "小额测试先行", desc: "提币前先小额测试，确认地址正确再大额操作" },
+            { icon: "✅", title: "定期检查账户", desc: "定期审查登录记录和授权APP，及时撤销异常权限" },
+          ].map(tip => (
+            <div class="htb-safety-item">
+              <span class="htb-safety-icon">{tip.icon}</span>
+              <div>
+                <strong>{tip.title}</strong>
+                <p>{tip.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="htb-section htb-faq">
+        <h2 class="htb-section-title">常见问题解答</h2>
+        <details>
+          <summary>购买比特币需要多少钱起步？</summary>
+          <p>比特币支持按小数购买，最低可从约10元人民币起购。无需一次买整个BTC（现价数十万元），定额定投是新手最推荐的策略。</p>
+        </details>
+        <details>
+          <summary>在中国可以购买比特币吗？</summary>
+          <p>中国大陆居民可通过境外合规交易所的P2P场外交易购买比特币。具体合规性请咨询专业法律人士。</p>
+        </details>
+        <details>
+          <summary>购买比特币需要缴税吗？</summary>
+          <p>不同国家/地区税务政策不同。部分地区将加密货币视为资产，买卖差价需申报资本利得税。建议咨询当地税务顾问。</p>
+        </details>
+        <details>
+          <summary>交易所倒闭了我的比特币怎么办？</summary>
+          <p>这正是「Not your keys, not your coins」原则的意义所在。长期持有的比特币应转入个人控制的钱包（硬件钱包最安全），而非依赖交易所托管。</p>
+        </details>
+      </section>
+
+      <!-- Related guides -->
+      <section class="htb-section htb-related">
+        <h2 class="htb-section-title">相关教程</h2>
+        <div class="htb-related-links">
+          <a href="/bitcoin-price">₿ 比特币实时价格</a>
+          <a href="/best-crypto-exchange">🏆 最佳加密货币交易所对比</a>
+          <a href="/tags/wallet/">🔐 加密钱包安全指南</a>
+          <a href="/tags/defi/">🔗 DeFi入门教程</a>
+          <a href="/learn/">🎓 加密货币学习中心</a>
+        </div>
+      </section>
+
+      <!-- Subscribe -->
+      <section class="htb-section">
+        <div class="htb-subscribe-card">
+          <SubscribeForm variant="full" />
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <Footer />
+</Layout>
+
+<style>
+  .htb-breadcrumb {
+    padding: 12px 20px 0;
+    font-size: 13px; color: var(--fg-muted);
+  }
+  .htb-breadcrumb a { color: var(--fg-muted); text-decoration: none; }
+  .htb-breadcrumb a:hover { color: var(--accent); }
+  .htb-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+
+  /* ── Hero ─────────────── */
+  .htb-hero {
+    padding: 24px 20px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .htb-hero-badge {
+    display: inline-block;
+    background: var(--tag-orange-bg);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 12px;
+    margin-bottom: 12px;
+  }
+  .htb-title {
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 900;
+    color: var(--fg);
+    margin: 0 0 10px;
+    line-height: 1.2;
+  }
+  .htb-subtitle {
+    font-size: 16px;
+    color: var(--fg-muted);
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+  .htb-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--fg-muted);
+    margin-bottom: 20px;
+  }
+  .htb-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #F0B90B;
+    color: #000;
+    font-weight: 800;
+    font-size: 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: opacity 0.12s;
+  }
+  .htb-hero-cta:hover { opacity: 0.88; }
+
+  /* ── Steps ─────────────── */
+  .htb-steps {
+    padding: 0 20px;
+    margin: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .htb-step {
+    display: flex;
+    gap: 20px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+  }
+  .htb-step:last-child { border-bottom: none; }
+  .htb-step-num {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 16px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .htb-step-body { flex: 1; min-width: 0; }
+  .htb-step-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .htb-step-icon { font-size: 20px; }
+  .htb-step-title { font-size: 17px; font-weight: 800; color: var(--fg); margin: 0; flex: 1; }
+  .htb-step-duration {
+    font-size: 12px;
+    color: var(--fg-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+  .htb-step-detail {
+    font-size: 14px;
+    color: var(--fg-muted);
+    line-height: 1.7;
+    margin: 0 0 10px;
+  }
+  .htb-step-tips {
+    margin: 0 0 10px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .htb-step-tips li { font-size: 13px; color: var(--fg-muted); line-height: 1.5; }
+  .htb-step-cta {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #F0B90B;
+    color: #000;
+    font-weight: 700;
+    font-size: 13px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.12s;
+  }
+  .htb-step-cta:hover { opacity: 0.85; }
+
+  /* ── Sections ─────────── */
+  .htb-section {
+    padding: 0 20px;
+    margin: 28px 0 0;
+  }
+  .htb-section-title {
+    font-size: 18px; font-weight: 800; color: var(--fg);
+    margin: 0 0 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .htb-section-title::before {
+    content: ''; width: 3px; height: 18px;
+    background: var(--accent); border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Safety ─────────────── */
+  .htb-safety { background: var(--bg-elevated); border-radius: 10px; padding: 20px !important; border: 1px solid var(--border); }
+  .htb-safety .htb-section-title { padding: 0; }
+  .htb-safety-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .htb-safety-item {
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .htb-safety-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .htb-safety-item strong { font-size: 13.5px; font-weight: 700; color: var(--fg); display: block; margin-bottom: 2px; }
+  .htb-safety-item p { font-size: 12.5px; color: var(--fg-muted); margin: 0; line-height: 1.5; }
+
+  /* ── FAQ ─────────────────── */
+  .htb-faq details {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--bg-card);
+  }
+  .htb-faq summary {
+    padding: 14px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--fg);
+    list-style: none;
+  }
+  .htb-faq summary::-webkit-details-marker { display: none; }
+  .htb-faq details > p { padding: 0 16px 14px; font-size: 13.5px; color: var(--fg-muted); line-height: 1.7; margin: 0; }
+
+  /* ── Related ─────────────── */
+  .htb-related-links {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .htb-related-links a {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--fg-muted);
+    text-decoration: none;
+    background: var(--bg-card);
+    transition: all 0.12s;
+  }
+  .htb-related-links a:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Subscribe ─────────── */
+  .htb-subscribe-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 32px;
+    border-left: 3px solid var(--accent);
+  }
+
+  @media (max-width: 600px) {
+    .htb-safety-grid { grid-template-columns: 1fr; }
+    .htb-step { gap: 14px; }
+  }
+</style>

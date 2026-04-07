@@ -23,6 +23,7 @@ import MobileTOC from "@/components/MobileTOC.astro";
 import BinanceBanner from "@/components/BinanceBanner.astro";
 import BinanceFloating from "@/components/BinanceFloating.astro";
 import EditPost from "@/components/EditPost.astro";
+import SubscribeForm from "@/components/SubscribeForm.astro";
 
 import { SITE } from "@/config";
 import { slugifyStr } from "@/utils/slugify";
@@ -239,6 +240,9 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     )}
   </Fragment>
 
+  <!-- ★ 阅读进度条 — 文章专属，固定在顶部 -->
+  <div id="reading-progress" aria-hidden="true"></div>
+
   <Header />
 
   <div class="site-outer">
@@ -355,6 +359,11 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
           <!-- Article banner -->
           <div class="pd-banner-article">
             <BinanceBanner variant="article" lang={postLang} />
+          </div>
+
+          <!-- 邮件订阅卡片 -->
+          <div class="pd-subscribe-card">
+            <SubscribeForm variant="full" lang={postLang} />
           </div>
 
           <hr class="pd-divider" />
@@ -766,6 +775,30 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     /* Uses global .rsidebar styles */
   }
 
+  /* ── Reading progress bar ───────────────────────────────── */
+  #reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--accent-blue)));
+    z-index: 9999;
+    transition: width 0.1s linear;
+    pointer-events: none;
+    transform-origin: left center;
+  }
+
+  /* ── Subscribe card ─────────────────────────────────────── */
+  .pd-subscribe-card {
+    margin: 24px 0 8px;
+    padding: 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+  }
+
   /* ═══════════════════════════════════════════════════════════
      RESPONSIVE
      ═══════════════════════════════════════════════════════════ */
@@ -874,3 +907,50 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
   initTocSpy();
   document.addEventListener("astro:after-swap", initTocSpy);
 </script>
+
+<script>
+  // ── 阅读进度条 ────────────────────────────────────────────
+  function initReadingProgress() {
+    const bar = document.getElementById("reading-progress") as HTMLElement | null;
+    if (!bar) return;
+
+    // Only active on post detail pages
+    const article = document.getElementById("article") as HTMLElement | null;
+    if (!article) {
+      bar.style.width = "0%";
+      return;
+    }
+
+    let ticking = false;
+
+    function updateProgress() {
+      if (!bar || !article) return;
+      const articleTop    = (article as HTMLElement).offsetTop;
+      const articleHeight = (article as HTMLElement).offsetHeight;
+      const scrollY       = window.scrollY;
+      const viewH         = window.innerHeight;
+
+      // Progress: 0 when article starts entering view → 1 when article bottom exits view
+      const start    = articleTop - viewH * 0.2;
+      const end      = articleTop + articleHeight - viewH * 0.8;
+      const progress = Math.min(1, Math.max(0, (scrollY - start) / (end - start)));
+
+      bar.style.width = `${(progress * 100).toFixed(1)}%`;
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(updateProgress);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    updateProgress(); // initial render
+  }
+
+  initReadingProgress();
+  document.addEventListener("astro:after-swap", initReadingProgress);
+</script>
+

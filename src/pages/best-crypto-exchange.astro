@@ -1,0 +1,547 @@
+---
+// src/pages/best-crypto-exchange.astro
+// ─────────────────────────────────────────────────────────────
+// 关键词落地页：最佳加密货币交易所 / 交易所对比推荐
+// 目标关键词：最好的加密货币交易所、比特币交易所推荐、加密货币交易所对比
+// 静态预渲染 + ItemList + Review Schema
+// ─────────────────────────────────────────────────────────────
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import SubscribeForm from "@/components/SubscribeForm.astro";
+import { SITE } from "@/config";
+
+const pageTitle = `2025年最佳加密货币交易所推荐对比 | ${SITE.title}`;
+const pageDesc  = "2025年加密货币交易所深度评测对比：币安、OKX、Bybit、Coinbase、Gate.io全面PK。从手续费、安全性、支持币种、用户体验多维度评分，帮您选出最适合的交易所。";
+const canonical = `${SITE.website}best-crypto-exchange`;
+
+interface Exchange {
+  id: string;
+  name: string;
+  logo: string;
+  tagline: string;
+  founded: string;
+  fee: string;
+  minDeposit: string;
+  coins: string;
+  leverage: string;
+  cnSupport: boolean;
+  href: string;
+  isTop?: boolean;
+  badge?: string;
+  scores: { safety: number; fee: number; ux: number; liquidity: number; features: number };
+  pros: string[];
+  cons: string[];
+  bestFor: string;
+}
+
+const exchanges: Exchange[] = [
+  {
+    id: "binance",
+    name: "币安 (Binance)",
+    logo: "🟡",
+    tagline: "全球最大加密货币交易所",
+    founded: "2017",
+    fee: "0.1% (VIP折扣)",
+    minDeposit: "约10元",
+    coins: "350+",
+    leverage: "125x",
+    cnSupport: true,
+    href: "/go/binance",
+    isTop: true,
+    badge: "🏆 综合第一",
+    scores: { safety: 95, fee: 88, ux: 92, liquidity: 98, features: 97 },
+    pros: ["全球最高流动性，大单不打滑", "币种最全(350+)，含冷门山寨", "中文界面完善，客服响应快", "P2P人民币入金方便", "BNB抵扣手续费低至0.075%"],
+    cons: ["部分地区需要VPN访问", "高级功能对新手略复杂", "偶发提现延迟"],
+    bestFor: "大多数用户的首选，尤其是中文用户",
+  },
+  {
+    id: "okx",
+    name: "OKX",
+    logo: "⚫",
+    tagline: "全球第二大综合交易所",
+    founded: "2017",
+    fee: "0.1% (持OKB减免)",
+    minDeposit: "约10元",
+    coins: "300+",
+    leverage: "100x",
+    cnSupport: true,
+    href: "https://www.okx.com",
+    badge: "🥈 新手友好",
+    scores: { safety: 92, fee: 87, ux: 90, liquidity: 93, features: 93 },
+    pros: ["界面简洁，新手体验好", "Web3钱包一体化体验出色", "中文支持完善", "DeFi/NFT功能集成"],
+    cons: ["流动性略逊于币安", "部分功能仍需摸索", "高杠杆衍生品门槛高"],
+    bestFor: "想同时玩现货+Web3+DeFi的进阶用户",
+  },
+  {
+    id: "bybit",
+    name: "Bybit",
+    logo: "🔵",
+    tagline: "合约交易领先平台",
+    founded: "2018",
+    fee: "0.1% 现货 / 0.01% 合约",
+    minDeposit: "无限制",
+    coins: "200+",
+    leverage: "100x",
+    cnSupport: true,
+    href: "https://www.bybit.com",
+    badge: "⚡ 合约首选",
+    scores: { safety: 90, fee: 92, ux: 88, liquidity: 89, features: 90 },
+    pros: ["合约手续费行业最低之一", "撮合速度极快，低延迟", "赠金活动多，新用户福利好", "跟单交易功能成熟"],
+    cons: ["现货流动性不及前两名", "P2P入金选项相对较少", "复杂衍生品对新手不友好"],
+    bestFor: "专注合约交易的进阶交易者",
+  },
+  {
+    id: "coinbase",
+    name: "Coinbase",
+    logo: "🔵",
+    tagline: "美国最大合规交易所",
+    founded: "2012",
+    fee: "1.5%~3.99%",
+    minDeposit: "$2",
+    coins: "200+",
+    leverage: "不支持",
+    cnSupport: false,
+    href: "https://www.coinbase.com",
+    badge: "🇺🇸 合规优先",
+    scores: { safety: 98, fee: 55, ux: 85, liquidity: 82, features: 78 },
+    pros: ["纳斯达克上市，监管合规最高", "最适合美国用户", "保险覆盖用户资产", "机构级安全"],
+    cons: ["手续费最高，中小额交易不划算", "不支持中文界面", "不支持中国大陆用户", "杠杆功能有限"],
+    bestFor: "美国/欧洲用户，或极度注重合规的投资者",
+  },
+  {
+    id: "gate",
+    name: "Gate.io",
+    logo: "🟢",
+    tagline: "山寨币品种最全的平台",
+    founded: "2013",
+    fee: "0.2%",
+    minDeposit: "约10元",
+    coins: "1700+",
+    leverage: "100x",
+    cnSupport: true,
+    badge: "🌟 币种最全",
+    href: "https://www.gate.io",
+    scores: { safety: 85, fee: 80, ux: 80, liquidity: 80, features: 85 },
+    pros: ["上币速度最快，新项目最全", "1700+交易对，找冷门币首选", "流动性挖矿、Launchpad选择多"],
+    cons: ["小币流动性差，滑点大", "界面复杂，学习曲线陡", "主流大币流动性不及头部平台"],
+    bestFor: "专门寻找早期小市值项目的进阶用户",
+  },
+];
+
+function scoreBar(score: number) {
+  return Math.round(score / 10);
+}
+
+const itemListSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "@id": `${canonical}#list`,
+  name: "2025年最佳加密货币交易所排名",
+  description: pageDesc,
+  numberOfItems: exchanges.length,
+  itemListElement: exchanges.map((ex, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    item: {
+      "@type": "FinancialService",
+      name: ex.name,
+      description: ex.tagline,
+      foundingDate: ex.founded,
+      url: ex.href.startsWith("http") ? ex.href : `${SITE.website}${ex.href.slice(1)}`,
+    },
+  })),
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
+    { "@type": "ListItem", position: 2, name: "学习中心", item: `${SITE.website}learn/` },
+    { "@type": "ListItem", position: 3, name: "最佳加密货币交易所" },
+  ],
+};
+---
+
+<Layout title={pageTitle} description={pageDesc}>
+  <Fragment slot="head">
+    <link rel="canonical" href={canonical} />
+    <script type="application/ld+json" set:html={JSON.stringify(itemListSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+
+    <main class="main-col" id="main-content">
+
+      <!-- Breadcrumb -->
+      <nav class="bce-breadcrumb" aria-label="breadcrumb">
+        <a href="/">首页</a><span>›</span>
+        <a href="/learn/">学习中心</a><span>›</span>
+        <span>最佳加密货币交易所</span>
+      </nav>
+
+      <!-- Hero -->
+      <div class="bce-hero">
+        <h1 class="bce-title">2025年最佳加密货币交易所</h1>
+        <p class="bce-subtitle">深度评测 5 大主流交易所 — 安全、手续费、易用性、流动性全方位对比，助您做出正确选择</p>
+        <div class="bce-update">📅 最后更新：2025年 · 独立评测 · 不收平台赞助费</div>
+      </div>
+
+      <!-- Quick comparison table -->
+      <section class="bce-section">
+        <h2 class="bce-section-title">快速对比总览</h2>
+        <div class="bce-table-wrap">
+          <table class="bce-table">
+            <thead>
+              <tr>
+                <th>交易所</th>
+                <th>手续费</th>
+                <th>币种数</th>
+                <th>中文</th>
+                <th>安全性</th>
+                <th>流动性</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {exchanges.map(ex => (
+                <tr class:list={[{ "bce-top-row": ex.isTop }]}>
+                  <td>
+                    <div class="bce-ex-name-cell">
+                      <span class="bce-ex-logo">{ex.logo}</span>
+                      <div>
+                        <strong>{ex.name}</strong>
+                        {ex.badge && <span class="bce-badge">{ex.badge}</span>}
+                      </div>
+                    </div>
+                  </td>
+                  <td>{ex.fee}</td>
+                  <td>{ex.coins}</td>
+                  <td>{ex.cnSupport ? "✅" : "❌"}</td>
+                  <td>
+                    <div class="bce-score-bar" title={`${ex.scores.safety}/100`}>
+                      <div class="bce-score-fill" style={`width:${ex.scores.safety}%`}></div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="bce-score-bar" title={`${ex.scores.liquidity}/100`}>
+                      <div class="bce-score-fill" style={`width:${ex.scores.liquidity}%`}></div>
+                    </div>
+                  </td>
+                  <td>
+                    <a href={ex.href} class="bce-visit-btn"
+                      target={ex.href.startsWith("http") ? "_blank" : undefined}
+                      rel={ex.href.startsWith("http") ? "noopener noreferrer sponsored" : undefined}>
+                      前往
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Detailed reviews -->
+      <section class="bce-section">
+        <h2 class="bce-section-title">详细评测</h2>
+        {exchanges.map((ex, i) => (
+          <div class:list={["bce-review-card", { "bce-review-top": ex.isTop }]} id={ex.id}
+            itemscope itemtype="https://schema.org/FinancialService">
+            <div class="bce-review-header">
+              <div class="bce-review-rank">#{i + 1}</div>
+              <span class="bce-review-logo">{ex.logo}</span>
+              <div class="bce-review-info">
+                <h3 class="bce-review-name" itemprop="name">{ex.name}</h3>
+                <p class="bce-review-tagline" itemprop="description">{ex.tagline}</p>
+              </div>
+              {ex.badge && <span class="bce-review-badge">{ex.badge}</span>}
+            </div>
+
+            <!-- Score bars -->
+            <div class="bce-scores">
+              {(Object.entries({ "安全性": ex.scores.safety, "手续费": ex.scores.fee, "用户体验": ex.scores.ux, "流动性": ex.scores.liquidity, "功能": ex.scores.features }) as [string, number][]).map(([label, score]) => (
+                <div class="bce-score-row">
+                  <span class="bce-score-label">{label}</span>
+                  <div class="bce-score-bar bce-score-bar-lg">
+                    <div class="bce-score-fill" style={`width:${score}%`}></div>
+                  </div>
+                  <span class="bce-score-num">{score}</span>
+                </div>
+              ))}
+            </div>
+
+            <!-- Stats -->
+            <div class="bce-stats-row">
+              <div class="bce-stat-item"><span>成立时间</span><strong>{ex.founded}年</strong></div>
+              <div class="bce-stat-item"><span>现货手续费</span><strong>{ex.fee}</strong></div>
+              <div class="bce-stat-item"><span>支持币种</span><strong>{ex.coins}</strong></div>
+              <div class="bce-stat-item"><span>最大杠杆</span><strong>{ex.leverage}</strong></div>
+            </div>
+
+            <!-- Pros / Cons -->
+            <div class="bce-pros-cons">
+              <div class="bce-pros">
+                <div class="bce-pc-title">✅ 优点</div>
+                <ul>{ex.pros.map(p => <li>{p}</li>)}</ul>
+              </div>
+              <div class="bce-cons">
+                <div class="bce-pc-title">❌ 缺点</div>
+                <ul>{ex.cons.map(c => <li>{c}</li>)}</ul>
+              </div>
+            </div>
+
+            <div class="bce-review-footer">
+              <div class="bce-best-for">💡 最适合：<strong>{ex.bestFor}</strong></div>
+              <a href={ex.href} class="bce-cta-btn"
+                target={ex.href.startsWith("http") ? "_blank" : undefined}
+                rel={ex.href.startsWith("http") ? "noopener noreferrer sponsored" : undefined}>
+                访问 {ex.name} →
+              </a>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <!-- How to choose section -->
+      <section class="bce-section bce-choose">
+        <h2 class="bce-section-title">如何选择适合您的交易所？</h2>
+        <div class="bce-choose-grid">
+          <div class="bce-choose-card">
+            <div class="bce-choose-icon">🆕</div>
+            <h3>我是加密货币新手</h3>
+            <p>优先选择<strong>币安</strong>或<strong>OKX</strong>。中文界面、P2P入金、丰富的教程资源，入门门槛低。</p>
+            <a href="/go/binance" class="bce-choose-link">注册币安 →</a>
+          </div>
+          <div class="bce-choose-card">
+            <div class="bce-choose-icon">📈</div>
+            <h3>我主要做合约交易</h3>
+            <p>推荐<strong>Bybit</strong>——合约手续费最低、撮合速度最快、跟单功能成熟。</p>
+            <a href="https://www.bybit.com" class="bce-choose-link" target="_blank" rel="noopener noreferrer">注册Bybit →</a>
+          </div>
+          <div class="bce-choose-card">
+            <div class="bce-choose-icon">🪙</div>
+            <h3>我想找早期小币</h3>
+            <p>选<strong>Gate.io</strong>——1700+交易对，新项目上线最快，但注意小币流动性差风险高。</p>
+            <a href="https://www.gate.io" class="bce-choose-link" target="_blank" rel="noopener noreferrer">注册Gate.io →</a>
+          </div>
+          <div class="bce-choose-card">
+            <div class="bce-choose-icon">🏛️</div>
+            <h3>我在美国/欧洲</h3>
+            <p>首选<strong>Coinbase</strong>——受SEC监管，银行级安全，资产受保险保护，最合规。</p>
+            <a href="https://www.coinbase.com" class="bce-choose-link" target="_blank" rel="noopener noreferrer">访问Coinbase →</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Subscribe -->
+      <section class="bce-section">
+        <div class="bce-subscribe-card">
+          <SubscribeForm variant="full" />
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <Footer />
+</Layout>
+
+<style>
+  .bce-breadcrumb {
+    padding: 12px 20px 0;
+    font-size: 13px; color: var(--fg-muted);
+  }
+  .bce-breadcrumb a { color: var(--fg-muted); text-decoration: none; }
+  .bce-breadcrumb a:hover { color: var(--accent); }
+  .bce-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+
+  /* ── Hero ─────────────────────────────────────────────────── */
+  .bce-hero {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .bce-title {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 900; color: var(--fg); margin: 0 0 10px; line-height: 1.2;
+  }
+  .bce-subtitle { font-size: 15px; color: var(--fg-muted); margin: 0 0 12px; line-height: 1.5; }
+  .bce-update { font-size: 12px; color: var(--fg-light); }
+
+  /* ── Sections ─────────────────────────────────────────────── */
+  .bce-section { padding: 0 20px; margin: 28px 0 0; }
+  .bce-section-title {
+    font-size: 18px; font-weight: 800; color: var(--fg); margin: 0 0 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bce-section-title::before {
+    content: ''; width: 3px; height: 18px;
+    background: var(--accent); border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* ── Comparison table ─────────────────────────────────────── */
+  .bce-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .bce-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .bce-table th {
+    background: var(--bg-elevated);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .bce-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+    color: var(--fg);
+  }
+  .bce-table tr:last-child td { border-bottom: none; }
+  .bce-top-row { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  .bce-ex-name-cell { display: flex; align-items: center; gap: 10px; }
+  .bce-ex-logo { font-size: 20px; }
+  .bce-badge {
+    display: block; font-size: 10px; font-weight: 700;
+    color: var(--accent); margin-top: 2px;
+  }
+  .bce-score-bar {
+    width: 60px; height: 6px;
+    background: var(--bg-elevated);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bce-score-bar-lg { width: 100%; height: 8px; flex: 1; }
+  .bce-score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent));
+    border-radius: 3px;
+  }
+  .bce-visit-btn {
+    display: inline-block;
+    padding: 5px 12px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.12s;
+  }
+  .bce-visit-btn:hover { opacity: 0.85; }
+
+  /* ── Review cards ─────────────────────────────────────────── */
+  .bce-review-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .bce-review-top { border-color: var(--accent); border-width: 2px; }
+  .bce-review-header {
+    display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+  }
+  .bce-review-rank {
+    width: 30px; height: 30px;
+    background: var(--accent); color: #fff;
+    border-radius: 6px; font-size: 13px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .bce-review-logo { font-size: 28px; flex-shrink: 0; margin-top: 1px; }
+  .bce-review-info { flex: 1; min-width: 0; }
+  .bce-review-name { font-size: 18px; font-weight: 800; color: var(--fg); margin: 0 0 3px; }
+  .bce-review-tagline { font-size: 13px; color: var(--fg-muted); margin: 0; }
+  .bce-review-badge { font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+
+  .bce-scores {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 16px;
+    background: var(--bg-elevated);
+    border-radius: 8px; padding: 12px;
+  }
+  .bce-score-row { display: flex; align-items: center; gap: 10px; }
+  .bce-score-label { font-size: 12px; color: var(--fg-muted); width: 58px; flex-shrink: 0; }
+  .bce-score-num { font-size: 12px; font-weight: 700; color: var(--fg); width: 28px; flex-shrink: 0; text-align: right; }
+
+  .bce-stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+  .bce-stat-item {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .bce-stat-item span { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .bce-stat-item strong { font-size: 13px; font-weight: 700; color: var(--fg); }
+
+  .bce-pros-cons {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+  }
+  .bce-pc-title { font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--fg-muted); }
+  .bce-pros ul, .bce-cons ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  .bce-pros li, .bce-cons li { font-size: 12.5px; color: var(--fg-muted); line-height: 1.5; }
+  .bce-pros li::before { content: "• "; color: var(--accent-green); }
+  .bce-cons li::before { content: "• "; color: var(--accent-red); }
+
+  .bce-review-footer {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    padding-top: 14px; border-top: 1px solid var(--border-subtle);
+  }
+  .bce-best-for { font-size: 13px; color: var(--fg-muted); }
+  .bce-best-for strong { color: var(--fg); }
+  .bce-cta-btn {
+    display: inline-block; padding: 9px 18px;
+    background: var(--accent); color: #fff;
+    border-radius: 8px; font-size: 13px; font-weight: 700;
+    text-decoration: none; transition: opacity 0.12s; white-space: nowrap;
+  }
+  .bce-cta-btn:hover { opacity: 0.85; }
+
+  /* ── Choose section ───────────────────────────────────────── */
+  .bce-choose { background: var(--bg-elevated); border-radius: 10px; padding: 20px !important; border: 1px solid var(--border); }
+  .bce-choose-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .bce-choose-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .bce-choose-icon { font-size: 24px; margin-bottom: 8px; }
+  .bce-choose-card h3 { font-size: 14px; font-weight: 800; color: var(--fg); margin: 0 0 6px; }
+  .bce-choose-card p  { font-size: 12.5px; color: var(--fg-muted); margin: 0 0 10px; line-height: 1.6; }
+  .bce-choose-link {
+    display: inline-block; padding: 6px 14px;
+    background: var(--accent); color: #fff;
+    border-radius: 6px; font-size: 12px; font-weight: 700;
+    text-decoration: none; transition: opacity 0.12s;
+  }
+  .bce-choose-link:hover { opacity: 0.85; }
+
+  /* ── Subscribe ────────────────────────────────────────────── */
+  .bce-subscribe-card {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px;
+    margin-bottom: 32px; border-left: 3px solid var(--accent);
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 800px) {
+    .bce-pros-cons    { grid-template-columns: 1fr; }
+    .bce-choose-grid  { grid-template-columns: 1fr; }
+    .bce-stats-row    { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 500px) {
+    .bce-stats-row    { grid-template-columns: 1fr 1fr; }
+  }
+</style>

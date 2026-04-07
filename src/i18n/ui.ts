@@ -206,6 +206,15 @@ export const UI: Record<Lang, Record<string, string>> = {
     "footer.link.all":       "全部文章",
     "footer.link.tags":      "标签索引",
     "footer.link.archives":  "归档",
+    // ── Subscribe ──
+    "subscribe.title":       "订阅 Bitaigen 快报",
+    "subscribe.desc":        "每周精选加密货币资讯、BTC 行情分析直达您的邮箱",
+    "subscribe.placeholder": "您的邮箱地址",
+    "subscribe.btn":         "免费订阅",
+    "subscribe.success":     "✓ 订阅成功！请查收欢迎邮件",
+    "subscribe.error":       "订阅失败，请稍后重试",
+    "subscribe.invalid":     "请输入有效的邮箱地址",
+    "subscribe.privacy":     "我们重视您的隐私，绝不发送垃圾邮件",
   },
   "zh-TW": {
     "site.name":        "Bitaigen",
@@ -301,6 +310,15 @@ export const UI: Record<Lang, Record<string, string>> = {
     "footer.link.all":       "全部文章",
     "footer.link.tags":      "標籤索引",
     "footer.link.archives":  "歸檔",
+    // ── Subscribe ──
+    "subscribe.title":       "訂閱 Bitaigen 快報",
+    "subscribe.desc":        "每週精選加密貨幣資訊、BTC 行情分析直達您的郵箱",
+    "subscribe.placeholder": "您的電子郵件地址",
+    "subscribe.btn":         "免費訂閱",
+    "subscribe.success":     "✓ 訂閱成功！請查收歡迎郵件",
+    "subscribe.error":       "訂閱失敗，請稍後重試",
+    "subscribe.invalid":     "請輸入有效的電子郵件地址",
+    "subscribe.privacy":     "我們重視您的隱私，絕不發送垃圾郵件",
   },
   "en": {
     "site.name":        "Bitaigen",
@@ -396,6 +414,15 @@ export const UI: Record<Lang, Record<string, string>> = {
     "footer.link.all":       "All Articles",
     "footer.link.tags":      "Tag Index",
     "footer.link.archives":  "Archives",
+    // ── Subscribe ──
+    "subscribe.title":       "Subscribe to Bitaigen",
+    "subscribe.desc":        "Weekly crypto news, Bitcoin price analysis delivered to your inbox",
+    "subscribe.placeholder": "Your email address",
+    "subscribe.btn":         "Subscribe Free",
+    "subscribe.success":     "✓ Subscribed! Check your inbox for a welcome email",
+    "subscribe.error":       "Subscription failed, please try again",
+    "subscribe.invalid":     "Please enter a valid email address",
+    "subscribe.privacy":     "We respect your privacy. No spam, ever.",
   },
   "es": {
     "site.name":        "Bitaigen",
@@ -491,6 +518,15 @@ export const UI: Record<Lang, Record<string, string>> = {
     "footer.link.all":       "Todos los Artículos",
     "footer.link.tags":      "Índice de Etiquetas",
     "footer.link.archives":  "Archivo",
+    // ── Subscribe ──
+    "subscribe.title":       "Suscríbete a Bitaigen",
+    "subscribe.desc":        "Noticias cripto semanales y análisis de precio de Bitcoin en tu bandeja",
+    "subscribe.placeholder": "Tu dirección de correo",
+    "subscribe.btn":         "Suscribirse Gratis",
+    "subscribe.success":     "✓ ¡Suscrito! Revisa tu bandeja para el correo de bienvenida",
+    "subscribe.error":       "Error al suscribirse, inténtalo de nuevo",
+    "subscribe.invalid":     "Ingresa una dirección de correo válida",
+    "subscribe.privacy":     "Respetamos tu privacidad. Sin spam, nunca.",
   },
   "pt": {
     "site.name":        "Bitaigen",
@@ -586,6 +622,15 @@ export const UI: Record<Lang, Record<string, string>> = {
     "footer.link.all":       "Todos os Artigos",
     "footer.link.tags":      "Índice de Tags",
     "footer.link.archives":  "Arquivo",
+    // ── Subscribe ──
+    "subscribe.title":       "Assinar Bitaigen",
+    "subscribe.desc":        "Notícias cripto semanais e análise de preço do Bitcoin direto no seu e-mail",
+    "subscribe.placeholder": "Seu endereço de e-mail",
+    "subscribe.btn":         "Assinar Grátis",
+    "subscribe.success":     "✓ Inscrito! Verifique seu e-mail para a mensagem de boas-vindas",
+    "subscribe.error":       "Falha na inscrição, tente novamente",
+    "subscribe.invalid":     "Insira um endereço de e-mail válido",
+    "subscribe.privacy":     "Respeitamos sua privacidade. Sem spam, jamais.",
   },
 };
 
