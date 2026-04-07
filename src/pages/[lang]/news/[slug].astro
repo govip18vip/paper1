@@ -1,6 +1,6 @@
 ---
-// src/pages/news/[slug].astro
-// Sanity 文章详情页（SSR/ISR，每次请求实时拉取）
+// src/pages/[lang]/news/[slug].astro
+// 非默认语言新闻详情页，如 /en/news/[slug]
 export const prerender = false;
 
 import { toHTML } from "@portabletext/to-html";
@@ -9,36 +9,29 @@ import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import { sanityClient, sanityImageUrl } from "@/utils/sanity";
 import { SITE } from "@/config";
-import { LANG_TO_PATH, type Lang } from "@/i18n/ui";
+import { LANG_PATH_MAP, LANG_TO_PATH, type Lang } from "@/i18n/ui";
 
-const { slug } = Astro.params;
+const { lang: langPath, slug } = Astro.params;
+const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
+const basePath = `/${LANG_TO_PATH[lang]}`;
 
-// 拉取文章
 const post = await sanityClient.fetch(`
-  *[_type == "btgPost" && slug.current == $slug && draft != true][0] {
+  *[_type == "btgPost" && slug.current == $slug && lang == $lang && draft != true][0] {
     _id, title, slug, lang, articleType, description,
     coverImage, body, pubDatetime, modDatetime,
     tags, faqs, sourceUrl, sourceName,
     "author": author->{ name, bio, avatar }
   }
-`, { slug });
+`, { slug, lang });
 
 if (!post) {
   return Astro.redirect("/404");
 }
 
-// 非默认语言的文章，重定向到对应语言路径
-if (post.lang && post.lang !== "zh-CN") {
-  const langPath = LANG_TO_PATH[post.lang as Lang];
-  if (langPath) return Astro.redirect(`/${langPath}/news/${slug}`, 301);
-}
-
-// 封面图
 const coverUrl = post.coverImage?.asset?._ref
   ? sanityImageUrl(post.coverImage.asset._ref, { width: 1200, format: "webp" })
   : "";
 
-// Portable Text → HTML
 const bodyHtml = post.body
   ? toHTML(post.body, {
       components: {
@@ -55,12 +48,12 @@ const bodyHtml = post.body
     })
   : "";
 
-const pubDate = new Date(post.pubDatetime).toLocaleDateString("zh-CN", {
+const pubDate = new Date(post.pubDatetime).toLocaleDateString("en-US", {
   year: "numeric", month: "long", day: "numeric",
 });
 
 const typeLabel: Record<string, string> = {
-  news: "资讯", article: "深度", market: "行情", howto: "教程", guide: "指南",
+  news: "News", article: "Analysis", market: "Market", howto: "Tutorial", guide: "Guide",
 };
 ---
 
@@ -72,17 +65,14 @@ const typeLabel: Record<string, string> = {
   <Header />
 
   <main class="mx-auto max-w-3xl px-4 py-8">
-
-    <!-- 面包屑 -->
     <nav class="mb-4 text-sm text-skin-muted">
-      <a href="/" class="hover:underline">首页</a>
+      <a href={basePath} class="hover:underline">Home</a>
       <span class="mx-2">/</span>
-      <a href="/flash" class="hover:underline">资讯</a>
+      <a href={`${basePath}/flash`} class="hover:underline">News</a>
       <span class="mx-2">/</span>
       <span>{post.title.slice(0, 30)}...</span>
     </nav>
 
-    <!-- 文章头部 -->
     <article>
       {coverUrl && (
         <img
@@ -94,7 +84,6 @@ const typeLabel: Record<string, string> = {
         />
       )}
 
-      <!-- 标签 -->
       <div class="mb-3 flex flex-wrap gap-2">
         {post.articleType && (
           <span class="rounded bg-skin-accent/10 px-2 py-0.5 text-xs text-skin-accent font-medium">
@@ -103,7 +92,7 @@ const typeLabel: Record<string, string> = {
         )}
         {(post.tags || []).map((tag: string) => (
           <a
-            href={`/tags/${tag}`}
+            href={`${basePath}/tags/${tag}`}
             class="rounded bg-skin-fill px-2 py-0.5 text-xs text-skin-muted hover:text-skin-accent"
           >
             #{tag}
@@ -117,20 +106,18 @@ const typeLabel: Record<string, string> = {
 
       <p class="mb-6 text-base text-skin-muted">{post.description}</p>
 
-      <!-- 元信息 -->
       <div class="mb-6 flex items-center gap-4 text-sm text-skin-muted border-b border-skin-line pb-4">
-        <span>{post.author?.name || "Bitaigen 研究团队"}</span>
+        <span>{post.author?.name || "Bitaigen Research"}</span>
         <span>·</span>
         <time datetime={post.pubDatetime}>{pubDate}</time>
         {post.sourceName && (
           <>
             <span>·</span>
-            <span>来源: {post.sourceName}</span>
+            <span>Source: {post.sourceName}</span>
           </>
         )}
       </div>
 
-      <!-- 正文 -->
       <div
         class="prose prose-sm sm:prose max-w-none text-skin-base
                prose-headings:text-skin-base prose-a:text-skin-accent
@@ -139,16 +126,13 @@ const typeLabel: Record<string, string> = {
         set:html={bodyHtml}
       />
 
-      <!-- FAQ -->
       {post.faqs && post.faqs.length > 0 && (
         <section class="mt-10">
-          <h2 class="mb-4 text-xl font-bold text-skin-base">常见问题</h2>
+          <h2 class="mb-4 text-xl font-bold text-skin-base">FAQ</h2>
           <div class="space-y-4">
             {post.faqs.map((faq: { q: string; a: string }) => (
               <details class="rounded-lg border border-skin-line p-4">
-                <summary class="cursor-pointer font-medium text-skin-base">
-                  {faq.q}
-                </summary>
+                <summary class="cursor-pointer font-medium text-skin-base">{faq.q}</summary>
                 <p class="mt-2 text-sm text-skin-muted">{faq.a}</p>
               </details>
             ))}
@@ -156,10 +140,9 @@ const typeLabel: Record<string, string> = {
         </section>
       )}
 
-      <!-- 来源链接 -->
       {post.sourceUrl && (
         <p class="mt-8 text-xs text-skin-muted">
-          原文来源：
+          Original source:
           <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
              class="hover:underline text-skin-accent">
             {post.sourceName || post.sourceUrl}
@@ -167,9 +150,8 @@ const typeLabel: Record<string, string> = {
         </p>
       )}
 
-      <!-- 免责声明 -->
       <div class="mt-8 rounded-lg bg-skin-fill p-4 text-xs text-skin-muted border border-skin-line">
-        ⚠️ 风险提示：加密货币价格波动极大，本文不构成任何投资建议，请理性投资，风险自担。
+        ⚠️ Risk disclaimer: Crypto prices are highly volatile. This is not investment advice. Invest at your own risk.
       </div>
     </article>
   </main>

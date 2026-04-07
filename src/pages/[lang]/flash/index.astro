@@ -1,6 +1,6 @@
 ---
-// src/pages/flash/index.astro
-// 快讯列表页（SSR/ISR，实时拉取 Sanity 快讯）
+// src/pages/[lang]/flash/index.astro
+// 非默认语言快讯列表页，如 /en/flash  /es/flash
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -9,13 +9,18 @@ import Footer from "@/components/Footer.astro";
 import { sanityClient } from "@/utils/sanity";
 import { SITE } from "@/config";
 import type { SanityFlash } from "@/utils/sanity";
+import { LANG_PATH_MAP, LANG_TO_PATH, type Lang } from "@/i18n/ui";
 
-// 拉取最新50条快讯
+const { lang: langPath } = Astro.params;
+
+// URL段 → 内部 Lang key（如 "en" → "en", "zh-tw" → "zh-TW"）
+const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
+
 const flashes = await sanityClient.fetch<SanityFlash[]>(`
-  *[_type == "btgFlash" && draft != true && lang == "zh-CN"] | order(pubDatetime desc) [0...50] {
+  *[_type == "btgFlash" && draft != true && lang == $lang] | order(pubDatetime desc) [0...50] {
     _id, title, slug, content, lang, importance, tags, pubDatetime, sourceUrl, sourceName
   }
-`).catch(() => [] as SanityFlash[]);
+`, { lang }).catch(() => [] as SanityFlash[]);
 
 const importanceColor: Record<string, string> = {
   high:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -23,70 +28,61 @@ const importanceColor: Record<string, string> = {
   low:    "bg-skin-fill text-skin-muted",
 };
 const importanceLabel: Record<string, string> = {
-  high: "重大", medium: "快讯", low: "动态",
+  high: "Breaking", medium: "Flash", low: "Update",
 };
 
 function timeAgo(dt: string): string {
   const diff = Date.now() - new Date(dt).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1)  return "刚刚";
-  if (m < 60) return `${m} 分钟前`;
+  if (m < 1)  return "just now";
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} 小时前`;
-  return `${Math.floor(h / 24)} 天前`;
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
+
+const basePath = `/${LANG_TO_PATH[lang]}`;
 ---
 
 <Layout
-  title={`快讯 | ${SITE.title}`}
-  description="Bitaigen 加密货币实时快讯，最新比特币、以太坊、DeFi、NFT动态。"
+  title={`Flash News | ${SITE.title}`}
+  description="Bitaigen crypto flash news - latest Bitcoin, Ethereum, DeFi, NFT updates."
 >
   <Header />
 
   <main class="mx-auto max-w-3xl px-4 py-8">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-skin-base">⚡ 实时快讯</h1>
-      <p class="mt-1 text-sm text-skin-muted">AI 持续更新，加密货币最新动态</p>
+      <h1 class="text-2xl font-bold text-skin-base">⚡ Flash News</h1>
+      <p class="mt-1 text-sm text-skin-muted">AI-powered crypto updates, refreshed every 30 minutes</p>
     </div>
 
     {flashes.length === 0 ? (
-      <p class="text-skin-muted">暂无快讯，请稍后刷新。</p>
+      <p class="text-skin-muted">No flash news yet. Check back soon.</p>
     ) : (
       <div class="space-y-4">
         {flashes.map((f: SanityFlash) => (
           <article class="rounded-lg border border-skin-line bg-skin-card p-4 hover:border-skin-accent transition-colors">
             <div class="flex items-start gap-3">
-              <!-- 重要性标签 -->
               <span class={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs font-medium ${importanceColor[f.importance] || importanceColor.low}`}>
-                {importanceLabel[f.importance] || "快讯"}
+                {importanceLabel[f.importance] || "Flash"}
               </span>
-
               <div class="flex-1 min-w-0">
                 <h2 class="font-semibold text-skin-base leading-snug mb-1">
-                  <a href={`/flash/${f.slug.current}`} class="hover:text-skin-accent">
+                  <a href={`${basePath}/flash/${f.slug.current}`} class="hover:text-skin-accent">
                     {f.title}
                   </a>
                 </h2>
-                <p class="text-sm text-skin-muted leading-relaxed">
-                  {f.content}
-                </p>
-
-                <!-- 底部信息 -->
+                <p class="text-sm text-skin-muted leading-relaxed">{f.content}</p>
                 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-skin-muted">
                   <time datetime={f.pubDatetime}>{timeAgo(f.pubDatetime)}</time>
-
-                  {f.sourceName && (
-                    <span>来源: {f.sourceName}</span>
-                  )}
-
+                  {f.sourceName && <span>Source: {f.sourceName}</span>}
                   {(f.tags || []).slice(0, 3).map((tag: string) => (
-                    <a href={`/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
+                    <a href={`${basePath}/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
                   ))}
-
                   {f.sourceUrl && (
                     <a href={f.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
                        class="ml-auto hover:text-skin-accent">
-                      原文 →
+                      Source →
                     </a>
                   )}
                 </div>
@@ -97,9 +93,8 @@ function timeAgo(dt: string): string {
       </div>
     )}
 
-    <!-- 自动刷新提示 -->
     <p class="mt-8 text-center text-xs text-skin-muted">
-      快讯每 30 分钟自动更新 · <button onclick="window.location.reload()" class="text-skin-accent hover:underline cursor-pointer">立即刷新</button>
+      Updates every 30 min · <button onclick="window.location.reload()" class="text-skin-accent hover:underline cursor-pointer">Refresh now</button>
     </p>
   </main>
 

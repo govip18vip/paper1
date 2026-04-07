@@ -23,6 +23,7 @@ import {
   fetchGhostUnified,
   fetchSanityUnified,
   mergePosts,
+  filterUnifiedByLang,
   type UnifiedPost,
 } from "@/utils/mergedPosts";
 import { getSanityFlashes } from "@/utils/sanity";
@@ -62,13 +63,16 @@ try {
 // ── 3b. Sanity 快讯（首页侧边展示）──────────────────────
 let recentFlashes: SanityFlash[] = [];
 try {
-  recentFlashes = await getSanityFlashes({ limit: 6 });
+  recentFlashes = await getSanityFlashes({ limit: 6, lang: "zh-CN" });
 } catch (e) {
   // 容错：快讯拉取失败不影响主内容
 }
 
-// ── 4. 合并 & 排序 ─────────────────────────────────────
-const merged = mergePosts(localUnified, ghostUnified, sanityUnified);
+// ── 4. 合并 & 排序 & 按语言过滤 ──────────────────────────
+const merged = filterUnifiedByLang(
+  mergePosts(localUnified, ghostUnified, sanityUnified),
+  "zh-CN"
+);
 
 // ── 4. 分配到各个区域（防空数组）────────────────────────
 const featured = merged.filter(p => p.featured);
