@@ -22,23 +22,29 @@ let allPosts: any[] = [];
 try {
   const local = await getCollection("blog");
   const localU = getSortedPosts(local).map(p => localToUnified(p, getPath(p.id, p.filePath)));
-  const ghost = await fetchGhostUnified({ limit: 100 }).catch(() => []);
-  const sanity = await fetchSanityUnified({ limit: 100 }).catch(() => []);
+  const ghost = await fetchGhostUnified({ lang: "zh-CN", limit: 100 }).catch(() => []);
+  const sanity = await fetchSanityUnified({ lang: "zh-CN", limit: 100 }).catch(() => []);
   allPosts = filterUnifiedByLang(mergePosts(localU, ghost, sanity), "zh-CN");
 } catch (e) {}
 
-// 统计每个标签的文章数
-const tagCount = new Map<string, number>();
+// 统计每个标签的文章数（大小写不敏感合并，保留首次出现的原始大小写）
+const tagCount = new Map<string, { count: number; display: string }>();
 for (const p of allPosts) {
   for (const t of (p.tags || [])) {
-    tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+    const key = t.toLowerCase();
+    const existing = tagCount.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      tagCount.set(key, { count: 1, display: t });
+    }
   }
 }
 
 // 按文章数降序排列
 const tags = Array.from(tagCount.entries())
-  .sort((a, b) => b[1] - a[1])
-  .map(([tag, count]) => ({ tag, count }));
+  .sort((a, b) => b[1].count - a[1].count)
+  .map(([, { display, count }]) => ({ tag: display, count }));
 ---
 
 <Layout
