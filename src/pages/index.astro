@@ -342,6 +342,33 @@ const websiteSchema = {
           </a>
         </div>
       </section>
+
+      {/* ══ TUTORIAL QUICK LINKS ══ */}
+      <section style="padding:0 16px 20px;" aria-label="教程指南" class="anim-3">
+        <div class="sec-head" style="padding-left:0;">
+          <span class="sec-head-title">{t("section.tutorial")}</span>
+          <a href="/tags/docs" class="sec-head-more">{t("section.all")} →</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px;">
+          {[
+            { label: "币安注册教程", href: "/posts/zh-cn/binance-register-guide-zh-cn", icon: "🏦" },
+            { label: "OKX注册教程", href: "/posts/zh-cn/okx-register-guide-zh-cn", icon: "🏦" },
+            { label: "如何购买BTC", href: "/posts/zh-cn/how-to-buy-btc-zh-cn", icon: "₿" },
+            { label: "如何购买USDT", href: "/posts/zh-cn/how-to-buy-usdt-p2p-zh-cn", icon: "💵" },
+            { label: "MetaMask教程", href: "/posts/zh-cn/metamask-tutorial-zh-cn", icon: "🦊" },
+            { label: "新手入门指南", href: "/posts/zh-cn/crypto-beginner-guide-2026-zh-cn", icon: "📚" },
+            { label: "交易所排名", href: "/posts/zh-cn/crypto-exchange-ranking-2026-zh-cn", icon: "🏆" },
+            { label: "币安vs OKX", href: "/posts/zh-cn/binance-vs-okx-comparison-zh-cn", icon: "⚖️" },
+          ].map(item => (
+            <a href={item.href}
+              style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:500;color:var(--fg);transition:border-color 0.12s;"
+            >
+              <span style="font-size:16px;">{item.icon}</span>
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </section>
     </div>
 
     {/* ══ RIGHT SIDEBAR ══ */}

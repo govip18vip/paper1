@@ -210,6 +210,30 @@ const itemListSchema = {
         </div>
       </section>
 
+      <!-- 购买教程快捷入口 -->
+      <section style="padding:0 16px 20px;">
+        <div class="sec-head" style="padding-left:0;margin-bottom:12px;">
+          <span class="sec-head-title">{lang === "en" ? "Buying Guides" : "购买教程"}</span>
+          <a href="/posts" class="sec-head-more">{lang === "en" ? "All Articles" : "全部文章"} →</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+          {[
+            { label: lang === "en" ? "How to Buy BTC" : "如何购买比特币", href: lang === "en" ? "/posts/en/how-to-buy-bitcoin-2026-en" : "/posts/zh-cn/how-to-buy-btc-zh-cn" },
+            { label: lang === "en" ? "How to Buy ETH" : "如何购买以太坊", href: `/posts/${lang === "en" ? "en/how-to-buy-eth-2026-en" : "zh-cn/how-to-buy-eth-zh-cn"}` },
+            { label: lang === "en" ? "How to Buy SOL" : "如何购买SOL", href: `/posts/${lang === "en" ? "en/how-to-buy-sol-2026-en" : "zh-cn/how-to-buy-sol-zh-cn"}` },
+            { label: lang === "en" ? "Buy USDT (P2P)" : "如何购买USDT", href: "/posts/zh-cn/how-to-buy-usdt-p2p-zh-cn" },
+            { label: lang === "en" ? "Binance Guide" : "币安注册教程", href: "/posts/zh-cn/binance-register-guide-zh-cn" },
+            { label: lang === "en" ? "OKX Guide" : "OKX注册教程", href: "/posts/zh-cn/okx-register-guide-zh-cn" },
+          ].map(item => (
+            <a href={item.href}
+              style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:600;color:var(--fg);transition:border-color 0.12s;">
+              <span style="color:var(--accent);">📖</span>
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </section>
+
     </main>
 
     <!-- 右侧栏 -->
