@@ -56,7 +56,7 @@ const isActive = (p: string) => {
       <span data-i18n="nav.home">{t("nav.home")}</span>
     </a>
 
-    <a href="/tags/快讯" class:list={["lnav-item", { active: isActive("/tags/快讯") }]}>
+    <a href={base + "/flash"} class:list={["lnav-item", { active: isActive("/flash") }]}>
       <span data-i18n="nav.flash">{t("nav.flash")}</span>
     </a>
 
