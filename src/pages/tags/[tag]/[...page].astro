@@ -1,50 +1,117 @@
 ---
-import { getCollection } from "astro:content";
-import type { GetStaticPathsOptions } from "astro";
-import Main from "@/layouts/Main.astro";
+// src/pages/tags/[tag]/[...page].astro
+// zh-CN 标签聚合页（SSR）：合并本地 + Ghost + Sanity 文章
+export const prerender = false;
+
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
-import Card from "@/components/Card.astro";
-import Pagination from "@/components/Pagination.astro";
-import getUniqueTags from "@/utils/getUniqueTags";
-import getPostsByTag from "@/utils/getPostsByTag";
+import UnifiedCard from "@/components/UnifiedCard.astro";
+import { getCollection } from "astro:content";
 import { SITE } from "@/config";
+import { getPath } from "@/utils/getPath";
+import {
+  localToUnified,
+  fetchGhostUnified,
+  fetchSanityUnified,
+  mergePosts,
+  filterUnifiedByLang,
+  type UnifiedPost,
+} from "@/utils/mergedPosts";
+import getSortedPosts from "@/utils/getSortedPosts";
 
-export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+const { tag } = Astro.params;
+const pageNum = Number(Astro.params.page ?? 1);
+const PAGE_SIZE = SITE.postPerPage ?? 10;
+
+if (!tag) return Astro.redirect("/404");
+
+// 解码标签（URL编码 → 原始字符串）
+const decodedTag = decodeURIComponent(tag);
+
+// ── 拉取三个来源 ─────────────────────────────────────────────
+let localUnified: UnifiedPost[] = [];
+try {
   const posts = await getCollection("blog");
-  const tags = getUniqueTags(posts);
+  localUnified = getSortedPosts(posts).map(p => localToUnified(p, getPath(p.id, p.filePath)));
+} catch (e) {}
 
-  return tags.flatMap(({ tag, tagName }) => {
-    const tagPosts = getPostsByTag(posts, tag);
+let ghostUnified: UnifiedPost[] = [];
+try {
+  ghostUnified = await fetchGhostUnified({ limit: 50 });
+} catch (e) {}
 
-    return paginate(tagPosts, {
-      params: { tag },
-      props: { tagName },
-      pageSize: SITE.postPerPage,
-    });
-  });
+let sanityUnified: UnifiedPost[] = [];
+try {
+  sanityUnified = await fetchSanityUnified({ limit: 50 });
+} catch (e) {}
+
+// ── 合并 & 按语言过滤（zh-CN 标签页只显示中文） ─────────────
+const merged = filterUnifiedByLang(
+  mergePosts(localUnified, ghostUnified, sanityUnified),
+  "zh-CN"
+);
+
+// ── 按标签过滤（大小写不敏感） ──────────────────────────────
+const tagLower = decodedTag.toLowerCase();
+const tagged = merged.filter(p =>
+  (p.tags || []).some(t => t.toLowerCase() === tagLower || t === decodedTag)
+);
+
+// ── 分页 ────────────────────────────────────────────────────
+const total = tagged.length;
+const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+if (pageNum < 1 || (pageNum > lastPage && total > 0)) {
+  return Astro.redirect("/404");
 }
 
-const params = Astro.params;
-const { tag } = params;
-const { page, tagName } = Astro.props;
+const pagePosts = tagged.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
+const prevUrl = pageNum > 1 ? `/tags/${tag}/${pageNum - 1 === 1 ? "" : pageNum - 1}` : null;
+const nextUrl = pageNum < lastPage ? `/tags/${tag}/${pageNum + 1}` : null;
 ---
 
-<Layout title={`Tag: ${tagName} | ${SITE.title}`}>
+<Layout
+  title={`#${decodedTag} | ${SITE.title}`}
+  description={`关于"${decodedTag}"的全部文章 — 加密货币、区块链资讯`}
+>
   <Header />
-  <Main
-    pageTitle={[`Tag:`, `${tagName}`]}
-    titleTransition={tag}
-    pageDesc={`All the articles with the tag "${tagName}".`}
-  >
-    <h1 slot="title" transition:name={tag}>{`Tag:${tag}`}</h1>
-    <ul>
-      {page.data.map(data => <Card {...data} />)}
-    </ul>
-  </Main>
 
-  <Pagination {page} />
+  <main class="mx-auto max-w-3xl px-4 py-8">
+    <nav class="mb-4 text-sm text-skin-muted">
+      <a href="/" class="hover:underline">首页</a>
+      <span class="mx-2">/</span>
+      <a href="/tags" class="hover:underline">标签</a>
+      <span class="mx-2">/</span>
+      <span class="text-skin-base">#{decodedTag}</span>
+    </nav>
 
-  <Footer noMarginTop={page.lastPage > 1} />
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-skin-base">#{decodedTag}</h1>
+      <p class="mt-1 text-sm text-skin-muted">共 {total} 篇相关文章</p>
+    </div>
+
+    {pagePosts.length === 0 ? (
+      <p class="text-skin-muted py-12 text-center">暂无相关文章</p>
+    ) : (
+      <div class="space-y-2">
+        {pagePosts.map(p => <UnifiedCard post={p} size="list" variant="h3" />)}
+      </div>
+    )}
+
+    <!-- 分页 -->
+    {lastPage > 1 && (
+      <div class="mt-8 flex justify-center gap-4 text-sm">
+        {prevUrl ? (
+          <a href={prevUrl} class="text-skin-accent hover:underline">← 上一页</a>
+        ) : <span />}
+        <span class="text-skin-muted">{pageNum} / {lastPage}</span>
+        {nextUrl ? (
+          <a href={nextUrl} class="text-skin-accent hover:underline">下一页 →</a>
+        ) : <span />}
+      </div>
+    )}
+  </main>
+
+  <Footer />
 </Layout>

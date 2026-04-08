@@ -1,24 +1,70 @@
 ---
-import { getCollection } from "astro:content";
-import Main from "@/layouts/Main.astro";
+// src/pages/tags/index.astro
+// zh-CN 标签索引页（SSR）：合并本地 + Sanity + Ghost 的所有标签
+export const prerender = false;
+
 import Layout from "@/layouts/Layout.astro";
-import Tag from "@/components/Tag.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
-import getUniqueTags from "@/utils/getUniqueTags";
+import { getCollection } from "astro:content";
 import { SITE } from "@/config";
+import { getPath } from "@/utils/getPath";
+import {
+  localToUnified,
+  fetchGhostUnified,
+  fetchSanityUnified,
+  mergePosts,
+  filterUnifiedByLang,
+} from "@/utils/mergedPosts";
+import getSortedPosts from "@/utils/getSortedPosts";
 
-const posts = await getCollection("blog");
+let allPosts: any[] = [];
+try {
+  const local = await getCollection("blog");
+  const localU = getSortedPosts(local).map(p => localToUnified(p, getPath(p.id, p.filePath)));
+  const ghost = await fetchGhostUnified({ limit: 100 }).catch(() => []);
+  const sanity = await fetchSanityUnified({ limit: 100 }).catch(() => []);
+  allPosts = filterUnifiedByLang(mergePosts(localU, ghost, sanity), "zh-CN");
+} catch (e) {}
 
-let tags = getUniqueTags(posts);
+// 统计每个标签的文章数
+const tagCount = new Map<string, number>();
+for (const p of allPosts) {
+  for (const t of (p.tags || [])) {
+    tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+  }
+}
+
+// 按文章数降序排列
+const tags = Array.from(tagCount.entries())
+  .sort((a, b) => b[1] - a[1])
+  .map(([tag, count]) => ({ tag, count }));
 ---
 
-<Layout title={`Tags | ${SITE.title}`}>
+<Layout
+  title={`标签 | ${SITE.title}`}
+  description="Bitaigen 全部文章标签索引 — 比特币、以太坊、DeFi、NFT等加密货币主题"
+>
   <Header />
-  <Main pageTitle="Tags" pageDesc="All the tags used in posts.">
-    <ul class="flex flex-wrap gap-6">
-      {tags.map(({ tag, tagName }) => <Tag {tag} {tagName} />)}
-    </ul>
-  </Main>
+
+  <main class="mx-auto max-w-3xl px-4 py-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-skin-base">标签索引</h1>
+      <p class="mt-1 text-sm text-skin-muted">共 {tags.length} 个标签</p>
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      {tags.map(({ tag, count }) => (
+        <a
+          href={`/tags/${encodeURIComponent(tag)}`}
+          class="inline-flex items-center gap-1.5 rounded-full border border-skin-line bg-skin-card px-3 py-1.5 text-sm text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors"
+        >
+          <span>#{tag}</span>
+          <span class="text-xs text-skin-muted">({count})</span>
+        </a>
+      ))}
+    </div>
+  </main>
+
   <Footer />
 </Layout>
