@@ -50,7 +50,7 @@ faqs:
 
 **网页端**：
 
-- 官方网址：[www.binance.com](https://www.binance.com)
+- 官方网址：[www.binance.com](/go/binance)
 - 注意辨别钓鱼网站，确认域名完全正确后再操作
 
 ## 第二步：填写注册信息
