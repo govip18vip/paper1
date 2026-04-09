@@ -14,7 +14,7 @@ import { getPath } from "@/utils/getPath";
 import { SITE } from "@/config";
 import {
   LANG_PATH_MAP, DEFAULT_LANG, useTranslations, hreflangLinks,
-  LANG_TO_PATH, type Lang,
+  LANG_TO_PATH, HTML_LANG, type Lang,
 } from "@/i18n/ui";
 import {
   localToUnified,
@@ -102,18 +102,54 @@ const mainShown = new Set([hero, ...thumbPosts, ...listPosts].filter(Boolean));
 const newsPosts = merged.filter(p => !mainShown.has(p)).slice(0, 8);
 const hotPosts = merged.filter(p => !mainShown.has(p) && !newsPosts.includes(p)).slice(0, 7);
 const tutorialPosts = merged.filter(p => p.tags?.some(t => TUTORIAL_TAGS.includes(t.toLowerCase()))).slice(0, 5);
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${siteUrl}/#organization`,
+  name: "Bitaigen",
+  url: siteUrl,
+  logo: `${siteUrl}/favicon.svg`,
+  description: t("site.desc"),
+  sameAs: [
+    "https://x.com/tanfyoo",
+    "https://t.me/AllenAmbrose",
+  ],
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${siteUrl}/#website`,
+  name: t("site.name"),
+  description: t("site.desc"),
+  url: siteUrl,
+  publisher: { "@id": `${siteUrl}/#organization` },
+  inLanguage: [HTML_LANG[lang], "en", "zh-CN", "es", "pt"],
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/${langSeg}/search?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
 ---
 
 <Layout
   title={`${t("site.name")} — ${t("site.desc").slice(0, 60)}`}
   description={t("site.desc")}
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+  </Fragment>
+
   <Header />
 
   <div class="site-outer">
     <LeftSidebar currentLang={lang} />
 
     <div class="main-col" id="main-content" data-layout="index">
+      <h1 class="sr-only">{t("home.h1")}</h1>
 
       <!-- HERO -->
       <section class="hero-section anim-1" aria-label={t("section.latest")}>

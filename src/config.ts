@@ -36,5 +36,5 @@ export const SITE = {
   googleSiteVerification: import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION ?? "",
   bingSiteVerification:   import.meta.env.PUBLIC_BING_SITE_VERIFICATION ?? "",
   baiduSiteVerification: "",
-  yandexSiteVerification: "",
+  yandexSiteVerification: import.meta.env.PUBLIC_YANDEX_SITE_VERIFICATION ?? "",
 } as const;

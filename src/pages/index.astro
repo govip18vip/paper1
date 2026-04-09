@@ -106,6 +106,25 @@ const tutorialPosts = merged
 
 const siteUrl = SITE.website.replace(/\/$/, "");
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${siteUrl}/#organization`,
+  name: "Bitaigen",
+  url: siteUrl,
+  logo: `${siteUrl}/favicon.svg`,
+  description: t("site.desc"),
+  sameAs: [
+    "https://x.com/tanfyoo",
+    "https://t.me/AllenAmbrose",
+  ],
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "contact@bitaigen.com",
+    contactType: "customer service",
+  },
+};
+
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -113,6 +132,7 @@ const websiteSchema = {
   name: t("site.name"),
   description: t("site.desc"),
   url: siteUrl,
+  publisher: { "@id": `${siteUrl}/#organization` },
   inLanguage: [HTML_LANG[lang], "en", "zh-CN", "es", "pt"],
   potentialAction: {
     "@type": "SearchAction",
@@ -129,6 +149,10 @@ const websiteSchema = {
   <Fragment slot="head">
     <script
       type="application/ld+json"
+      set:html={JSON.stringify(organizationSchema)}
+    />
+    <script
+      type="application/ld+json"
       set:html={JSON.stringify(websiteSchema)}
     />
   </Fragment>
@@ -139,6 +163,8 @@ const websiteSchema = {
     <LeftSidebar />
 
     <div class="main-col" id="main-content" data-layout="index">
+      <h1 class="sr-only">{t("home.h1")}</h1>
+
       {/* ══ HERO SECTION ══ */}
       <section class="hero-section anim-1" aria-label={t("section.latest")}>
         <div class="hero-row">
