@@ -417,142 +417,215 @@ const itemListSchema = {
     return "$" + n.toFixed(4);
   };
 
-  // Symbol → coinId 映射
-  const symToCoinId = {
+  // ═══════════════════════════════════════════════════════════
+  //  Multi-source price engine — 5 APIs, 41 coins, auto-failover
+  //  Priority: Orbit → OKX → Binance → CoinCap → CoinGecko
+  // ═══════════════════════════════════════════════════════════
+
+  // Full 41-coin symbol → coinId mapping
+  const S2C = {
     BTC:"bitcoin", ETH:"ethereum", BNB:"binancecoin", SOL:"solana", XRP:"ripple",
     ADA:"cardano", DOGE:"dogecoin", TRX:"tron", DOT:"polkadot", LTC:"litecoin",
     LINK:"chainlink", AVAX:"avalanche-2", UNI:"uniswap", XLM:"stellar", ATOM:"cosmos",
     BCH:"bitcoin-cash", POL:"polygon", ARB:"arbitrum", OP:"optimism", SUI:"sui",
+    TON:"toncoin", SHIB:"shiba", NEAR:"near", ICP:"internet-computer", FIL:"filecoin",
+    HBAR:"hedera", RENDER:"render", APT:"aptos", PEPE:"pepe", FET:"fetch",
+    KAS:"kaspa", INJ:"injective", IMX:"immutable", SEI:"sei", AAVE:"aave",
+    MNT:"mantle", THETA:"theta", ONDO:"ondo", JUP:"jupiter", WLD:"worldcoin", STX:"stacks",
   };
 
-  // 优先：Orbit（CoinGecko 兼容格式，含市值/排名/高低价）
-  async function fetchOrbit() {
-    try {
-      const r = await fetch(
-        "https://orbit.biyijia.com/api/coins?per_page=60",
-        { signal: AbortSignal.timeout(10000) }
-      );
-      if (!r.ok) return null;
-      const coins = await r.json();
-      const map = {};
-      for (const c of coins) {
-        const sym = c.symbol?.toUpperCase();
-        if (sym && symToCoinId[sym]) {
-          map[sym] = {
-            price: c.current_price,
-            change: c.price_change_percentage_24h_in_currency ?? 0,
-            vol: c.total_volume,
-            mcap: c.market_cap,
-            rank: c.market_cap_rank,
-          };
-        }
-      }
-      return Object.keys(map).length > 0 ? map : null;
-    } catch { return null; }
-  }
+  // Binance trading pair symbols for all 41 coins
+  const BN_SYMS = Object.keys(S2C).map(s => s + "USDT");
 
-  // 备用：Binance（无市值/排名）
-  async function fetchBinance() {
-    const symbols = [
-      "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT",
-      "ADAUSDT","DOGEUSDT","TRXUSDT","DOTUSDT","LTCUSDT",
-      "LINKUSDT","AVAXUSDT","UNIUSDT","XLMUSDT","ATOMUSDT",
-      "BCHUSDT","POLUSDT","ARBUSDT","OPUSDT","SUIUSDT"
-    ];
-    try {
-      const symbolsParam = JSON.stringify(symbols);
-      const r = await fetch(
-        `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`,
-        { signal: AbortSignal.timeout(8000) }
-      );
-      if (!r.ok) throw new Error();
-      return await r.json();
-    } catch {
-      try {
-        const r = await fetch("https://data-api.binance.vision/api/v3/ticker/24hr",
-          { signal: AbortSignal.timeout(10000) });
-        if (!r.ok) return [];
-        const all = await r.json();
-        const set = new Set(symbols);
-        return all.filter(t => set.has(t.symbol));
-      } catch { return []; }
-    }
-  }
+  // CoinGecko IDs for all 41 coins
+  const GK_IDS = Object.values(S2C).join(",");
 
-  // 备用市值：CoinGecko（仅 Binance 回退时使用）
-  async function fetchGeckoMarketCap() {
-    try {
-      const ids = "bitcoin,ethereum,binancecoin,solana,ripple,cardano,dogecoin,tron,polkadot,litecoin,chainlink,avalanche-2,uniswap,stellar,cosmos,bitcoin-cash,polygon-ecosystem-token,arbitrum,optimism,sui";
-      const r = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&order=market_cap_desc&sparkline=false`,
-        { signal: AbortSignal.timeout(10000) }
-      );
-      if (!r.ok) return {};
-      const data = await r.json();
-      const map = {};
-      for (const c of data) {
-        map[c.symbol.toUpperCase()] = { mcap: c.market_cap, rank: c.market_cap_rank };
-      }
-      return map;
-    } catch { return {}; }
-  }
+  // CoinCap IDs (slightly different naming)
+  const CC_MAP = {
+    BTC:"bitcoin", ETH:"ethereum", BNB:"binance-coin", SOL:"solana", XRP:"xrp",
+    ADA:"cardano", DOGE:"dogecoin", TRX:"tron", DOT:"polkadot", LTC:"litecoin",
+    LINK:"chainlink", AVAX:"avalanche", UNI:"uniswap", SHIB:"shiba-inu", NEAR:"near-protocol",
+    APT:"aptos", SUI:"sui", TON:"toncoin", PEPE:"pepe", FET:"fetch-ai",
+  };
+
+  let _source = ""; // Track which API succeeded for debugging
 
   function unskeleton(el) { if (el) el.classList.remove("skeleton"); }
 
-  async function updateAll() {
-    // 优先 Orbit
-    const cbMap = await fetchOrbit();
-    if (cbMap) {
-      for (const [sym, d] of Object.entries(cbMap)) {
-        const coinId = symToCoinId[sym];
-        if (!coinId) continue;
-        const pe = document.getElementById("p-" + coinId);
-        const ce = document.getElementById("c-" + coinId);
-        const ve = document.getElementById("v-" + coinId);
-        const me = document.getElementById("m-" + coinId);
-        const re = document.getElementById("r-" + coinId);
-        if (pe) { pe.textContent = fmtP(d.price); unskeleton(pe); }
-        if (ce) {
-          ce.textContent = (d.change >= 0 ? "▲ +" : "▼ ") + Math.abs(d.change).toFixed(2) + "%";
-          ce.style.color = d.change >= 0 ? "var(--accent-green)" : "var(--accent-red)";
-          unskeleton(ce);
-        }
-        if (ve) { ve.textContent = fmt(d.vol); unskeleton(ve); }
-        if (me) { me.textContent = fmt(d.mcap); unskeleton(me); }
-        if (re && d.rank) re.textContent = d.rank;
+  function applyData(sym, data) {
+    const coinId = S2C[sym];
+    if (!coinId) return;
+    const pe = document.getElementById("p-" + coinId);
+    const ce = document.getElementById("c-" + coinId);
+    const ve = document.getElementById("v-" + coinId);
+    const me = document.getElementById("m-" + coinId);
+    const re = document.getElementById("r-" + coinId);
+    if (data.price && pe) { pe.textContent = fmtP(data.price); unskeleton(pe); }
+    if (data.change !== undefined && ce) {
+      const chg = data.change;
+      ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
+      ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+      unskeleton(ce);
+    }
+    if (data.vol && ve) { ve.textContent = fmt(data.vol); unskeleton(ve); }
+    if (data.mcap && me) { me.textContent = fmt(data.mcap); unskeleton(me); }
+    if (data.rank && re) re.textContent = data.rank;
+  }
+
+  // ── Source 1: Orbit (biyijia.com) — CoinGecko format, 60 coins ──
+  async function tryOrbit() {
+    const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=80", { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return false;
+    const coins = await r.json();
+    let hits = 0;
+    for (const c of coins) {
+      const sym = c.symbol?.toUpperCase();
+      if (sym && S2C[sym]) {
+        applyData(sym, {
+          price: c.current_price,
+          change: c.price_change_percentage_24h_in_currency ?? 0,
+          vol: c.total_volume,
+          mcap: c.market_cap,
+          rank: c.market_cap_rank,
+        });
+        hits++;
       }
-      return;
+    }
+    _source = "Orbit";
+    return hits > 5;
+  }
+
+  // ── Source 2: OKX Public API — no auth needed ──
+  async function tryOKX() {
+    const r = await fetch("https://www.okx.com/api/v5/market/tickers?instType=SPOT", { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return false;
+    const json = await r.json();
+    const tickers = json.data || [];
+    let hits = 0;
+    for (const t of tickers) {
+      const instId = t.instId; // e.g. "BTC-USDT"
+      const sym = instId.split("-")[0];
+      if (!S2C[sym]) continue;
+      const price = parseFloat(t.last);
+      const open = parseFloat(t.open24h);
+      const change = open > 0 ? ((price - open) / open * 100) : 0;
+      applyData(sym, {
+        price,
+        change,
+        vol: parseFloat(t.volCcy24h), // volume in quote currency
+      });
+      hits++;
+    }
+    _source = "OKX";
+    return hits > 5;
+  }
+
+  // ── Source 3: Binance API — most liquid, no auth ──
+  async function tryBinance() {
+    let tickers = [];
+    try {
+      const param = JSON.stringify(BN_SYMS);
+      const r = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(param)}`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) tickers = await r.json();
+    } catch {}
+
+    if (!tickers.length) {
+      try {
+        const r = await fetch("https://data-api.binance.vision/api/v3/ticker/24hr", { signal: AbortSignal.timeout(10000) });
+        if (r.ok) {
+          const all = await r.json();
+          const set = new Set(BN_SYMS);
+          tickers = all.filter(t => set.has(t.symbol));
+        }
+      } catch {}
     }
 
-    // 回退：Binance + CoinGecko
-    const [tickers, geckoMap] = await Promise.all([fetchBinance(), fetchGeckoMarketCap()]);
+    if (!tickers.length) return false;
+
     for (const t of tickers) {
       const sym = t.symbol.replace("USDT", "");
-      const coinId = symToCoinId[sym];
-      if (!coinId) continue;
-      const pe = document.getElementById("p-" + coinId);
-      const ce = document.getElementById("c-" + coinId);
-      const ve = document.getElementById("v-" + coinId);
-      const me = document.getElementById("m-" + coinId);
-      const re = document.getElementById("r-" + coinId);
-      const price = parseFloat(t.lastPrice);
-      const chg = parseFloat(t.priceChangePercent);
-      if (pe) pe.textContent = fmtP(price);
-      if (ce) {
-        ce.textContent = (chg >= 0 ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
-        ce.style.color = chg >= 0 ? "var(--accent-green)" : "var(--accent-red)";
-      }
-      if (ve) ve.textContent = fmt(parseFloat(t.quoteVolume));
-      const gecko = geckoMap[sym];
-      if (gecko) {
-        if (me) me.textContent = fmt(gecko.mcap);
-        if (re && gecko.rank) re.textContent = gecko.rank;
+      if (!S2C[sym]) continue;
+      applyData(sym, {
+        price: parseFloat(t.lastPrice),
+        change: parseFloat(t.priceChangePercent),
+        vol: parseFloat(t.quoteVolume),
+      });
+    }
+    _source = "Binance";
+    return true;
+  }
+
+  // ── Source 4: CoinCap API (coincap.io) — free, no auth, 100 coins ──
+  async function tryCoinCap() {
+    const r = await fetch("https://api.coincap.io/v2/assets?limit=100", { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return false;
+    const json = await r.json();
+    const assets = json.data || [];
+    // Build reverse map: coincap id → our symbol
+    const ccToSym = {};
+    for (const [sym, ccId] of Object.entries(CC_MAP)) ccToSym[ccId] = sym;
+
+    let hits = 0;
+    for (const a of assets) {
+      const sym = ccToSym[a.id] || a.symbol?.toUpperCase();
+      if (!sym || !S2C[sym]) continue;
+      applyData(sym, {
+        price: parseFloat(a.priceUsd),
+        change: parseFloat(a.changePercent24Hr) || 0,
+        vol: parseFloat(a.volumeUsd24Hr),
+        mcap: parseFloat(a.marketCapUsd),
+        rank: parseInt(a.rank),
+      });
+      hits++;
+    }
+    _source = "CoinCap";
+    return hits > 5;
+  }
+
+  // ── Source 5: CoinGecko (free tier, 10-30 calls/min) ──
+  async function tryCoinGecko() {
+    const r = await fetch(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${GK_IDS}&order=market_cap_desc&sparkline=false&per_page=50`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    if (!r.ok) return false;
+    const coins = await r.json();
+    let hits = 0;
+    for (const c of coins) {
+      const sym = c.symbol?.toUpperCase();
+      if (!S2C[sym]) continue;
+      applyData(sym, {
+        price: c.current_price,
+        change: c.price_change_percentage_24h ?? 0,
+        vol: c.total_volume,
+        mcap: c.market_cap,
+        rank: c.market_cap_rank,
+      });
+      hits++;
+    }
+    _source = "CoinGecko";
+    return hits > 5;
+  }
+
+  // ── Main update loop: try each source in priority order ──
+  async function updateAll() {
+    const sources = [tryOrbit, tryOKX, tryBinance, tryCoinCap, tryCoinGecko];
+    for (const src of sources) {
+      try {
+        const ok = await src();
+        if (ok) {
+          console.log("[Price] Updated via " + _source);
+          return;
+        }
+      } catch (e) {
+        // Source failed, try next
       }
     }
+    console.warn("[Price] All 5 sources failed");
   }
 
   updateAll();
-  setInterval(updateAll, 30000); // 每30秒刷新
+  setInterval(updateAll, 30000);
 })();
 </script>
 

@@ -320,7 +320,7 @@ const faqSchema = {
   <Footer />
 </Layout>
 
-<script is:inline define:vars={{coinId, binanceSymbol: coin.binanceSymbol}}>
+<script is:inline define:vars={{coinId, coinSymbol, binanceSymbol: coin.binanceSymbol, coingeckoId: coin.coingeckoId}}>
 (function(){
   const fmtP = n => {
     if (!n || isNaN(n)) return "$—";
@@ -328,34 +328,53 @@ const faqSchema = {
     if (n >= 1) return "$" + n.toFixed(2);
     return "$" + n.toFixed(4);
   };
-  const _sym = binanceSymbol.replace("USDT", "");
+  const _sym = coinSymbol;
+
+  function apply(price, change) {
+    const pe = document.getElementById("price-" + coinId);
+    const ce = document.getElementById("change-" + coinId);
+    const ue = document.getElementById("updated-" + coinId);
+    const isUp = change >= 0;
+    if (pe) pe.textContent = fmtP(price);
+    if (ce) { ce.textContent = (isUp?"▲ +":"▼ ") + Math.abs(change).toFixed(2) + "% (24h)"; ce.style.color = isUp?"var(--accent-green)":"var(--accent-red)"; }
+    if (ue) ue.textContent = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+  }
+
+  // 5-source fallback chain
   async function up() {
+    // 1. Orbit
     try {
-      const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=60", {signal: AbortSignal.timeout(10000)});
+      const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=80", {signal: AbortSignal.timeout(8000)});
       if (r.ok) {
-        const coins = await r.json();
-        const c = coins.find(x => x.symbol?.toUpperCase() === _sym);
-        if (c) {
-          const p = c.current_price, ch = c.price_change_percentage_24h_in_currency ?? 0, up = ch >= 0;
-          const pe = document.getElementById("price-" + coinId);
-          const ce = document.getElementById("change-" + coinId);
-          const ue = document.getElementById("updated-" + coinId);
-          if (pe) pe.textContent = fmtP(p);
-          if (ce) { ce.textContent = (up?"▲ +":"▼ ") + Math.abs(ch).toFixed(2) + "% (24h)"; ce.style.color = up?"var(--accent-green)":"var(--accent-red)"; }
-          if (ue) ue.textContent = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
-          return;
-        }
+        const c = (await r.json()).find(x => x.symbol?.toUpperCase() === _sym);
+        if (c) { apply(c.current_price, c.price_change_percentage_24h_in_currency ?? 0); return; }
       }
     } catch {}
+    // 2. OKX
     try {
-      const r = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`, {signal: AbortSignal.timeout(8000)});
-      if (!r.ok) return;
-      const d = await r.json();
-      const p = parseFloat(d.lastPrice), ch = parseFloat(d.priceChangePercent), up = ch >= 0;
-      const pe = document.getElementById("price-" + coinId);
-      const ce = document.getElementById("change-" + coinId);
-      if (pe) pe.textContent = fmtP(p);
-      if (ce) { ce.textContent = (up?"▲ +":"▼ ") + Math.abs(ch).toFixed(2) + "% (24h)"; ce.style.color = up?"var(--accent-green)":"var(--accent-red)"; }
+      const r = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${_sym}-USDT`, {signal: AbortSignal.timeout(6000)});
+      if (r.ok) {
+        const d = (await r.json()).data?.[0];
+        if (d) { const p = parseFloat(d.last), o = parseFloat(d.open24h); apply(p, o > 0 ? (p-o)/o*100 : 0); return; }
+      }
+    } catch {}
+    // 3. Binance
+    try {
+      const r = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`, {signal: AbortSignal.timeout(6000)});
+      if (r.ok) { const d = await r.json(); apply(parseFloat(d.lastPrice), parseFloat(d.priceChangePercent)); return; }
+    } catch {}
+    // 4. CoinCap
+    try {
+      const r = await fetch("https://api.coincap.io/v2/assets?limit=100", {signal: AbortSignal.timeout(6000)});
+      if (r.ok) {
+        const a = (await r.json()).data?.find(x => x.symbol === _sym);
+        if (a) { apply(parseFloat(a.priceUsd), parseFloat(a.changePercent24Hr)); return; }
+      }
+    } catch {}
+    // 5. CoinGecko
+    try {
+      const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd&include_24hr_change=true`, {signal: AbortSignal.timeout(8000)});
+      if (r.ok) { const d = (await r.json())[coingeckoId]; if (d) apply(d.usd, d.usd_24h_change ?? 0); }
     } catch {}
   }
   up(); setInterval(up, 60000);

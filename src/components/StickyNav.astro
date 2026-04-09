@@ -75,8 +75,8 @@ import { SITE } from "@/config";
       const y = window.scrollY;
       // Show after scrolling down 200px AND scrolling up
       const show = y > 200;
-      el.classList.toggle("visible", show);
-      el.setAttribute("aria-hidden", show ? "false" : "true");
+      el!.classList.toggle("visible", show);
+      el!.setAttribute("aria-hidden", show ? "false" : "true");
       lastY = y;
       ticking = false;
     }
