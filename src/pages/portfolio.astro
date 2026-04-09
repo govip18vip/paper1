@@ -1,0 +1,198 @@
+---
+// src/pages/portfolio.astro
+// Crypto portfolio tracker — localStorage, no login required
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+
+const title = "加密货币投资组合追踪器 — 实时盈亏计算";
+const desc = "免费加密货币投资组合追踪工具：添加持仓，实时计算总资产和盈亏。无需注册，数据本地保存。";
+---
+
+<Layout title={`${title} | ${SITE.title}`} description={desc}>
+  <Header />
+  <main style="max-width:860px;margin:0 auto;padding:24px 16px 60px;">
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:16px;">
+      <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">投资组合</span>
+    </nav>
+
+    <h1 style="font-size:24px;font-weight:800;color:var(--fg);margin:0 0 4px;">投资组合追踪器</h1>
+    <p style="font-size:13px;color:var(--fg-muted);margin:0 0 20px;">实时追踪你的加密资产盈亏 · 数据仅保存在你的浏览器 · 完全免费</p>
+
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">总资产</div>
+        <div id="pf-total" style="font-size:24px;font-weight:800;color:var(--fg);">$0.00</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">总成本</div>
+        <div id="pf-cost" style="font-size:24px;font-weight:800;color:var(--fg);">$0.00</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">总盈亏</div>
+        <div id="pf-pnl" style="font-size:24px;font-weight:800;color:var(--fg);">$0.00</div>
+        <div id="pf-pnl-pct" style="font-size:13px;font-weight:700;"></div>
+      </div>
+    </div>
+
+    <!-- Add holding form -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px;">添加持仓</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <div style="flex:1;min-width:100px;">
+          <label style="font-size:11px;color:var(--fg-muted);display:block;margin-bottom:4px;">币种</label>
+          <select id="pf-coin" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-elevated);color:var(--fg);font-size:14px;">
+            <option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option>
+            <option value="BNB">BNB</option><option value="XRP">XRP</option><option value="DOGE">DOGE</option>
+            <option value="ADA">ADA</option><option value="AVAX">AVAX</option><option value="DOT">DOT</option>
+            <option value="LINK">LINK</option><option value="TON">TON</option><option value="SHIB">SHIB</option>
+            <option value="NEAR">NEAR</option><option value="APT">APT</option><option value="SUI">SUI</option>
+            <option value="UNI">UNI</option><option value="AAVE">AAVE</option><option value="LTC">LTC</option>
+            <option value="TRX">TRX</option><option value="PEPE">PEPE</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:100px;">
+          <label style="font-size:11px;color:var(--fg-muted);display:block;margin-bottom:4px;">数量</label>
+          <input id="pf-qty" type="number" step="any" placeholder="0.5" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-elevated);color:var(--fg);font-size:14px;" />
+        </div>
+        <div style="flex:1;min-width:100px;">
+          <label style="font-size:11px;color:var(--fg-muted);display:block;margin-bottom:4px;">买入均价 (USD)</label>
+          <input id="pf-price" type="number" step="any" placeholder="65000" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-elevated);color:var(--fg);font-size:14px;" />
+        </div>
+        <button id="pf-add" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;">添加</button>
+      </div>
+    </div>
+
+    <!-- Holdings table -->
+    <div id="pf-table" style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;"></div>
+
+    <p style="font-size:11px;color:var(--fg-muted);margin-top:16px;text-align:center;">
+      数据仅保存在你的浏览器（localStorage），不会上传到任何服务器。
+      <br />价格数据来源：Binance / OKX · 每30秒刷新
+    </p>
+  </main>
+  <Footer />
+</Layout>
+
+<script is:inline>
+(function(){
+  const KEY = "ba_portfolio";
+  const fmt = n => "$" + (n >= 1000 ? n.toLocaleString("en-US",{maximumFractionDigits:2}) : n < 0.01 ? n.toFixed(6) : n.toFixed(2));
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
+  }
+  function save(h) { localStorage.setItem(KEY, JSON.stringify(h)); }
+
+  let prices = {};
+
+  async function fetchPrices() {
+    try {
+      const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=80",{signal:AbortSignal.timeout(8000)});
+      if (r.ok) { for (const c of await r.json()) prices[c.symbol.toUpperCase()] = c.current_price; return; }
+    } catch {}
+    try {
+      const r = await fetch("https://www.okx.com/api/v5/market/tickers?instType=SPOT",{signal:AbortSignal.timeout(8000)});
+      if (r.ok) { for (const t of (await r.json()).data||[]) { const s=t.instId.split("-")[0]; prices[s]=parseFloat(t.last); } return; }
+    } catch {}
+    try {
+      const r = await fetch("https://api.binance.com/api/v3/ticker/price",{signal:AbortSignal.timeout(8000)});
+      if (r.ok) { for (const t of await r.json()) { const s=t.symbol.replace("USDT",""); if(s.length<=5) prices[s]=parseFloat(t.price); } }
+    } catch {}
+  }
+
+  function render() {
+    const holdings = load();
+    let totalValue = 0, totalCost = 0;
+
+    const rows = holdings.map((h, i) => {
+      const curPrice = prices[h.coin] || 0;
+      const value = curPrice * h.qty;
+      const cost = h.avgPrice * h.qty;
+      const pnl = value - cost;
+      const pnlPct = cost > 0 ? (pnl / cost * 100) : 0;
+      const isUp = pnl >= 0;
+      totalValue += value;
+      totalCost += cost;
+
+      return `<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;">
+        <div style="font-weight:700;color:var(--fg);min-width:50px;">${h.coin}</div>
+        <div style="flex:1;min-width:80px;">
+          <div style="font-size:12px;color:var(--fg-muted);">数量</div>
+          <div style="font-size:14px;color:var(--fg);font-weight:600;">${h.qty}</div>
+        </div>
+        <div style="flex:1;min-width:80px;">
+          <div style="font-size:12px;color:var(--fg-muted);">现价</div>
+          <div style="font-size:14px;color:var(--fg);">${fmt(curPrice)}</div>
+        </div>
+        <div style="flex:1;min-width:80px;">
+          <div style="font-size:12px;color:var(--fg-muted);">市值</div>
+          <div style="font-size:14px;color:var(--fg);font-weight:600;">${fmt(value)}</div>
+        </div>
+        <div style="flex:1;min-width:80px;">
+          <div style="font-size:12px;color:var(--fg-muted);">盈亏</div>
+          <div style="font-size:14px;font-weight:700;color:${isUp?'var(--accent-green)':'var(--accent-red)'};">
+            ${isUp?'+':''}${fmt(pnl)} (${isUp?'+':''}${pnlPct.toFixed(1)}%)
+          </div>
+        </div>
+        <button onclick="removeHolding(${i})" style="background:none;border:none;color:var(--fg-muted);cursor:pointer;font-size:18px;padding:4px;" title="删除">×</button>
+      </div>`;
+    });
+
+    document.getElementById("pf-table").innerHTML = rows.length
+      ? rows.join("")
+      : `<div style="padding:40px;text-align:center;color:var(--fg-muted);font-size:14px;">暂无持仓，点击上方"添加"开始追踪</div>`;
+
+    const totalPnl = totalValue - totalCost;
+    const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost * 100) : 0;
+    const isUp = totalPnl >= 0;
+
+    document.getElementById("pf-total").textContent = fmt(totalValue);
+    document.getElementById("pf-cost").textContent = fmt(totalCost);
+    document.getElementById("pf-pnl").textContent = (isUp?"+":"") + fmt(totalPnl);
+    document.getElementById("pf-pnl").style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+    document.getElementById("pf-pnl-pct").textContent = (isUp?"+":"") + totalPnlPct.toFixed(1) + "%";
+    document.getElementById("pf-pnl-pct").style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+  }
+
+  window.removeHolding = function(idx) {
+    const h = load();
+    h.splice(idx, 1);
+    save(h);
+    render();
+  };
+
+  document.getElementById("pf-add").addEventListener("click", () => {
+    const coin = document.getElementById("pf-coin").value;
+    const qty = parseFloat(document.getElementById("pf-qty").value);
+    const avgPrice = parseFloat(document.getElementById("pf-price").value);
+    if (!coin || !qty || !avgPrice) return;
+
+    const h = load();
+    // Merge if same coin exists
+    const existing = h.find(x => x.coin === coin);
+    if (existing) {
+      const totalQty = existing.qty + qty;
+      existing.avgPrice = (existing.avgPrice * existing.qty + avgPrice * qty) / totalQty;
+      existing.qty = totalQty;
+    } else {
+      h.push({ coin, qty, avgPrice });
+    }
+    save(h);
+    document.getElementById("pf-qty").value = "";
+    document.getElementById("pf-price").value = "";
+    render();
+  });
+
+  async function init() {
+    await fetchPrices();
+    render();
+    setInterval(async () => { await fetchPrices(); render(); }, 30000);
+  }
+  init();
+})();
+</script>

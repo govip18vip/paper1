@@ -1,0 +1,185 @@
+---
+// src/pages/tools/fee-calculator.astro
+// Interactive exchange fee calculator — compares 6 exchanges in real-time
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+
+const title = "加密货币交易所手续费计算器 — 实时对比6大平台费用";
+const desc = "输入交易金额，一键对比币安、OKX、Bybit、Bitget、Gate.io、Coinbase的实际手续费，找到最便宜的交易所。";
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Crypto Exchange Fee Calculator",
+  description: desc,
+  url: `${SITE.website}tools/fee-calculator`,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  isPartOf: { "@id": `${SITE.website}#website` },
+};
+---
+
+<Layout title={`${title} | ${SITE.title}`} description={desc}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+  </Fragment>
+  <Header />
+
+  <main style="max-width:800px;margin:0 auto;padding:24px 16px 60px;">
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:16px;">
+      <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">手续费计算器</span>
+    </nav>
+
+    <h1 style="font-size:24px;font-weight:800;color:var(--fg);margin:0 0 6px;">交易所手续费计算器</h1>
+    <p style="font-size:14px;color:var(--fg-muted);margin:0 0 24px;">输入交易金额，实时对比各平台手续费，找到最省钱的交易所</p>
+
+    <!-- Input -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--fg-muted);display:block;margin-bottom:6px;">交易金额 (USD)</label>
+          <input id="fc-amount" type="number" value="10000" min="1" step="100"
+            style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;font-size:18px;font-weight:700;background:var(--bg-elevated);color:var(--fg);outline:none;"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--fg-muted);display:block;margin-bottom:6px;">交易类型</label>
+          <select id="fc-type"
+            style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;font-size:16px;font-weight:600;background:var(--bg-elevated);color:var(--fg);outline:none;cursor:pointer;">
+            <option value="spot">现货交易 (Spot)</option>
+            <option value="futures">合约交易 (Futures)</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg-muted);cursor:pointer;">
+          <input id="fc-bnb" type="checkbox" checked style="width:16px;height:16px;cursor:pointer;" />
+          使用 BNB 支付手续费（币安额外 25% 折扣）
+        </label>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="fc-results" style="display:flex;flex-direction:column;gap:10px;"></div>
+
+    <!-- FAQ -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-top:24px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;"></span>
+        常见问题
+      </h2>
+      <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">哪个交易所手续费最低？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+          现货交易 OKX 最低（0.08%），合约交易 Bybit Maker 最低（0.01%）。使用邀请码 B2345 注册可再享折扣。
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">Maker 和 Taker 有什么区别？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+          Maker 是挂限价单等待成交（提供流动性），手续费更低；Taker 是直接吃单成交（消耗流动性），手续费更高。新手通常是 Taker。
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">如何降低手续费？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+          1) 使用邀请码注册获得初始折扣；2) 持有平台币支付手续费（如 BNB）；3) 提高交易量升级 VIP 等级；4) 使用限价单（Maker 费率更低）。
+        </div>
+      </details>
+    </div>
+  </main>
+  <Footer />
+</Layout>
+
+<script is:inline>
+(function(){
+  const exchanges = [
+    { name: "币安 Binance", spot: {maker:0.1, taker:0.1}, futures: {maker:0.02, taker:0.04}, bnbDiscount: 0.25, color: "#F0B90B", link: "/go/binance", code: "B2345", best: false },
+    { name: "OKX",          spot: {maker:0.08,taker:0.1}, futures: {maker:0.02, taker:0.05}, bnbDiscount: 0,    color: "#00C896", link: "/go/okx",     code: "B2345", best: false },
+    { name: "Bybit",        spot: {maker:0.1, taker:0.1}, futures: {maker:0.01, taker:0.06}, bnbDiscount: 0,    color: "#F7A600", link: "",            code: "",      best: false },
+    { name: "Bitget",       spot: {maker:0.1, taker:0.1}, futures: {maker:0.02, taker:0.06}, bnbDiscount: 0,    color: "#00B8A9", link: "",            code: "",      best: false },
+    { name: "Gate.io",      spot: {maker:0.1, taker:0.1}, futures: {maker:0.015,taker:0.05}, bnbDiscount: 0,    color: "#2354E6", link: "",            code: "",      best: false },
+    { name: "Coinbase",     spot: {maker:0.4, taker:0.6}, futures: {maker:0,    taker:0},    bnbDiscount: 0,    color: "#0052FF", link: "",            code: "",      best: false },
+  ];
+
+  function calculate() {
+    const amount = parseFloat(document.getElementById("fc-amount").value) || 10000;
+    const type = document.getElementById("fc-type").value;
+    const useBnb = document.getElementById("fc-bnb").checked;
+
+    const results = exchanges.map(ex => {
+      const rates = type === "spot" ? ex.spot : ex.futures;
+      if (!rates.maker && !rates.taker) return { ...ex, maker: 0, taker: 0, avg: Infinity, noFutures: true };
+
+      let makerRate = rates.maker / 100;
+      let takerRate = rates.taker / 100;
+
+      // BNB discount (Binance only)
+      if (useBnb && ex.bnbDiscount > 0) {
+        makerRate *= (1 - ex.bnbDiscount);
+        takerRate *= (1 - ex.bnbDiscount);
+      }
+
+      const makerFee = amount * makerRate;
+      const takerFee = amount * takerRate;
+      return { ...ex, maker: makerFee, taker: takerFee, avg: (makerFee + takerFee) / 2, makerRate: makerRate * 100, takerRate: takerRate * 100 };
+    }).sort((a, b) => a.avg - b.avg);
+
+    // Mark cheapest
+    if (results[0]) results[0].best = true;
+
+    const container = document.getElementById("fc-results");
+    container.innerHTML = results.map((r, i) => {
+      if (r.noFutures) {
+        return `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;opacity:0.5;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:36px;height:36px;border-radius:8px;background:${r.color}22;color:${r.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">${r.name[0]}</span>
+            <span style="font-weight:700;color:var(--fg);">${r.name}</span>
+            <span style="margin-left:auto;font-size:13px;color:var(--fg-muted);">不支持合约</span>
+          </div>
+        </div>`;
+      }
+
+      const badge = r.best ? `<span style="padding:2px 8px;background:var(--tag-green-bg);color:var(--accent-green);font-size:11px;font-weight:700;border-radius:4px;">最便宜</span>` : "";
+      const cta = r.link
+        ? `<a href="${r.link}" rel="sponsored" style="padding:8px 16px;background:${r.color};color:${r.color === '#F0B90B' || r.color === '#F7A600' ? '#111' : '#fff'};border-radius:6px;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap;">注册 ${r.code ? '('+r.code+')' : ''} →</a>`
+        : `<span style="font-size:12px;color:var(--fg-muted);">官网注册</span>`;
+
+      return `<div style="background:var(--bg-card);border:${r.best ? '2px solid var(--accent-green)' : '1px solid var(--border)'};border-radius:10px;padding:16px 20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+          <span style="width:36px;height:36px;border-radius:8px;background:${r.color}22;color:${r.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">${r.name[0]}</span>
+          <span style="font-weight:700;color:var(--fg);font-size:15px;">${r.name}</span>
+          ${badge}
+          <div style="margin-left:auto;">${cta}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div style="padding:10px;background:var(--bg-elevated);border-radius:6px;text-align:center;">
+            <div style="font-size:10px;color:var(--fg-muted);margin-bottom:4px;">Maker 费率</div>
+            <div style="font-size:14px;font-weight:700;color:var(--fg);">${r.makerRate.toFixed(3)}%</div>
+            <div style="font-size:12px;color:var(--accent);">$${r.maker.toFixed(2)}</div>
+          </div>
+          <div style="padding:10px;background:var(--bg-elevated);border-radius:6px;text-align:center;">
+            <div style="font-size:10px;color:var(--fg-muted);margin-bottom:4px;">Taker 费率</div>
+            <div style="font-size:14px;font-weight:700;color:var(--fg);">${r.takerRate.toFixed(3)}%</div>
+            <div style="font-size:12px;color:var(--accent);">$${r.taker.toFixed(2)}</div>
+          </div>
+          <div style="padding:10px;background:var(--bg-elevated);border-radius:6px;text-align:center;">
+            <div style="font-size:10px;color:var(--fg-muted);margin-bottom:4px;">平均费用</div>
+            <div style="font-size:14px;font-weight:700;color:${r.best ? 'var(--accent-green)' : 'var(--fg)'};">$${r.avg.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("fc-amount").addEventListener("input", calculate);
+  document.getElementById("fc-type").addEventListener("change", calculate);
+  document.getElementById("fc-bnb").addEventListener("change", calculate);
+  calculate();
+})();
+</script>
