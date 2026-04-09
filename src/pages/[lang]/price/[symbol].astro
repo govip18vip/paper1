@@ -519,47 +519,57 @@ const pageTitle = `${coin.name[lang]} (${coin.symbol}) ${L.livePrice[lang]}`;
     return n.toFixed(0);
   };
 
-  // ── 价格（Orbit 优先，Binance 备用）──────────────────
+  // ── 5-source price fallback (Orbit → OKX → Binance → CoinCap → CoinGecko) ──
+  function applyPrice(price, change) {
+    const isUp = change >= 0;
+    document.getElementById("coin-price").textContent = fmtP(price);
+    const ce = document.getElementById("coin-change");
+    ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(change).toFixed(2) + "%";
+    ce.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
+    document.getElementById("coin-updated").textContent =
+      new Date().toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  }
+
   async function fetchPrice() {
+    // 1. Orbit
     try {
-      const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=60",
-        { signal: AbortSignal.timeout(10000) });
+      const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=80",{signal:AbortSignal.timeout(8000)});
       if (r.ok) {
-        const coins = await r.json();
-        const coin = coins.find(c => c.symbol?.toUpperCase() === coinSymbol);
-        if (coin) {
-          const chg = coin.price_change_percentage_24h_in_currency ?? 0, isUp = chg >= 0;
-          document.getElementById("coin-price").textContent = fmtP(coin.current_price);
-          const ce = document.getElementById("coin-change");
-          ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
-          ce.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
-          document.getElementById("coin-high").textContent = fmtP(coin.high_24h);
-          document.getElementById("coin-low").textContent = fmtP(coin.low_24h);
-          document.getElementById("coin-vol").textContent = fmt(coin.total_volume);
-          document.getElementById("coin-mcap").textContent = fmt(coin.market_cap);
-          if (coin.market_cap_rank) document.getElementById("rank-badge").textContent = "#" + coin.market_cap_rank;
-          document.getElementById("coin-updated").textContent =
-            new Date().toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+        const c = (await r.json()).find(x => x.symbol?.toUpperCase() === coinSymbol);
+        if (c) {
+          applyPrice(c.current_price, c.price_change_percentage_24h_in_currency ?? 0);
+          document.getElementById("coin-high").textContent = fmtP(c.high_24h);
+          document.getElementById("coin-low").textContent = fmtP(c.low_24h);
+          document.getElementById("coin-vol").textContent = fmt(c.total_volume);
+          document.getElementById("coin-mcap").textContent = fmt(c.market_cap);
+          if (c.market_cap_rank) document.getElementById("rank-badge").textContent = "#" + c.market_cap_rank;
           return;
         }
       }
     } catch {}
+    // 2. OKX
     try {
-      const r = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,
-        { signal: AbortSignal.timeout(8000) });
-      if (!r.ok) return;
-      const t = await r.json();
-      const price = parseFloat(t.lastPrice), chg = parseFloat(t.priceChangePercent), isUp = chg >= 0;
-      document.getElementById("coin-price").textContent = fmtP(price);
-      const ce = document.getElementById("coin-change");
-      ce.textContent = (isUp ? "▲ +" : "▼ ") + Math.abs(chg).toFixed(2) + "%";
-      ce.style.color = isUp ? "var(--accent-green)" : "var(--accent-red)";
-      document.getElementById("coin-high").textContent = fmtP(parseFloat(t.highPrice));
-      document.getElementById("coin-low").textContent = fmtP(parseFloat(t.lowPrice));
-      document.getElementById("coin-vol").textContent = fmt(parseFloat(t.quoteVolume));
-      document.getElementById("coin-updated").textContent =
-        new Date().toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-    } catch(e) { console.warn("Price fetch error:", e); }
+      const r = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${coinSymbol}-USDT`,{signal:AbortSignal.timeout(6000)});
+      if (r.ok) { const d = (await r.json()).data?.[0]; if (d) { const p=parseFloat(d.last),o=parseFloat(d.open24h); applyPrice(p, o>0?(p-o)/o*100:0); return; } }
+    } catch {}
+    // 3. Binance
+    try {
+      const r = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`,{signal:AbortSignal.timeout(6000)});
+      if (r.ok) { const t = await r.json(); applyPrice(parseFloat(t.lastPrice), parseFloat(t.priceChangePercent));
+        document.getElementById("coin-high").textContent = fmtP(parseFloat(t.highPrice));
+        document.getElementById("coin-low").textContent = fmtP(parseFloat(t.lowPrice));
+        document.getElementById("coin-vol").textContent = fmt(parseFloat(t.quoteVolume)); return; }
+    } catch {}
+    // 4. CoinCap
+    try {
+      const r = await fetch("https://api.coincap.io/v2/assets?limit=100",{signal:AbortSignal.timeout(6000)});
+      if (r.ok) { const a = (await r.json()).data?.find(x => x.symbol === coinSymbol); if (a) { applyPrice(parseFloat(a.priceUsd), parseFloat(a.changePercent24Hr)); return; } }
+    } catch {}
+    // 5. CoinGecko
+    try {
+      const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`,{signal:AbortSignal.timeout(8000)});
+      if (r.ok) { const d = (await r.json())[coinId]; if (d) applyPrice(d.usd, d.usd_24h_change ?? 0); }
+    } catch {}
   }
 
   async function fetchMarketData() {
