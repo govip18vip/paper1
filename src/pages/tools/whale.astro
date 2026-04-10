@@ -1,0 +1,250 @@
+---
+// src/pages/tools/whale-tracker.astro
+// On-chain whale tracker — large BTC/ETH transfers + exchange flow
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+
+const title = "链上巨鲸追踪器 — BTC/ETH 大额转账实时监控";
+const desc = "实时监控比特币和以太坊链上大额转账、交易所资金流入流出。追踪巨鲸动向，提前发现市场信号。";
+
+// Fetch recent large BTC transactions from Blockchain.com
+let btcWhales: any[] = [];
+try {
+  // Blockchain.com unconfirmed transactions (large ones)
+  const r = await fetch("https://blockchain.info/unconfirmed-transactions?format=json", {
+    signal: AbortSignal.timeout(8000),
+  });
+  if (r.ok) {
+    const data = await r.json();
+    const txs = data.txs || [];
+    btcWhales = txs
+      .map((tx: any) => {
+        const totalOut = (tx.out || []).reduce((s: number, o: any) => s + (o.value || 0), 0) / 1e8;
+        return {
+          hash: tx.hash?.substring(0, 16) + "...",
+          fullHash: tx.hash,
+          amount: totalOut,
+          amountUSD: totalOut * 71000, // approximate
+          time: tx.time ? new Date(tx.time * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "pending",
+          inputs: (tx.inputs || []).length,
+          outputs: (tx.out || []).length,
+        };
+      })
+      .filter((tx: any) => tx.amount >= 10) // ≥10 BTC
+      .sort((a: any, b: any) => b.amount - a.amount)
+      .slice(0, 20);
+  }
+} catch {}
+
+// Fetch ETH large transfers from Etherscan (free, no key for basic)
+let ethWhales: any[] = [];
+try {
+  const r = await fetch(
+    "https://api.etherscan.io/api?module=account&action=txlist&address=0x00000000219ab540356cBB839Cbe05303d7705Fa&page=1&offset=20&sort=desc",
+    { signal: AbortSignal.timeout(8000) }
+  );
+  if (r.ok) {
+    const data = await r.json();
+    ethWhales = (data.result || [])
+      .filter((tx: any) => parseInt(tx.value) / 1e18 >= 32) // ≥32 ETH (staking deposits)
+      .map((tx: any) => ({
+        hash: tx.hash?.substring(0, 16) + "...",
+        fullHash: tx.hash,
+        amount: (parseInt(tx.value) / 1e18).toFixed(1),
+        amountUSD: (parseInt(tx.value) / 1e18 * 2200).toFixed(0),
+        from: tx.from?.substring(0, 10) + "...",
+        time: tx.timeStamp ? new Date(parseInt(tx.timeStamp) * 1000).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "—",
+        type: "Staking Deposit",
+      }))
+      .slice(0, 15);
+  }
+} catch {}
+
+const fmtBTC = (n: number) => n >= 1000 ? n.toLocaleString("en-US", { maximumFractionDigits: 0 }) + " BTC" : n.toFixed(2) + " BTC";
+const fmtUSD = (n: number) => n >= 1e6 ? "$" + (n / 1e6).toFixed(1) + "M" : "$" + (n / 1000).toFixed(0) + "K";
+---
+
+<Layout title={`${title} | ${SITE.title}`} description={desc}>
+  <Header />
+  <main style="max-width:900px;margin:0 auto;padding:24px 16px 60px;">
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:16px;">
+      <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <a href="/tools/fee-calculator" style="color:var(--fg-muted);text-decoration:none;">工具</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">巨鲸追踪</span>
+    </nav>
+
+    <h1 style="font-size:24px;font-weight:800;color:var(--fg);margin:0 0 4px;">链上巨鲸追踪器</h1>
+    <p style="font-size:13px;color:var(--fg-muted);margin:0 0 20px;">实时监控 BTC/ETH 大额链上转账 · 追踪聪明钱动向</p>
+
+    <!-- Summary Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:20px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;">BTC 大额转账</div>
+        <div style="font-size:28px;font-weight:800;color:#f7931a;margin-top:4px;">{btcWhales.length}</div>
+        <div style="font-size:11px;color:var(--fg-muted);">≥10 BTC (待确认)</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;">ETH 质押流入</div>
+        <div style="font-size:28px;font-weight:800;color:#627eea;margin-top:4px;">{ethWhales.length}</div>
+        <div style="font-size:11px;color:var(--fg-muted);">最近大额质押</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--fg-muted);font-weight:600;text-transform:uppercase;">BTC 最大单笔</div>
+        <div style="font-size:28px;font-weight:800;color:var(--accent);margin-top:4px;">
+          {btcWhales.length > 0 ? fmtBTC(btcWhales[0].amount) : "—"}
+        </div>
+        <div style="font-size:11px;color:var(--fg-muted);">
+          {btcWhales.length > 0 ? fmtUSD(btcWhales[0].amountUSD) : "—"}
+        </div>
+      </div>
+    </div>
+
+    <!-- BTC Whale Transactions -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">₿</span>
+        <span style="font-size:15px;font-weight:700;color:var(--fg);">BTC 大额转账（≥10 BTC）</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--fg-muted);">数据来源：Blockchain.com</span>
+      </div>
+      {btcWhales.length > 0 ? (
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:10px 12px;color:var(--fg-muted);font-weight:600;">时间</th>
+              <th style="text-align:right;padding:10px 12px;color:var(--fg-muted);font-weight:600;">金额 (BTC)</th>
+              <th style="text-align:right;padding:10px 12px;color:var(--fg-muted);font-weight:600;">估值 (USD)</th>
+              <th style="text-align:left;padding:10px 12px;color:var(--fg-muted);font-weight:600;">TX Hash</th>
+              <th style="text-align:center;padding:10px 12px;color:var(--fg-muted);font-weight:600;">I/O</th>
+            </tr></thead>
+            <tbody>
+              {btcWhales.map((tx, i) => {
+                const isHuge = tx.amount >= 100;
+                return (
+                  <tr style={`border-bottom:1px solid var(--border-subtle);${isHuge ? 'background:rgba(247,147,26,0.05);' : ''}`}>
+                    <td style="padding:10px 12px;color:var(--fg-muted);">{tx.time}</td>
+                    <td style={`padding:10px 12px;text-align:right;font-weight:700;color:${isHuge ? '#f7931a' : 'var(--fg)'};`}>
+                      {isHuge ? '🐋 ' : ''}{fmtBTC(tx.amount)}
+                    </td>
+                    <td style="padding:10px 12px;text-align:right;color:var(--fg);">{fmtUSD(tx.amountUSD)}</td>
+                    <td style="padding:10px 12px;">
+                      <a href={`https://blockchair.com/bitcoin/transaction/${tx.fullHash}`} target="_blank" rel="noopener noreferrer"
+                        style="color:var(--accent);text-decoration:none;font-family:monospace;font-size:12px;">
+                        {tx.hash}
+                      </a>
+                    </td>
+                    <td style="padding:10px 12px;text-align:center;font-size:11px;color:var(--fg-muted);">{tx.inputs}→{tx.outputs}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div style="padding:40px;text-align:center;color:var(--fg-muted);font-size:14px;">暂无数据，请刷新页面重试</div>
+      )}
+    </div>
+
+    <!-- ETH Staking Deposits -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">⟠</span>
+        <span style="font-size:15px;font-weight:700;color:var(--fg);">ETH 大额质押流入（≥32 ETH）</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--fg-muted);">Beacon Chain Deposit</span>
+      </div>
+      {ethWhales.length > 0 ? (
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:10px 12px;color:var(--fg-muted);font-weight:600;">时间</th>
+              <th style="text-align:right;padding:10px 12px;color:var(--fg-muted);font-weight:600;">金额 (ETH)</th>
+              <th style="text-align:right;padding:10px 12px;color:var(--fg-muted);font-weight:600;">估值 (USD)</th>
+              <th style="text-align:left;padding:10px 12px;color:var(--fg-muted);font-weight:600;">来源</th>
+              <th style="text-align:left;padding:10px 12px;color:var(--fg-muted);font-weight:600;">TX</th>
+            </tr></thead>
+            <tbody>
+              {ethWhales.map(tx => (
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:10px 12px;color:var(--fg-muted);">{tx.time}</td>
+                  <td style="padding:10px 12px;text-align:right;font-weight:700;color:#627eea;">{tx.amount} ETH</td>
+                  <td style="padding:10px 12px;text-align:right;color:var(--fg);">${parseInt(tx.amountUSD).toLocaleString()}</td>
+                  <td style="padding:10px 12px;font-family:monospace;font-size:11px;color:var(--fg-muted);">{tx.from}</td>
+                  <td style="padding:10px 12px;">
+                    <a href={`https://etherscan.io/tx/${tx.fullHash}`} target="_blank" rel="noopener noreferrer"
+                      style="color:var(--accent);text-decoration:none;font-size:12px;">
+                      查看 ↗
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div style="padding:40px;text-align:center;color:var(--fg-muted);font-size:14px;">暂无数据</div>
+      )}
+    </div>
+
+    <!-- How to interpret -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;">
+      <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+        如何解读巨鲸数据
+      </h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+          <div style="font-size:14px;font-weight:700;color:#4caf50;margin-bottom:6px;">🟢 利多信号</div>
+          <ul style="font-size:12px;color:var(--fg-muted);line-height:1.8;padding-left:16px;margin:0;">
+            <li>大量 BTC 从交易所流出 → 长期持有意愿</li>
+            <li>ETH 质押量持续增加 → 看好长期价值</li>
+            <li>巨鲸在低位大量买入</li>
+          </ul>
+        </div>
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+          <div style="font-size:14px;font-weight:700;color:#f44336;margin-bottom:6px;">🔴 利空信号</div>
+          <ul style="font-size:12px;color:var(--fg-muted);line-height:1.8;padding-left:16px;margin:0;">
+            <li>大量 BTC 流入交易所 → 可能准备卖出</li>
+            <li>巨鲸在高位集中转出</li>
+            <li>矿工大量转入交易所</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+        常见问题
+      </h2>
+      <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">什么是加密货币巨鲸？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+          巨鲸（Whale）是指持有大量加密货币的个人或机构。比特币巨鲸通常持有 1000+ BTC（约 $7000万+）。他们的交易行为会显著影响市场价格。
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">巨鲸转账意味着什么？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+          巨鲸大额转入交易所通常是卖出信号（利空），转出交易所通常是长期持有信号（利多）。但需结合市场环境综合判断，单一指标不构成投资建议。
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">如何跟踪巨鲸进行交易？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+          你可以使用本页工具监控大额转账，结合 <a href="/fear-greed" style="color:var(--accent);">恐惧贪婪指数</a> 和 <a href="/tools/defi" style="color:var(--accent);">DeFi TVL 数据</a> 综合判断。在 <a href="/go/binance" rel="sponsored" style="color:var(--accent);">币安</a> 或 <a href="/go/okx" rel="sponsored" style="color:var(--accent);">OKX</a> 交易所执行交易。
+        </div>
+      </details>
+    </div>
+
+    <p style="font-size:11px;color:var(--fg-muted);text-align:center;margin-top:16px;">
+      数据来源：Blockchain.com · Etherscan · 刷新页面获取最新数据 · 免责声明：本工具不构成投资建议
+    </p>
+  </main>
+  <Footer />
+</Layout>
