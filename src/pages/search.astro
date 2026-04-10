@@ -66,6 +66,32 @@ const quickNav = [
       <div id="search-after-cta" style="display:none;margin-top:24px;">
         <BinanceBanner variant="compact" lang={lang} />
       </div>
+
+      <!-- Recommended content when no search is active -->
+      <div id="search-recommend" style="margin-top:24px;">
+        <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <span style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+          {lang === "en" ? "Popular Content" : lang === "es" ? "Contenido Popular" : lang === "pt" ? "Conteúdo Popular" : "热门内容"}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+          {[
+            { label: lang === "en" ? "Exchange Rankings" : "交易所排名", href: "/posts/zh-cn/crypto-exchange-ranking-2026-zh-cn", icon: "🏆" },
+            { label: lang === "en" ? "Beginner Guide" : "新手入门指南", href: "/posts/zh-cn/crypto-beginner-guide-2026-zh-cn", icon: "📚" },
+            { label: lang === "en" ? "Live Prices" : "实时行情", href: "/price", icon: "📊" },
+            { label: lang === "en" ? "Fee Calculator" : "手续费计算器", href: "/tools/fee-calculator", icon: "🧮" },
+            { label: lang === "en" ? "Fear & Greed" : "恐惧贪婪指数", href: "/fear-greed", icon: "😱" },
+            { label: lang === "en" ? "Whale Tracker" : "巨鲸追踪", href: "/tools/whale", icon: "🐋" },
+            { label: lang === "en" ? "Portfolio" : "投资组合", href: "/portfolio", icon: "💼" },
+            { label: lang === "en" ? "Glossary" : "术语词典", href: "/glossary", icon: "📖" },
+          ].map(item => (
+            <a href={item.href}
+              style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--fg);font-size:13px;font-weight:500;transition:border-color 0.12s;">
+              <span style="font-size:18px;">{item.icon}</span>
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </div>
     </main>
 
     <aside class="rsidebar" style="padding:16px 0;">
@@ -155,17 +181,20 @@ const quickNav = [
 
       pagefindInstance = new PagefindUI({
         element: "#pagefind-search",
-        showImages: false,
+        showImages: true,
         showSubResults: true,
+        showEmptyFilters: false,
         processTerm: function (term: string) {
           params.set("q", term);
           history.replaceState(history.state, "", "?" + params.toString());
           const backUrl = (pageFindSearch as HTMLElement)?.dataset?.backurl;
           if (backUrl) sessionStorage.setItem("backUrl", backUrl + "?" + params.toString());
 
-          // 有搜索词时显示广告位
+          // 有搜索词时显示广告位，隐藏推荐内容
           const cta = document.getElementById("search-after-cta");
+          const rec = document.getElementById("search-recommend");
           if (cta) cta.style.display = term.trim() ? "block" : "none";
+          if (rec) rec.style.display = term.trim() ? "none" : "block";
 
           return term;
         },
