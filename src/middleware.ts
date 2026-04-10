@@ -35,13 +35,10 @@ export const onRequest = defineMiddleware((context, next) => {
   const url = new URL(context.request.url);
   const { pathname } = url;
 
-  // ── 1. 去掉尾部斜杠（根路径除外）──────────────────────────
-  if (pathname !== "/" && pathname.endsWith("/")) {
-    const clean = pathname.slice(0, -1) + url.search;
-    return context.redirect(clean, 301);
-  }
+  // Trailing slash 由 astro.config.ts trailingSlash: "never" 原生处理
+  // 不在 middleware 做 301 重定向，避免预渲染时把页面变成空 redirect
 
-  // ── 2. API 速率限制 ────────────────────────────────────────
+  // ── API 速率限制 ────────────────────────────────────────
   if (pathname.startsWith("/api/")) {
     const ip = context.clientAddress || context.request.headers.get("x-forwarded-for") || "unknown";
     if (isApiRateLimited(ip)) {

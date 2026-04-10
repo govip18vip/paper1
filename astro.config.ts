@@ -20,6 +20,7 @@ export default defineConfig({
   site: SITE.website,
 
   output: "static",
+  trailingSlash: "never",
 
   prefetch: {
     prefetchAll: false,

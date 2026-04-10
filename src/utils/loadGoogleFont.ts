@@ -5,28 +5,36 @@ async function loadGoogleFont(
 ): Promise<ArrayBuffer> {
   const API = `https://fonts.googleapis.com/css2?family=${font}:wght@${weight}&text=${encodeURIComponent(text)}`;
 
-  const css = await (
-    await fetch(API, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1",
-      },
-    })
-  ).text();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const css = await (
+        await fetch(API, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1",
+          },
+        })
+      ).text();
 
-  const resource = css.match(
-    /src: url\((.+?)\) format\('(opentype|truetype)'\)/
-  );
+      const resource = css.match(
+        /src: url\((.+?)\) format\('(opentype|truetype)'\)/
+      );
 
-  if (!resource) throw new Error("Failed to download dynamic font");
+      if (!resource) throw new Error("Failed to download dynamic font");
 
-  const res = await fetch(resource[1]);
+      const res = await fetch(resource[1]);
 
-  if (!res.ok) {
-    throw new Error("Failed to download dynamic font. Status: " + res.status);
+      if (!res.ok) {
+        throw new Error("Failed to download dynamic font. Status: " + res.status);
+      }
+
+      return res.arrayBuffer();
+    } catch (e) {
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
   }
-
-  return res.arrayBuffer();
+  throw new Error("Failed to load font after retries");
 }
 
 async function loadGoogleFonts(
@@ -49,12 +57,15 @@ async function loadGoogleFonts(
     },
   ];
 
-  const fonts = await Promise.all(
-    fontsConfig.map(async ({ name, font, weight, style }) => {
+  const fonts: Array<{ name: string; data: ArrayBuffer; weight: number; style: string }> = [];
+  for (const { name, font, weight, style } of fontsConfig) {
+    try {
       const data = await loadGoogleFont(font, text, weight);
-      return { name, data, weight, style };
-    })
-  );
+      fonts.push({ name, data, weight, style });
+    } catch {
+      // Skip font if Google Fonts unreachable (e.g. during CI build)
+    }
+  }
 
   return fonts;
 }
