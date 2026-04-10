@@ -1,10 +1,10 @@
 ---
 // src/pages/coin/[symbol].astro
-// 程序化 SEO 币种落地页 — 从 COIN_DB 自动生成 41 个币种页面
-// 每页包含：实时价格 + 项目信息 + FAQ + Schema + 交易所CTA + 相关文章
+// 动态 SSR 币种落地页 — 支持 200+ 币种
+// 优先读 COIN_DB（41个详细信息），不在库里的从 CoinGecko API 实时拉取
+export const prerender = false;
 
 import { getCollection } from "astro:content";
-import type { GetStaticPaths } from "astro";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
@@ -16,18 +16,50 @@ import { SITE } from "@/config";
 import { getLang, useTranslations, type Lang } from "@/i18n/ui";
 import { getPath } from "@/utils/getPath";
 
-export const getStaticPaths = (async () => {
-  return MAJOR_COINS.map(coin => ({
-    params: { symbol: coin.symbol.toLowerCase() },
-    props: { coinId: coin.id, coinSymbol: coin.symbol },
-  }));
-}) satisfies GetStaticPaths;
+const { symbol } = Astro.params;
+if (!symbol) return Astro.redirect("/404");
 
-const { coinId, coinSymbol } = Astro.props;
 const lang = getLang(Astro.url) as Lang;
 const t = useTranslations(lang);
 
-const coin = getCoinInfo(coinId, lang);
+// Try local COIN_DB first (41 coins with full details)
+const localEntry = MAJOR_COINS.find(c => c.symbol.toLowerCase() === symbol);
+let coin: any = localEntry ? getCoinInfo(localEntry.id, lang) : null;
+let coinSymbol = localEntry?.symbol ?? symbol.toUpperCase();
+let coinId = localEntry?.id ?? symbol.toLowerCase();
+
+// If not in local DB, fetch from CoinGecko API (200+ coins)
+if (!coin) {
+  try {
+    // Search by symbol
+    const r = await fetch(
+      `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&sparkline=false`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (r.ok) {
+      const coins: any[] = await r.json();
+      const match = coins.find(c => c.symbol?.toUpperCase() === symbol.toUpperCase());
+      if (match) {
+        coinId = match.id;
+        coinSymbol = match.symbol.toUpperCase();
+        // Build a temporary CoinInfo from CoinGecko data
+        coin = {
+          id: coinId,
+          symbol: coinSymbol,
+          binanceSymbol: coinSymbol + "USDT",
+          color: "#6366f1",
+          emoji: "🪙",
+          tags: [symbol.toLowerCase()],
+          name: { "zh-CN": match.name, "zh-TW": match.name, en: match.name, es: match.name, pt: match.name },
+          description: { "zh-CN": `${match.name} (${coinSymbol}) 是一个加密货币项目，当前市值排名第 ${match.market_cap_rank ?? '—'} 位。`, "zh-TW": `${match.name} (${coinSymbol}) 是一個加密貨幣項目。`, en: `${match.name} (${coinSymbol}) is a cryptocurrency project ranked #${match.market_cap_rank ?? '—'} by market cap.`, es: `${match.name} (${coinSymbol}) es un proyecto de criptomoneda.`, pt: `${match.name} (${coinSymbol}) é um projeto de criptomoeda.` },
+          useCase: { "zh-CN": "加密货币", "zh-TW": "加密貨幣", en: "Cryptocurrency", es: "Criptomoneda", pt: "Criptomoeda" },
+          coingeckoId: coinId,
+        } as any;
+      }
+    }
+  } catch {}
+}
+
 if (!coin) return Astro.redirect("/404");
 
 const siteUrl = SITE.website.replace(/\/$/, "");

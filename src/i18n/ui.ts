@@ -95,6 +95,9 @@ export const TAXONOMY = [
       { key: "手续费计算", labelKey: "nav.tools.fee",       href: "/tools/fee-calculator" },
       { key: "投资组合",   labelKey: "nav.tools.portfolio",  href: "/portfolio" },
       { key: "恐惧贪婪",   labelKey: "nav.tools.feargreed", href: "/fear-greed" },
+      { key: "Gas追踪",   labelKey: "nav.tools.gas",       href: "/tools/gas" },
+      { key: "DeFi TVL",  labelKey: "nav.tools.defi",      href: "/tools/defi" },
+      { key: "术语词典",   labelKey: "nav.tools.glossary",  href: "/glossary" },
     ],
   },
   {
@@ -225,11 +228,19 @@ export const UI: Record<Lang, Record<string, string>> = {
     "subscribe.error":       "订阅失败，请稍后重试",
     "subscribe.invalid":     "请输入有效的邮箱地址",
     "subscribe.privacy":     "我们重视您的隐私，绝不发送垃圾邮件",
+    // ── Cookie consent ──
+    "cookie.message":        "本站使用 Cookie 和分析工具以提升浏览体验。",
+    "cookie.accept":         "接受",
+    "cookie.decline":        "仅必要",
+    "cookie.learnMore":      "隐私政策",
     // ── Retention features ──
     "nav.tools":             "工具",
     "nav.tools.fee":         "手续费计算器",
     "nav.tools.portfolio":   "投资组合",
     "nav.tools.feargreed":   "恐惧贪婪指数",
+    "nav.tools.gas":         "Gas追踪器",
+    "nav.tools.defi":        "DeFi TVL",
+    "nav.tools.glossary":    "术语词典",
     "bnav.home":             "首页",
     "bnav.flash":            "快讯",
     "bnav.prices":           "行情",
@@ -346,6 +357,10 @@ export const UI: Record<Lang, Record<string, string>> = {
     "subscribe.error":       "訂閱失敗，請稍後重試",
     "subscribe.invalid":     "請輸入有效的電子郵件地址",
     "subscribe.privacy":     "我們重視您的隱私，絕不發送垃圾郵件",
+    "cookie.message":        "本站使用 Cookie 和分析工具以提升瀏覽體驗。",
+    "cookie.accept":         "接受",
+    "cookie.decline":        "僅必要",
+    "cookie.learnMore":      "隱私政策",
     "nav.tools":             "工具",
     "nav.tools.fee":         "手續費計算器",
     "nav.tools.portfolio":   "投資組合",
@@ -466,10 +481,17 @@ export const UI: Record<Lang, Record<string, string>> = {
     "subscribe.error":       "Subscription failed, please try again",
     "subscribe.invalid":     "Please enter a valid email address",
     "subscribe.privacy":     "We respect your privacy. No spam, ever.",
+    "cookie.message":        "We use cookies and analytics to improve your experience.",
+    "cookie.accept":         "Accept",
+    "cookie.decline":        "Essential only",
+    "cookie.learnMore":      "Privacy Policy",
     "nav.tools":             "Tools",
     "nav.tools.fee":         "Fee Calculator",
     "nav.tools.portfolio":   "Portfolio",
     "nav.tools.feargreed":   "Fear & Greed",
+    "nav.tools.gas":         "Gas Tracker",
+    "nav.tools.defi":        "DeFi TVL",
+    "nav.tools.glossary":    "Glossary",
     "bnav.home":             "Home",
     "bnav.flash":            "Flash",
     "bnav.prices":           "Prices",
@@ -586,10 +608,17 @@ export const UI: Record<Lang, Record<string, string>> = {
     "subscribe.error":       "Error al suscribirse, inténtalo de nuevo",
     "subscribe.invalid":     "Ingresa una dirección de correo válida",
     "subscribe.privacy":     "Respetamos tu privacidad. Sin spam, nunca.",
+    "cookie.message":        "Usamos cookies y herramientas de analisis para mejorar tu experiencia.",
+    "cookie.accept":         "Aceptar",
+    "cookie.decline":        "Solo esenciales",
+    "cookie.learnMore":      "Politica de privacidad",
     "nav.tools":             "Herramientas",
     "nav.tools.fee":         "Calculadora",
     "nav.tools.portfolio":   "Portafolio",
     "nav.tools.feargreed":   "Miedo y Codicia",
+    "nav.tools.gas":         "Gas Tracker",
+    "nav.tools.defi":        "DeFi TVL",
+    "nav.tools.glossary":    "Glosario",
     "bnav.home":             "Inicio",
     "bnav.flash":            "Flash",
     "bnav.prices":           "Precios",
@@ -706,10 +735,17 @@ export const UI: Record<Lang, Record<string, string>> = {
     "subscribe.error":       "Falha na inscrição, tente novamente",
     "subscribe.invalid":     "Insira um endereço de e-mail válido",
     "subscribe.privacy":     "Respeitamos sua privacidade. Sem spam, jamais.",
+    "cookie.message":        "Usamos cookies e ferramentas de analise para melhorar sua experiencia.",
+    "cookie.accept":         "Aceitar",
+    "cookie.decline":        "Apenas essenciais",
+    "cookie.learnMore":      "Politica de privacidade",
     "nav.tools":             "Ferramentas",
     "nav.tools.fee":         "Calculadora",
     "nav.tools.portfolio":   "Portfólio",
     "nav.tools.feargreed":   "Medo e Ganância",
+    "nav.tools.gas":         "Gas Tracker",
+    "nav.tools.defi":        "DeFi TVL",
+    "nav.tools.glossary":    "Glossário",
     "bnav.home":             "Início",
     "bnav.flash":            "Flash",
     "bnav.prices":           "Preços",
@@ -744,7 +780,7 @@ export function stripLangPrefix(pathname: string): string {
   return pathname;
 }
 
-export function hreflangLinks(url: URL): { lang: Lang; href: string }[] {
+export function hreflangLinks(url: URL): { lang: string; href: string }[] {
   const origin = url.origin;
   const cleanPath = stripLangPrefix(url.pathname);
   return (Object.keys(LANGUAGES) as Lang[]).map(l => {
@@ -752,7 +788,8 @@ export function hreflangLinks(url: URL): { lang: Lang; href: string }[] {
     const href = pathSeg
       ? `${origin}/${pathSeg}${cleanPath === "/" ? "" : cleanPath}`
       : `${origin}${cleanPath}`;
-    return { lang: l, href };
+    // Use HTML_LANG for hreflang attribute (e.g. pt → pt-BR)
+    return { lang: HTML_LANG[l], href };
   });
 }
 

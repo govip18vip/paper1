@@ -78,6 +78,9 @@ const {
   type: articleType = "article",
 } = post.data;
 
+const keyTakeaways: string[] = (post.data as any).keyTakeaways ?? [];
+const postKeywords: string | undefined = (post.data as any).keywords;
+
 // Language
 const postLang = ((post.data as any).lang as Lang) ?? "zh-CN";
 const t = useTranslations(postLang);
@@ -128,6 +131,11 @@ const articleSchema = {
     "@id": `${Astro.url.origin}/author/${authorSlug}/#person`,
     name: author ?? SITE.author,
     url: `${Astro.url.origin}/author/${authorSlug}/`,
+    description: authorData.bio[postLang] ?? authorData.bio["zh-CN"] ?? "",
+    jobTitle: authorData.title[postLang] ?? authorData.title["zh-CN"] ?? "",
+    ...(authorData.twitter || authorData.telegram ? {
+      sameAs: [authorData.twitter, authorData.telegram].filter(Boolean),
+    } : {}),
   },
   publisher: {
     "@type": "Organization",
@@ -233,6 +241,7 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
   title={pageTitle}
   author={author}
   description={description}
+  keywords={postKeywords ?? tags.join(", ")}
   ogImage={resolvedOgImage}
   ogType="article"
   canonicalURL={canonicalURL}
@@ -354,6 +363,20 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
           <!-- Description -->
           <p class="pd-description">{description}</p>
 
+          <!-- Key Takeaways (GEO optimization — AI search engines prefer structured summaries) -->
+          {keyTakeaways && keyTakeaways.length > 0 && (
+            <div class="pd-takeaways">
+              <h2 class="pd-takeaways-title">
+                {postLang === "en" ? "Key Takeaways" : postLang === "es" ? "Puntos Clave" : postLang === "pt" ? "Pontos-Chave" : "要点速览"}
+              </h2>
+              <ul class="pd-takeaways-list">
+                {keyTakeaways.map((item: string) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <!-- Mobile TOC (visible only on small screens) -->
           <MobileTOC headings={headings} />
 
@@ -386,6 +409,40 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
               ))}
             </section>
           )}
+
+          <!-- Author bio card (E-E-A-T signal) -->
+          <div class="pd-author-bio">
+            <img src={authorData.avatar} alt={authorData.name} width="48" height="48" class="pd-author-bio-avatar" />
+            <div class="pd-author-bio-info">
+              <a href={`/author/${authorData.slug}/`} class="pd-author-bio-name">{authorData.name}</a>
+              <p class="pd-author-bio-title">{authorData.title[postLang] ?? authorData.title["zh-CN"]}</p>
+              <p class="pd-author-bio-text">{authorData.bio[postLang] ?? authorData.bio["zh-CN"]}</p>
+              <div class="pd-author-bio-social">
+                {authorData.twitter && (
+                  <a href={authorData.twitter} target="_blank" rel="noopener noreferrer" aria-label="X/Twitter">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                )}
+                {authorData.telegram && (
+                  <a href={authorData.telegram} target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <!-- Community CTA -->
+          <div class="pd-community-cta">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;color:var(--accent)"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            <div>
+              <strong>{postLang === "en" ? "Join Our Community" : postLang === "es" ? "Unete a la comunidad" : postLang === "pt" ? "Junte-se a comunidade" : "加入社区"}</strong>
+              <span>{postLang === "en" ? "Discuss this article" : postLang === "es" ? "Discute este articulo" : postLang === "pt" ? "Discuta este artigo" : "讨论本文"}</span>
+            </div>
+            <a href="https://t.me/AllenAmbrose" target="_blank" rel="noopener noreferrer" class="pd-community-btn">
+              Telegram →
+            </a>
+          </div>
 
           <!-- Article banner -->
           <div class="pd-banner-article">
@@ -665,6 +722,34 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     border-left: 3px solid var(--accent);
   }
 
+  /* ── Key Takeaways (GEO) ────────────────────────────────── */
+  .pd-takeaways {
+    margin: 0 0 20px;
+    padding: 16px 20px;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+    border-radius: 8px;
+  }
+  .pd-takeaways-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  .pd-takeaways-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--fg);
+  }
+  .pd-takeaways-list li {
+    margin-bottom: 4px;
+  }
+  .pd-takeaways-list li::marker {
+    color: var(--accent);
+  }
+
   /* ── Prose overrides ────────────────────────────────────── */
   .pd-prose {
     max-width: none;
@@ -874,6 +959,93 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     pointer-events: none;
     transform-origin: left center;
   }
+
+  /* ── Author bio card ────────────────────────────────────── */
+  .pd-author-bio {
+    display: flex;
+    gap: 14px;
+    padding: 18px;
+    margin: 20px 0 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .pd-author-bio-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+  .pd-author-bio-info { min-width: 0; }
+  .pd-author-bio-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg);
+    text-decoration: none;
+    transition: color 0.12s;
+  }
+  .pd-author-bio-name:hover { color: var(--accent); }
+  .pd-author-bio-title {
+    font-size: 12px;
+    color: var(--accent);
+    margin: 2px 0 6px;
+    font-weight: 500;
+  }
+  .pd-author-bio-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--fg-muted);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .pd-author-bio-social {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .pd-author-bio-social a {
+    color: var(--fg-muted);
+    transition: color 0.12s;
+  }
+  .pd-author-bio-social a:hover { color: var(--accent); }
+
+  /* ── Community CTA ─────────────────────────────────────── */
+  .pd-community-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    margin: 0 0 12px;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--fg-muted);
+  }
+  .pd-community-cta strong {
+    display: block;
+    color: var(--fg);
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+  .pd-community-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.12s;
+  }
+  .pd-community-btn:hover { opacity: 0.88; }
 
   /* ── Subscribe card ─────────────────────────────────────── */
   .pd-subscribe-card {

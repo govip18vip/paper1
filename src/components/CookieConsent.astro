@@ -1,0 +1,105 @@
+---
+// src/components/CookieConsent.astro
+// GDPR-compliant cookie consent banner
+// Blocks GA4 until user accepts; persists choice in localStorage.
+
+import { getLang, useTranslations } from "@/i18n/ui";
+
+const lang = getLang(Astro.url);
+const t = useTranslations(lang);
+---
+
+<div id="cookie-consent" class="cc-banner" role="dialog" aria-label="Cookie consent" hidden>
+  <p class="cc-text">
+    {t("cookie.message")}
+    <a href="/privacy" class="cc-link">{t("cookie.learnMore")}</a>
+  </p>
+  <div class="cc-actions">
+    <button id="cc-decline" class="cc-btn cc-btn-secondary">{t("cookie.decline")}</button>
+    <button id="cc-accept" class="cc-btn cc-btn-primary">{t("cookie.accept")}</button>
+  </div>
+</div>
+
+<style>
+  .cc-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 20px;
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    font-size: 13px;
+    color: var(--fg-muted);
+    flex-wrap: wrap;
+  }
+
+  .cc-banner[hidden] { display: none; }
+
+  .cc-text { margin: 0; line-height: 1.5; flex: 1; min-width: 200px; }
+
+  .cc-link {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .cc-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .cc-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.12s;
+    font-family: inherit;
+  }
+  .cc-btn:hover { opacity: 0.85; }
+
+  .cc-btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .cc-btn-secondary {
+    background: transparent;
+    color: var(--fg-muted);
+    border: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .cc-banner { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  }
+</style>
+
+<script is:inline>
+(function() {
+  var KEY = "cookie_consent";
+  var banner = document.getElementById("cookie-consent");
+  if (!banner) return;
+
+  var stored = localStorage.getItem(KEY);
+  if (stored) return; // Already made a choice
+
+  banner.hidden = false;
+
+  document.getElementById("cc-accept").addEventListener("click", function() {
+    localStorage.setItem(KEY, "accepted");
+    banner.hidden = true;
+  });
+
+  document.getElementById("cc-decline").addEventListener("click", function() {
+    localStorage.setItem(KEY, "declined");
+    banner.hidden = true;
+    // Disable GA4 if user declines
+    window["ga-disable-" + (window.__gaId || "")] = true;
+  });
+})();
+</script>

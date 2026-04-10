@@ -14,7 +14,7 @@ export const SITE = {
   editPost: {
     enabled: false,
     text: "建议修改",
-    url: "https://github.com/your-repo/edit/main/",
+    url: "https://github.com/govip18vip/bitaigen/edit/master/",
   },
   dynamicOgImage: true,
   dir: "ltr",

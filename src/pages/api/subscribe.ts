@@ -121,8 +121,30 @@ function buildWelcomeHtml(lang: string, fromYear: number): string {
 </html>`;
 }
 
-export const POST: APIRoute = async ({ request }) => {
+// ── Simple in-memory rate limiter (per IP, 5 requests / 10 min) ──
+const rateLimitMap = new Map<string, { count: number; reset: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 10 * 60 * 1000; // 10 minutes
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.reset) {
+    rateLimitMap.set(ip, { count: 1, reset: now + RATE_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
+export const POST: APIRoute = async ({ request, clientAddress }) => {
   const headers = { "Content-Type": "application/json" };
+
+  // ── Rate limiting ─────────────────────────────────────────
+  const ip = clientAddress || request.headers.get("x-forwarded-for") || "unknown";
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers });
+  }
 
   // ── Parse body ────────────────────────────────────────────
   let body: Record<string, unknown>;
@@ -130,6 +152,12 @@ export const POST: APIRoute = async ({ request }) => {
     body = await request.json();
   } catch {
     return new Response(JSON.stringify({ error: "invalid_body" }), { status: 400, headers });
+  }
+
+  // ── Honeypot check — bots fill hidden fields ──────────────
+  if (body.website) {
+    // Silently return success to fool bots
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers });
   }
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";

@@ -18,7 +18,7 @@ const blog = defineCollection({
       draft: z.boolean().optional(),
       tags: z.array(z.string()).default(["others"]),
       ogImage: image().or(z.string()).optional(),
-      description: z.string(),
+      description: z.string().min(10).max(300),
       canonicalURL: z.string().optional(),
       hideEditPost: z.boolean().optional(),
       timezone: z.string().optional(),
@@ -33,6 +33,10 @@ const blog = defineCollection({
       // heroImage: used in frontmatter for the main article banner.
       // Accepts both local image() refs and external URL strings.
       heroImage: image().or(z.string()).optional(),
+
+      // ── GEO / AI search optimization ─────────────────────
+      keyTakeaways: z.array(z.string()).optional(),
+      keywords: z.string().optional(),
 
       // ── SEO / Schema fields ────────────────────────────────
       type: z

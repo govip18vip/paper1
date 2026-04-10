@@ -1,0 +1,105 @@
+---
+// src/pages/glossary.astro
+// Crypto glossary hub — links to all term articles + inline definitions
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+
+const title = "加密货币术语词典 — 区块链 & 加密货币完全词汇表";
+const desc = "500+加密货币和区块链术语解释：从比特币、DeFi到NFT，新手必备的加密世界百科全书。";
+
+const terms = [
+  { term: "比特币 (Bitcoin)", desc: "第一个去中心化数字货币，总量2100万枚", href: "/coin/btc", cat: "核心" },
+  { term: "以太坊 (Ethereum)", desc: "最大的智能合约平台", href: "/coin/eth", cat: "核心" },
+  { term: "区块链 (Blockchain)", desc: "不可篡改的分布式账本技术", cat: "核心" },
+  { term: "智能合约 (Smart Contract)", desc: "自动执行的链上程序", cat: "核心" },
+  { term: "共识机制 (Consensus)", desc: "网络参与者达成一致的规则", cat: "核心" },
+  { term: "工作量证明 (PoW)", desc: "通过计算竞赛验证交易的机制", cat: "共识" },
+  { term: "权益证明 (PoS)", desc: "通过质押代币验证交易的机制", cat: "共识" },
+  { term: "减半 (Halving)", desc: "比特币挖矿奖励每4年减半", cat: "比特币" },
+  { term: "钱包 (Wallet)", desc: "存储和管理加密货币的工具", href: "/tags/wallet", cat: "工具" },
+  { term: "私钥 (Private Key)", desc: "控制资产的密码，永远不要分享", cat: "安全" },
+  { term: "公钥 (Public Key)", desc: "接收加密货币的地址", cat: "安全" },
+  { term: "助记词 (Seed Phrase)", desc: "12/24个英文单词，用于恢复钱包", cat: "安全" },
+  { term: "DeFi", desc: "去中心化金融，无中介的金融服务", href: "/tags/defi", cat: "DeFi" },
+  { term: "DEX", desc: "去中心化交易所，如Uniswap", cat: "DeFi" },
+  { term: "AMM", desc: "自动做市商，DEX的核心机制", cat: "DeFi" },
+  { term: "流动性挖矿", desc: "提供流动性赚取代币奖励", cat: "DeFi" },
+  { term: "无常损失", desc: "流动性提供者因价格变动产生的损失", cat: "DeFi" },
+  { term: "闪电贷 (Flash Loan)", desc: "同一笔交易内借还的无抵押贷款", cat: "DeFi" },
+  { term: "收益农耕 (Yield Farming)", desc: "通过DeFi协议最大化收益", cat: "DeFi" },
+  { term: "TVL", desc: "Total Value Locked，DeFi协议锁仓总量", href: "/tools/defi", cat: "DeFi" },
+  { term: "质押 (Staking)", desc: "锁定代币支持网络运行并获取奖励", cat: "DeFi" },
+  { term: "NFT", desc: "非同质化代币，数字收藏品", href: "/tags/nft", cat: "NFT" },
+  { term: "铸造 (Mint)", desc: "在区块链上创建新NFT的过程", cat: "NFT" },
+  { term: "地板价 (Floor Price)", desc: "NFT系列中最低挂单价格", cat: "NFT" },
+  { term: "Gas", desc: "区块链网络的交易手续费", href: "/tools/gas", cat: "技术" },
+  { term: "Layer 2", desc: "建在主链上的扩容方案", href: "/tags/layer2", cat: "技术" },
+  { term: "节点 (Node)", desc: "运行区块链软件的计算机", cat: "技术" },
+  { term: "挖矿 (Mining)", desc: "用计算力验证交易并获取奖励", cat: "比特币" },
+  { term: "HODL", desc: "长期持有不卖（Hold的变体写法）", cat: "文化" },
+  { term: "DYOR", desc: "Do Your Own Research，自己做研究", cat: "文化" },
+  { term: "FOMO", desc: "Fear of Missing Out，害怕错过", cat: "文化" },
+  { term: "KYC", desc: "身份验证（Know Your Customer）", cat: "交易所" },
+  { term: "P2P", desc: "点对点交易，个人之间直接买卖", cat: "交易所" },
+  { term: "稳定币 (Stablecoin)", desc: "锚定法币价值的加密货币，如USDT", cat: "代币" },
+  { term: "山寨币 (Altcoin)", desc: "比特币以外的所有加密货币", cat: "代币" },
+  { term: "Meme币", desc: "由社区和文化驱动的加密货币", cat: "代币" },
+  { term: "恐惧贪婪指数", desc: "衡量市场情绪的0-100指数", href: "/fear-greed", cat: "指标" },
+  { term: "市值 (Market Cap)", desc: "币价 × 流通量，衡量项目规模", cat: "指标" },
+  { term: "ATH", desc: "All Time High，历史最高价", cat: "指标" },
+  { term: "RSI", desc: "相对强弱指数，超买超卖指标", cat: "技术分析" },
+  { term: "MACD", desc: "异同移动平均线，趋势动量指标", cat: "技术分析" },
+  { term: "K线图", desc: "显示开高低收价格的蜡烛图", cat: "技术分析" },
+];
+
+const categories = [...new Set(terms.map(t => t.cat))];
+---
+<Layout title={`${title} | ${SITE.title}`} description={desc}>
+  <Header />
+  <main style="max-width:800px;margin:0 auto;padding:24px 16px 60px;">
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:16px;">
+      <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">术语词典</span>
+    </nav>
+
+    <h1 style="font-size:24px;font-weight:800;color:var(--fg);margin:0 0 4px;">加密货币术语词典</h1>
+    <p style="font-size:13px;color:var(--fg-muted);margin:0 0 20px;">{terms.length}+ 个核心术语 · 新手必备</p>
+
+    <!-- Category filter -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;">
+      {categories.map(cat => (
+        <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--fg-muted);background:var(--bg-card);">{cat}</span>
+      ))}
+    </div>
+
+    {categories.map(cat => (
+      <div style="margin-bottom:24px;">
+        <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 10px;display:flex;align-items:center;gap:8px;">
+          <span style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+          {cat}
+        </h2>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          {terms.filter(t => t.cat === cat).map((t, i, arr) => (
+            <div style={`padding:12px 16px;${i < arr.length - 1 ? 'border-bottom:1px solid var(--border-subtle);' : ''}`}>
+              {t.href ? (
+                <a href={t.href} style="font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;">{t.term}</a>
+              ) : (
+                <span style="font-size:14px;font-weight:600;color:var(--fg);">{t.term}</span>
+              )}
+              <div style="font-size:12px;color:var(--fg-muted);margin-top:2px;">{t.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+
+    <p style="font-size:12px;color:var(--fg-muted);text-align:center;margin-top:24px;">
+      想学更多？查看 <a href="/posts/zh-cn/crypto-beginner-guide-2026-zh-cn" style="color:var(--accent);">新手入门指南</a> |
+      <a href="/go/binance" rel="sponsored" style="color:var(--accent);">注册币安开始交易</a>
+    </p>
+  </main>
+  <Footer />
+</Layout>

@@ -28,6 +28,8 @@ const uid = Math.random().toString(36).slice(2, 8);
   )}
 
   <form class="sub-form" novalidate>
+    <!-- Honeypot field — hidden from humans, traps bots -->
+    <input type="text" name="website" autocomplete="off" tabindex="-1" class="sub-hp" aria-hidden="true" />
     <input
       type="email"
       name="email"
@@ -163,6 +165,18 @@ const uid = Math.random().toString(36).slice(2, 8);
     opacity: 0.8;
   }
 
+  /* ── Honeypot (hidden from humans) ──────────────── */
+  .sub-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    tab-index: -1;
+  }
+
   /* ── compact variant ────────────────────────────── */
   .sub-compact .sub-input  { height: 36px; font-size: 13px; }
   .sub-compact .sub-btn    { height: 36px; padding: 0 14px; font-size: 13px; }
@@ -197,6 +211,13 @@ function initSubscribeForm(wrap: HTMLElement) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = input.value.trim();
+
+    // Honeypot check — if filled, silently "succeed" to fool bots
+    const hp = form.querySelector<HTMLInputElement>('input[name="website"]');
+    if (hp && hp.value) {
+      setMsg(getMsg("subscribe.success", "✓ 订阅成功！感谢关注"), "success");
+      return;
+    }
 
     // Client-side validation
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

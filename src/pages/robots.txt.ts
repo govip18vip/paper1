@@ -20,6 +20,7 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_astro/
+Disallow: /go/
 Disallow: /404
 Crawl-delay: 1
 
@@ -28,6 +29,7 @@ User-agent: Googlebot
 Allow: /
 Disallow: /api/
 Disallow: /_astro/
+Disallow: /go/
 
 User-agent: Bingbot
 Allow: /

@@ -5,6 +5,7 @@ import { SITE } from "@/config";
 import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
 import MobileBottomNav from "@/components/MobileBottomNav.astro";
 import StickyNav from "@/components/StickyNav.astro";
+import CookieConsent from "@/components/CookieConsent.astro";
 import "@/styles/global.css";
 import "../styles/mobile-fixes.css";
 
@@ -20,6 +21,7 @@ type Props = {
   author?: string;
   profile?: string;
   description?: string;
+  keywords?: string;
   ogImage?: string;
   ogType?: string;
   canonicalURL?: string;
@@ -34,6 +36,7 @@ const {
   title = SITE.title,
   author = SITE.author,
   profile = SITE.profile,
+  keywords,
   description = UI[lang]?.["site.desc"] ?? SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
   ogType = "website",
@@ -87,6 +90,7 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <title>{title.includes(SITE.title) ? title : `${title} | ${SITE.title}`}</title>
     <meta name="title"       content={title.includes(SITE.title) ? title : `${title} | ${SITE.title}`} />
     <meta name="description" content={description} data-i18n="site.desc" />
+    {keywords && <meta name="keywords" content={keywords} />}
     <meta name="author"      content={author} />
     <link rel="sitemap"      href="/sitemap-index.xml" />
 
@@ -191,9 +195,15 @@ const socialImageURL = new URL(ogImage, Astro.url);
       <script defer data-domain={SITE.plausibleDomain} src="https://plausible.io/js/script.js" is:inline />
     )}
 
-    <!-- Analytics: Google Analytics 4 (gtag.js) -->
+    <!-- Analytics: Google Analytics 4 (gtag.js) — gated on cookie consent -->
     {import.meta.env.PUBLIC_GA_ID && (
       <Fragment>
+        <script is:inline define:vars={{ gaId: import.meta.env.PUBLIC_GA_ID }}>
+          window.__gaId = gaId;
+          if (localStorage.getItem("cookie_consent") === "declined") {
+            window["ga-disable-" + gaId] = true;
+          }
+        </script>
         <script
           async
           src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.PUBLIC_GA_ID}`}
@@ -219,6 +229,7 @@ const socialImageURL = new URL(ogImage, Astro.url);
 
     <StickyNav />
     <MobileBottomNav />
+    <CookieConsent />
 
     <script>
       import "@/scripts/theme.ts";
