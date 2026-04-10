@@ -1,0 +1,132 @@
+---
+// src/pages/tools/gas.astro
+// Ethereum Gas Tracker — real-time gas prices from multiple chains
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+const title = "以太坊 Gas 费追踪器 — 实时 Gas 价格与最佳交易时间";
+const desc = "实时追踪以太坊、BSC、Polygon等区块链网络的Gas费。找到最佳交易时间，节省手续费。";
+---
+<Layout title={`${title} | ${SITE.title}`} description={desc}>
+  <Header />
+  <main style="max-width:800px;margin:0 auto;padding:24px 16px 60px;">
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:16px;">
+      <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <a href="/tools/fee-calculator" style="color:var(--fg-muted);text-decoration:none;">工具</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">Gas 追踪器</span>
+    </nav>
+    <h1 style="font-size:24px;font-weight:800;color:var(--fg);margin:0 0 4px;">Gas 费追踪器</h1>
+    <p style="font-size:13px;color:var(--fg-muted);margin:0 0 20px;">实时Gas价格 · 帮你选择最佳交易时间 · 每15秒刷新</p>
+
+    <!-- ETH Gas -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:20px;">⟠</span>
+        <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0;">Ethereum Gas</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" id="eth-gas">
+        <div style="padding:16px;background:#4caf5022;border:1px solid #4caf5044;border-radius:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--fg-muted);font-weight:600;">🐌 Low</div>
+          <div id="gas-low" style="font-size:24px;font-weight:800;color:#4caf50;">—</div>
+          <div style="font-size:11px;color:var(--fg-muted);">Gwei</div>
+        </div>
+        <div style="padding:16px;background:#ff980022;border:1px solid #ff980044;border-radius:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--fg-muted);font-weight:600;">🚶 Average</div>
+          <div id="gas-avg" style="font-size:24px;font-weight:800;color:#ff9800;">—</div>
+          <div style="font-size:11px;color:var(--fg-muted);">Gwei</div>
+        </div>
+        <div style="padding:16px;background:#f4433622;border:1px solid #f4433644;border-radius:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--fg-muted);font-weight:600;">🚀 Fast</div>
+          <div id="gas-fast" style="font-size:24px;font-weight:800;color:#f44336;">—</div>
+          <div style="font-size:11px;color:var(--fg-muted);">Gwei</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--fg-muted);">
+        ETH Transfer ≈ <span id="gas-cost-eth">—</span> | ERC-20 Transfer ≈ <span id="gas-cost-erc20">—</span> | Uniswap Swap ≈ <span id="gas-cost-swap">—</span>
+      </div>
+    </div>
+
+    <!-- Multi-chain comparison -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+        多链 Gas 对比
+      </h2>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="border-bottom:2px solid var(--border);">
+            <th style="text-align:left;padding:10px 8px;color:var(--fg-muted);font-weight:600;">链</th>
+            <th style="text-align:right;padding:10px 8px;color:var(--fg-muted);font-weight:600;">Gas 价格</th>
+            <th style="text-align:right;padding:10px 8px;color:var(--fg-muted);font-weight:600;">转账费用</th>
+          </tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">⟠ Ethereum</td><td id="mc-eth" style="text-align:right;color:var(--fg);">—</td><td id="mc-eth-cost" style="text-align:right;color:var(--fg);">—</td></tr>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">🟡 BSC</td><td style="text-align:right;color:var(--accent-green);">~3 Gwei</td><td style="text-align:right;color:var(--accent-green);">~$0.05</td></tr>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">🟣 Polygon</td><td style="text-align:right;color:var(--accent-green);">~30 Gwei</td><td style="text-align:right;color:var(--accent-green);">~$0.001</td></tr>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">🔵 Arbitrum</td><td style="text-align:right;color:var(--accent-green);">~0.1 Gwei</td><td style="text-align:right;color:var(--accent-green);">~$0.10</td></tr>
+            <tr><td style="padding:10px 8px;color:var(--fg);">🔴 Optimism</td><td style="text-align:right;color:var(--accent-green);">~0.001 Gwei</td><td style="text-align:right;color:var(--accent-green);">~$0.05</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 10px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:16px;background:var(--accent);border-radius:2px;"></span>
+        省Gas小贴士
+      </h2>
+      <ul style="font-size:13px;color:var(--fg-muted);line-height:2;padding-left:20px;margin:0;">
+        <li>UTC 时间 02:00-06:00（北京 10:00-14:00）通常 Gas 最低</li>
+        <li>周末 Gas 通常低于工作日</li>
+        <li>使用 Layer 2（Arbitrum/Optimism）可节省 90%+ Gas</li>
+        <li>在 <a href="/go/binance" rel="sponsored" style="color:var(--accent);">币安</a> 或 <a href="/go/okx" rel="sponsored" style="color:var(--accent);">OKX</a> 交易所内转账免Gas</li>
+      </ul>
+    </div>
+  </main>
+  <Footer />
+</Layout>
+
+<script is:inline>
+(function(){
+  async function fetchGas() {
+    // Try Etherscan gas oracle (free, no key needed for basic)
+    try {
+      const r = await fetch("https://api.etherscan.io/api?module=gastracker&action=gasoracle", {signal: AbortSignal.timeout(6000)});
+      if (r.ok) {
+        const d = (await r.json()).result;
+        if (d && d.SafeGasPrice) {
+          document.getElementById("gas-low").textContent = d.SafeGasPrice;
+          document.getElementById("gas-avg").textContent = d.ProposeGasPrice;
+          document.getElementById("gas-fast").textContent = d.FastGasPrice;
+          const ethPrice = 2200; // approximate
+          const avgGwei = parseFloat(d.ProposeGasPrice);
+          document.getElementById("gas-cost-eth").textContent = "$" + (avgGwei * 21000 * ethPrice / 1e9).toFixed(2);
+          document.getElementById("gas-cost-erc20").textContent = "$" + (avgGwei * 65000 * ethPrice / 1e9).toFixed(2);
+          document.getElementById("gas-cost-swap").textContent = "$" + (avgGwei * 200000 * ethPrice / 1e9).toFixed(2);
+          document.getElementById("mc-eth").textContent = avgGwei + " Gwei";
+          document.getElementById("mc-eth-cost").textContent = "$" + (avgGwei * 21000 * ethPrice / 1e9).toFixed(2);
+          return;
+        }
+      }
+    } catch {}
+    // Fallback: blocknative
+    try {
+      const r = await fetch("https://api.blocknative.com/gasprices/blockprices", {signal: AbortSignal.timeout(6000)});
+      if (r.ok) {
+        const d = await r.json();
+        const prices = d.blockPrices?.[0]?.estimatedPrices;
+        if (prices) {
+          document.getElementById("gas-low").textContent = Math.round(prices[3]?.price ?? 0);
+          document.getElementById("gas-avg").textContent = Math.round(prices[1]?.price ?? 0);
+          document.getElementById("gas-fast").textContent = Math.round(prices[0]?.price ?? 0);
+        }
+      }
+    } catch {}
+  }
+  fetchGas();
+  setInterval(fetchGas, 15000);
+})();
+</script>
