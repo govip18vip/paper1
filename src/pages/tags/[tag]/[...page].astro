@@ -120,21 +120,21 @@ const breadcrumbSchema = {
   <Header />
 
   <main class="mx-auto max-w-3xl px-4 py-8">
-    <nav class="mb-4 text-sm text-skin-muted">
+    <nav class="mb-4 text-sm text-[var(--fg-muted)]">
       <a href="/" class="hover:underline">首页</a>
       <span class="mx-2">/</span>
       <a href="/tags" class="hover:underline">标签</a>
       <span class="mx-2">/</span>
-      <span class="text-skin-base">#{decodedTag}</span>
+      <span class="text-foreground">#{decodedTag}</span>
     </nav>
 
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-skin-base">#{decodedTag}</h1>
-      <p class="mt-1 text-sm text-skin-muted">共 {total} 篇关于「{decodedTag}」的专业文章 — 比特币行情分析、交易教程、安全指南</p>
+      <h1 class="text-2xl font-bold text-foreground">#{decodedTag}</h1>
+      <p class="mt-1 text-sm text-[var(--fg-muted)]">共 {total} 篇关于「{decodedTag}」的专业文章 — 比特币行情分析、交易教程、安全指南</p>
     </div>
 
     {pagePosts.length === 0 ? (
-      <p class="text-skin-muted py-12 text-center">暂无相关文章</p>
+      <p class="text-[var(--fg-muted)] py-12 text-center">暂无相关文章</p>
     ) : (
       <div class="space-y-2">
         {pagePosts.map(p => <UnifiedCard post={p} size="list" variant="h3" />)}
@@ -145,11 +145,11 @@ const breadcrumbSchema = {
     {lastPage > 1 && (
       <div class="mt-8 flex justify-center gap-4 text-sm">
         {prevUrl ? (
-          <a href={prevUrl} class="text-skin-accent hover:underline">← 上一页</a>
+          <a href={prevUrl} class="text-accent hover:underline">← 上一页</a>
         ) : <span />}
-        <span class="text-skin-muted">{pageNum} / {lastPage}</span>
+        <span class="text-[var(--fg-muted)]">{pageNum} / {lastPage}</span>
         {nextUrl ? (
-          <a href={nextUrl} class="text-skin-accent hover:underline">下一页 →</a>
+          <a href={nextUrl} class="text-accent hover:underline">下一页 →</a>
         ) : <span />}
       </div>
     )}

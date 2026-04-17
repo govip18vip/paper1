@@ -61,7 +61,7 @@ for (const f of pageFlashes) {
 const importanceColor: Record<string, string> = {
   high:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  low:    "bg-skin-fill text-skin-muted",
+  low:    "bg-muted text-[var(--fg-muted)]",
 };
 const importanceLabel: Record<string, string> = {
   high: "重大", medium: "快讯", low: "动态",
@@ -91,34 +91,34 @@ function timeOnly(dt: string): string {
 
   <main class="mx-auto max-w-3xl px-4 py-8">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-skin-base">⚡ 实时快讯</h1>
-      <p class="mt-1 text-sm text-skin-muted">AI 持续更新，加密货币最新动态</p>
+      <h1 class="text-2xl font-bold text-foreground">⚡ 实时快讯</h1>
+      <p class="mt-1 text-sm text-[var(--fg-muted)]">AI 持续更新，加密货币最新动态</p>
     </div>
 
     {pageFlashes.length === 0 ? (
-      <p class="text-skin-muted">暂无快讯，请稍后刷新。</p>
+      <p class="text-[var(--fg-muted)]">暂无快讯，请稍后刷新。</p>
     ) : (
       <div class="space-y-8">
         {groups.map((group) => (
           <section>
             {/* 日期分隔 */}
-            <div class="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 bg-skin-base/80 px-4 py-2 backdrop-blur-sm border-b border-skin-line">
-              <span class="text-sm font-semibold text-skin-accent">{group.label}</span>
-              <span class="text-xs text-skin-muted">{group.date}</span>
-              <span class="text-xs text-skin-muted">· {group.items.length} 条</span>
+            <div class="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 bg-background/80 px-4 py-2 backdrop-blur-sm border-b border-border">
+              <span class="text-sm font-semibold text-accent">{group.label}</span>
+              <span class="text-xs text-[var(--fg-muted)]">{group.date}</span>
+              <span class="text-xs text-[var(--fg-muted)]">· {group.items.length} 条</span>
             </div>
 
             {/* 时间线 */}
-            <div class="relative ml-3 border-l-2 border-skin-line pl-6 space-y-4">
+            <div class="relative ml-3 border-l-2 border-border pl-6 space-y-4">
               {group.items.map((f: SanityFlash) => (
-                <article class="relative rounded-lg border border-skin-line bg-skin-card p-4 hover:border-skin-accent transition-colors">
+                <article class="relative rounded-lg border border-border bg-[var(--bg-card)] p-4 hover:border-accent transition-colors">
                   {/* 时间线圆点 */}
-                  <span class="absolute -left-[33px] top-5 h-2.5 w-2.5 rounded-full border-2 border-skin-accent bg-skin-base" />
+                  <span class="absolute -left-[33px] top-5 h-2.5 w-2.5 rounded-full border-2 border-accent bg-background" />
 
                   <div class="flex items-start gap-3">
                     {/* 时间 + 重要性 */}
                     <div class="flex shrink-0 flex-col items-center gap-1">
-                      <time class="text-xs font-mono text-skin-muted" datetime={f.pubDatetime}>
+                      <time class="text-xs font-mono text-[var(--fg-muted)]" datetime={f.pubDatetime}>
                         {timeOnly(f.pubDatetime)}
                       </time>
                       <span class={`rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${importanceColor[f.importance] || importanceColor.low}`}>
@@ -127,24 +127,24 @@ function timeOnly(dt: string): string {
                     </div>
 
                     <div class="flex-1 min-w-0">
-                      <h2 class="font-semibold text-skin-base leading-snug mb-1">
-                        <a href={`/flash/${f.slug.current}`} class="hover:text-skin-accent">
+                      <h2 class="font-semibold text-foreground leading-snug mb-1">
+                        <a href={`/flash/${f.slug.current}`} class="hover:text-accent">
                           {f.title}
                         </a>
                       </h2>
-                      <p class="text-sm text-skin-muted leading-relaxed line-clamp-3">
+                      <p class="text-sm text-[var(--fg-muted)] leading-relaxed line-clamp-3">
                         {f.content}
                       </p>
 
-                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-skin-muted">
+                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--fg-muted)]">
                         <span>{timeAgo(f.pubDatetime)}</span>
                         {f.sourceName && <span>来源: {f.sourceName}</span>}
                         {(f.tags || []).slice(0, 3).map((tag: string) => (
-                          <a href={`/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
+                          <a href={`/tags/${tag}`} class="hover:text-accent">#{tag}</a>
                         ))}
                         {f.sourceUrl && (
                           <a href={f.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
-                             class="ml-auto hover:text-skin-accent">
+                             class="ml-auto hover:text-accent">
                             原文 →
                           </a>
                         )}
@@ -160,34 +160,34 @@ function timeOnly(dt: string): string {
     )}
 
     {/* ── 分页导航 ─────────────────────────────────────────── */}
-    <nav class="mt-10 flex items-center justify-between border-t border-skin-line pt-6">
+    <nav class="mt-10 flex items-center justify-between border-t border-border pt-6">
       {hasPrevPage ? (
         <a href={page === 2 ? "/flash" : `/flash?page=${page - 1}`}
-           class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+           class="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors">
           ← 上一页
         </a>
       ) : (
-        <span class="rounded-lg border border-skin-line/50 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+        <span class="rounded-lg border border-border/50 px-4 py-2 text-sm text-[var(--fg-muted)] cursor-not-allowed">
           ← 上一页
         </span>
       )}
 
-      <span class="text-sm text-skin-muted">第 {page} 页</span>
+      <span class="text-sm text-[var(--fg-muted)]">第 {page} 页</span>
 
       {hasNextPage ? (
         <a href={`/flash?page=${page + 1}`}
-           class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+           class="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors">
           下一页 →
         </a>
       ) : (
-        <span class="rounded-lg border border-skin-line/50 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+        <span class="rounded-lg border border-border/50 px-4 py-2 text-sm text-[var(--fg-muted)] cursor-not-allowed">
           下一页 →
         </span>
       )}
     </nav>
 
-    <p class="mt-6 text-center text-xs text-skin-muted">
-      快讯每 30 分钟自动更新 · <button onclick="window.location.reload()" class="text-skin-accent hover:underline cursor-pointer">立即刷新</button>
+    <p class="mt-6 text-center text-xs text-[var(--fg-muted)]">
+      快讯每 30 分钟自动更新 · <button onclick="window.location.reload()" class="text-accent hover:underline cursor-pointer">立即刷新</button>
     </p>
   </main>
 

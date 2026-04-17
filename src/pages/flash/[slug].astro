@@ -33,7 +33,7 @@ if (flash.lang && flash.lang !== "zh-CN") {
 const importanceColor: Record<string, string> = {
   high:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  low:    "bg-skin-fill text-skin-muted",
+  low:    "bg-muted text-[var(--fg-muted)]",
 };
 const importanceLabel: Record<string, string> = {
   high: "重大", medium: "快讯", low: "动态",
@@ -52,12 +52,12 @@ const pubDate = new Date(flash.pubDatetime).toLocaleDateString("zh-CN", {
 
   <main class="mx-auto max-w-2xl px-4 py-8">
     <!-- 面包屑 -->
-    <nav class="mb-6 text-sm text-skin-muted">
+    <nav class="mb-6 text-sm text-[var(--fg-muted)]">
       <a href="/" class="hover:underline">首页</a>
       <span class="mx-2">/</span>
       <a href="/flash" class="hover:underline">快讯</a>
       <span class="mx-2">/</span>
-      <span class="text-skin-base">{flash.title.slice(0, 40)}{flash.title.length > 40 ? "…" : ""}</span>
+      <span class="text-foreground">{flash.title.slice(0, 40)}{flash.title.length > 40 ? "…" : ""}</span>
     </nav>
 
     <article>
@@ -66,20 +66,20 @@ const pubDate = new Date(flash.pubDatetime).toLocaleDateString("zh-CN", {
         <span class={`rounded px-2 py-0.5 text-xs font-medium ${importanceColor[flash.importance] || importanceColor.low}`}>
           {importanceLabel[flash.importance] || "快讯"}
         </span>
-        <time datetime={flash.pubDatetime} class="text-xs text-skin-muted">{pubDate}</time>
+        <time datetime={flash.pubDatetime} class="text-xs text-[var(--fg-muted)]">{pubDate}</time>
         {flash.sourceName && (
-          <span class="text-xs text-skin-muted">来源: {flash.sourceName}</span>
+          <span class="text-xs text-[var(--fg-muted)]">来源: {flash.sourceName}</span>
         )}
       </div>
 
       <!-- 标题 -->
-      <h1 class="mb-6 text-2xl font-bold leading-tight text-skin-base">
+      <h1 class="mb-6 text-2xl font-bold leading-tight text-foreground">
         {flash.title}
       </h1>
 
       <!-- 正文 -->
-      <div class="rounded-lg border border-skin-line bg-skin-card p-6">
-        <p class="text-base text-skin-base leading-relaxed whitespace-pre-wrap">
+      <div class="rounded-lg border border-border bg-[var(--bg-card)] p-6">
+        <p class="text-base text-foreground leading-relaxed whitespace-pre-wrap">
           {flash.content}
         </p>
       </div>
@@ -89,7 +89,7 @@ const pubDate = new Date(flash.pubDatetime).toLocaleDateString("zh-CN", {
         <div class="mt-4 flex flex-wrap gap-2">
           {(flash.tags || []).map((tag: string) => (
             <a href={`/tags/${tag}`}
-               class="rounded bg-skin-fill px-2 py-0.5 text-xs text-skin-muted hover:text-skin-accent">
+               class="rounded bg-muted px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:text-accent">
               #{tag}
             </a>
           ))}
@@ -98,23 +98,23 @@ const pubDate = new Date(flash.pubDatetime).toLocaleDateString("zh-CN", {
 
       <!-- 原文链接 -->
       {flash.sourceUrl && (
-        <p class="mt-6 text-xs text-skin-muted">
+        <p class="mt-6 text-xs text-[var(--fg-muted)]">
           原文来源：
           <a href={flash.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
-             class="text-skin-accent hover:underline">
+             class="text-accent hover:underline">
             {flash.sourceName || flash.sourceUrl}
           </a>
         </p>
       )}
 
       <!-- 免责声明 -->
-      <div class="mt-6 rounded-lg bg-skin-fill p-4 text-xs text-skin-muted border border-skin-line">
+      <div class="mt-6 rounded-lg bg-muted p-4 text-xs text-[var(--fg-muted)] border border-border">
         ⚠️ 风险提示：加密货币价格波动极大，本文不构成任何投资建议，请理性投资，风险自担。
       </div>
 
       <!-- 返回 -->
       <div class="mt-6">
-        <a href="/flash" class="text-sm text-skin-accent hover:underline">← 返回快讯列表</a>
+        <a href="/flash" class="text-sm text-accent hover:underline">← 返回快讯列表</a>
       </div>
     </article>
   </main>

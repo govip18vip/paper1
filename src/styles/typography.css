@@ -115,14 +115,17 @@
     .highlighted-word {
       @apply rounded-sm border border-border px-0.5 py-px;
     }
+  }
 
-    /* Glossary auto-links — subtle underline, no color change */
-    a.glossary-link {
-      @apply text-inherit no-underline border-b border-dashed border-skin-line/60;
-      transition: border-color 0.2s;
-    }
-    a.glossary-link:hover {
-      @apply border-skin-accent text-skin-accent;
-    }
+  /* Glossary auto-links — subtle dotted underline, no color shift */
+  a.glossary-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--border);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  a.glossary-link:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
 }

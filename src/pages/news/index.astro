@@ -146,27 +146,27 @@ const breadcrumbSchema = {
     <main class="flex-1 min-w-0 px-4 py-8">
       <!-- 页头 -->
       <div class="mb-6">
-        <nav class="mb-3 text-sm text-skin-muted">
+        <nav class="mb-3 text-sm text-[var(--fg-muted)]">
           <a href="/" class="hover:underline">首页</a>
           <span class="mx-2">/</span>
-          <span class="text-skin-base">资讯</span>
+          <span class="text-foreground">资讯</span>
           {filterTag && (
             <>
               <span class="mx-2">/</span>
-              <span class="text-skin-base">#{filterTag}</span>
+              <span class="text-foreground">#{filterTag}</span>
             </>
           )}
         </nav>
-        <h1 class="text-2xl font-bold text-skin-base">
+        <h1 class="text-2xl font-bold text-foreground">
           {filterTag ? `#${filterTag} 相关资讯` : "加密货币资讯"}
         </h1>
-        <p class="mt-1 text-sm text-skin-muted">
+        <p class="mt-1 text-sm text-[var(--fg-muted)]">
           {filterTag
             ? `标签「${filterTag}」相关的行情分析、教程与深度报告`
             : "比特币、以太坊、DeFi、NFT 最新动态与深度分析"}
         </p>
         {totalCount > 0 && (
-          <p class="mt-1 text-xs text-skin-muted">
+          <p class="mt-1 text-xs text-[var(--fg-muted)]">
             共 {totalCount} 篇 · 第 {page}/{totalPages} 页
           </p>
         )}
@@ -178,18 +178,18 @@ const breadcrumbSchema = {
           <!-- 标签筛选激活提示 -->
           {filterTag && (
             <div class="mb-4 flex items-center gap-2 text-sm">
-              <span class="text-skin-muted">当前筛选：</span>
-              <span class="rounded bg-skin-accent/10 px-2 py-0.5 text-skin-accent font-medium">#{filterTag}</span>
-              <a href="/news" class="text-skin-muted hover:text-skin-accent ml-2">× 清除筛选</a>
+              <span class="text-[var(--fg-muted)]">当前筛选：</span>
+              <span class="rounded bg-[var(--tag-orange-bg)] px-2 py-0.5 text-accent font-medium">#{filterTag}</span>
+              <a href="/news" class="text-[var(--fg-muted)] hover:text-accent ml-2">× 清除筛选</a>
             </div>
           )}
 
           {pagePosts.length === 0 ? (
-            <p class="py-12 text-center text-skin-muted">暂无相关资讯，请稍后查看。</p>
+            <p class="py-12 text-center text-[var(--fg-muted)]">暂无相关资讯，请稍后查看。</p>
           ) : (
-            <div class="space-y-0 divide-y divide-skin-line">
+            <div class="space-y-0 divide-y divide-border">
               {pagePosts.map((p: SanityPost) => (
-                <article class="group flex gap-4 py-4 hover:bg-skin-fill/50 transition-colors rounded-lg px-2 -mx-2">
+                <article class="group flex gap-4 py-4 hover:bg-muted/50 transition-colors rounded-lg px-2 -mx-2">
                   <div class="flex-1 min-w-0">
                     <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
                       {p.articleType && (
@@ -200,23 +200,23 @@ const breadcrumbSchema = {
                       {(p.tags || []).slice(0, 3).map((tag: string) => (
                         <a
                           href={`/news?tag=${tag}`}
-                          class="rounded bg-skin-fill px-1.5 py-0.5 text-[10px] text-skin-muted hover:text-skin-accent hover:bg-skin-accent/10 transition-colors"
+                          class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-[var(--fg-muted)] hover:text-accent hover:bg-[var(--tag-orange-bg)] transition-colors"
                         >
                           #{tag}
                         </a>
                       ))}
                     </div>
-                    <h2 class="font-semibold text-skin-base leading-snug mb-1 text-sm sm:text-base">
-                      <a href={`/news/${p.slug.current}`} class="hover:text-skin-accent transition-colors line-clamp-2">
+                    <h2 class="font-semibold text-foreground leading-snug mb-1 text-sm sm:text-base">
+                      <a href={`/news/${p.slug.current}`} class="hover:text-accent transition-colors line-clamp-2">
                         {p.title}
                       </a>
                     </h2>
                     {p.description && (
-                      <p class="text-xs text-skin-muted leading-relaxed line-clamp-2 mb-1">
+                      <p class="text-xs text-[var(--fg-muted)] leading-relaxed line-clamp-2 mb-1">
                         {p.description}
                       </p>
                     )}
-                    <div class="flex items-center gap-2 text-xs text-skin-muted">
+                    <div class="flex items-center gap-2 text-xs text-[var(--fg-muted)]">
                       <time datetime={p.pubDatetime}>{formatDate(p.pubDatetime)}</time>
                       {p.sourceName && <span>· {p.sourceName}</span>}
                     </div>
@@ -230,33 +230,33 @@ const breadcrumbSchema = {
           {page === 1 && <BinanceBanner variant="mid" lang="zh-CN" />}
 
           <!-- 分页导航 -->
-          <nav class="mt-8 flex items-center justify-between border-t border-skin-line pt-6" aria-label="分页导航">
+          <nav class="mt-8 flex items-center justify-between border-t border-border pt-6" aria-label="分页导航">
             {hasPrevPage ? (
               <a
                 href={pageHref(page - 1)}
                 rel="prev"
-                class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors"
+                class="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
               >
                 &larr; 上一页
               </a>
             ) : (
-              <span class="rounded-lg border border-skin-line/40 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+              <span class="rounded-lg border border-border/40 px-4 py-2 text-sm text-[var(--fg-muted)] cursor-not-allowed">
                 &larr; 上一页
               </span>
             )}
 
-            <span class="text-sm text-skin-muted">第 {page}/{totalPages} 页</span>
+            <span class="text-sm text-[var(--fg-muted)]">第 {page}/{totalPages} 页</span>
 
             {hasNextPage ? (
               <a
                 href={pageHref(page + 1)}
                 rel="next"
-                class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors"
+                class="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
               >
                 下一页 &rarr;
               </a>
             ) : (
-              <span class="rounded-lg border border-skin-line/40 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+              <span class="rounded-lg border border-border/40 px-4 py-2 text-sm text-[var(--fg-muted)] cursor-not-allowed">
                 下一页 &rarr;
               </span>
             )}
@@ -274,22 +274,22 @@ const breadcrumbSchema = {
         {hotTags.length > 0 && (
           <aside class="hidden lg:block w-56 shrink-0">
             <div class="sticky top-20">
-              <h3 class="mb-3 text-sm font-semibold text-skin-base">热门标签</h3>
+              <h3 class="mb-3 text-sm font-semibold text-foreground">热门标签</h3>
               <div class="flex flex-wrap gap-2">
                 {hotTags.map(tag => (
                   <a
                     href={`/news?tag=${tag}`}
                     class={`rounded px-2.5 py-1 text-xs transition-colors
                       ${filterTag === tag
-                        ? "bg-skin-accent text-white"
-                        : "bg-skin-fill text-skin-muted hover:text-skin-accent hover:bg-skin-accent/10"}`}
+                        ? "bg-accent text-white"
+                        : "bg-muted text-[var(--fg-muted)] hover:text-accent hover:bg-[var(--tag-orange-bg)]"}`}
                   >
                     #{tag}
                   </a>
                 ))}
               </div>
               <div class="mt-4">
-                <a href="/tags" class="text-xs text-skin-accent hover:underline">查看全部标签 &rarr;</a>
+                <a href="/tags" class="text-xs text-accent hover:underline">查看全部标签 &rarr;</a>
               </div>
             </div>
           </aside>

@@ -84,7 +84,7 @@ const isGhost = post.source === "ghost";
       <img src={post.ogImage} alt={post.title}
         width="1200" height="630"
         loading="eager" fetchpriority="high" decoding="async"
-        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
     ) : (
       <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
         <span class="text-5xl opacity-30">{isGhost ? "📰" : "₿"}</span>
@@ -92,17 +92,19 @@ const isGhost = post.source === "ghost";
     )}
     <div class="hero-overlay" />
     <div class="hero-content">
-      <div class="mb-2">
-        <span class={tagClass}>{primaryTag}</span>
+      {/* Kicker — mono ALL-CAPS category label */}
+      <div class="mb-2 flex items-center gap-2">
+        <span class="kicker" style="color:var(--accent);opacity:0.9;">{primaryTag.toUpperCase()}</span>
         {isGhost && (
-          <span style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,0.2);color:#fff;font-weight:600;">CMS</span>
+          <span style="font-family:var(--font-mono-ui);font-size:8px;letter-spacing:0.08em;padding:2px 5px;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);font-weight:600;">CMS</span>
         )}
       </div>
+      {/* Display title — Fraunces serif */}
       <Heading
-        class="text-white text-xl sm:text-2xl font-bold leading-snug mb-2 group-hover:text-amber-200 transition-colors"
+        class="display-title text-white mb-2 group-hover:text-amber-200 transition-colors line-clamp-3"
       >{post.title}</Heading>
-      <p class="text-white/70 text-sm line-clamp-2 hidden sm:block">{post.description}</p>
-      <div class="mt-2">
+      <p class="text-white/70 text-sm line-clamp-2 hidden sm:block leading-relaxed">{post.description}</p>
+      <div class="mt-3">
         <Datetime pubDatetime={post.pubDatetime.toISOString()} modDatetime={post.modDatetime?.toISOString()} class="text-white/50 text-xs" />
       </div>
     </div>
@@ -128,7 +130,7 @@ const isGhost = post.source === "ghost";
       {post.ogImage ? (
         <img src={post.ogImage} alt={post.title}
           width="320" height="180" loading="lazy" decoding="async"
-          class="w-full h-full object-cover" />
+          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
       ) : (
         <div class={`w-full h-full bg-gradient-to-br ${placeholderGrad} flex items-center justify-center`}>
           <span class="text-3xl opacity-20">{isGhost ? "📰" : "₿"}</span>
@@ -136,15 +138,17 @@ const isGhost = post.source === "ghost";
       )}
     </a>
     <div class="p-3.5">
-      <div class="mb-1.5">
+      {/* Kicker row */}
+      <div class="mb-2 flex items-center gap-2">
         <span class={tagClass}>{primaryTag}</span>
         {isGhost && (
-          <span style="margin-left:4px;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(22,119,255,0.1);color:#1677ff;font-weight:600;">CMS</span>
+          <span style="font-family:var(--font-mono-ui);font-size:8px;letter-spacing:0.08em;padding:1px 4px;border:1px solid rgba(22,119,255,0.3);color:#1677ff;font-weight:600;">CMS</span>
         )}
       </div>
       <a href={post.href} class="focus-outline">
         <Heading
           class="text-foreground font-semibold text-sm leading-snug group-hover:text-accent transition-colors line-clamp-2"
+          style="font-family: var(--font-display); letter-spacing: -0.01em;"
         >{post.title}</Heading>
       </a>
       <div class="mt-2">

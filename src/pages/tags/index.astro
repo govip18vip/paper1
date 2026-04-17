@@ -55,18 +55,18 @@ const tags = Array.from(tagCount.entries())
 
   <main class="mx-auto max-w-3xl px-4 py-8">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-skin-base">标签索引</h1>
-      <p class="mt-1 text-sm text-skin-muted">共 {tags.length} 个标签</p>
+      <h1 class="text-2xl font-bold text-foreground">标签索引</h1>
+      <p class="mt-1 text-sm text-[var(--fg-muted)]">共 {tags.length} 个标签</p>
     </div>
 
     <div class="flex flex-wrap gap-3">
       {tags.map(({ tag, count }) => (
         <a
           href={`/tags/${encodeURIComponent(tag)}`}
-          class="inline-flex items-center gap-1.5 rounded-full border border-skin-line bg-skin-card px-3 py-1.5 text-sm text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border bg-[var(--bg-card)] px-3 py-1.5 text-sm text-foreground hover:border-accent hover:text-accent transition-colors"
         >
           <span>#{tag}</span>
-          <span class="text-xs text-skin-muted">({count})</span>
+          <span class="text-xs text-[var(--fg-muted)]">({count})</span>
         </a>
       ))}
     </div>
