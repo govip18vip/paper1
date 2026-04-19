@@ -293,6 +293,32 @@ const faqSchema = {
 </Layout>
 
 <script is:inline>
+// ─── 浏览器语言智能切换 ───────────────────────────
+// 非中文用户：隐藏"大陆版 APK"，把"国际版"提升为主推，其他 UI 文案换英文
+(function () {
+  try {
+    var urlLang = new URLSearchParams(location.search).get("lang");
+    var nav = (navigator.language || "en").toLowerCase();
+    var isChineseMainland = urlLang === "zh-CN" ||
+      (!urlLang && (nav === "zh-cn" || nav === "zh" || nav === "zh-hans"));
+
+    // 用 ?lang=en 或浏览器非中文 → 非大陆用户
+    if (!isChineseMainland) {
+      // 隐藏所有标记为大陆专用的块
+      document.querySelectorAll('[href*="binanceapkcn"]').forEach(function (a) {
+        var btn = a.closest('a');
+        if (btn) btn.style.display = 'none';
+      });
+      // 中英混合页改英文主 CTA 文案（仅改显眼按钮，保留中文主体结构，避免完全翻译复杂度）
+      var h1 = document.querySelector('h1');
+      if (h1 && /zh-TW|zh-HK|zh/i.test(nav) === false) {
+        // 只有真正的非中文访客才改
+        h1.innerHTML = 'Binance Sign-Up Bonus<br/><span style="color:#F0B90B;">Code B2345</span>';
+      }
+    }
+  } catch (e) { /* 兜底：保持默认中文页 */ }
+})();
+
 // 复制邀请码
 function copyCode() {
   navigator.clipboard.writeText("B2345").then(() => {

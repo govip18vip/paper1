@@ -1,66 +1,168 @@
 ---
 // src/components/BinanceFloating.astro
-// 移动端悬浮下载按钮 — 文章页转化率最高的位置
-// 用法：在 PostDetails.astro 的 <Layout> 内任意位置引入一次
-// 在桌面端显示为侧边滑入卡片，移动端为底部悬浮条
+// ═════════════════════════════════════════════════════════════
+// 移动端底部悬浮条 + 桌面侧边卡片
+// - 中国大陆（zh-CN）：显示 APK 直链（免翻墙），主推大陆下载
+// - 非大陆（zh-TW / en / es / pt）：不给 APK 下载，只给本地化 Binance 注册入口
+// - 所有 URL、邀请码、文案都抽离到下方 AFFILIATE_CONFIG，方便一处修改全站生效
+// 用法：<BinanceFloating lang={postLang} />
+// ═════════════════════════════════════════════════════════════
+import type { Lang } from "@/i18n/ui";
 
-const APK_CN = "https://basebiance.com/binanceapkcn";
-const APK_EN = "https://basebiance.com/binanceapken/";
-const LOGO   = "https://basebiance.com/content/images/2025/04/1HH5201407.png";
-const LP     = "/go/binance";
+export interface Props {
+  lang?: Lang;
+}
+const { lang = "zh-CN" } = Astro.props;
+
+// ── 全局广告配置（改这里就够了）──────────────────────────────
+const REF_CODE = "B2345";
+const LOGO     = "https://basebiance.com/content/images/2025/04/1HH5201407.png";
+const LANDING  = "/go/binance";                              // 本站落地页（内链埋点）
+
+// 大陆专用 APK 直链（免翻墙）—— 以后换链接只改这两行
+const BINANCE_APK_CN    = "https://basebiance.com/binanceapkcn";
+const BINANCE_APK_INTL  = "https://basebiance.com/binanceapken/";
+
+// 按语言路由的官方 Binance 注册入口
+// zh-TC = 繁中（台港澳），es-LA = 拉美西语，pt-BR = 巴西葡语
+const BINANCE_REGISTER: Record<Lang, string> = {
+  "zh-CN": `https://www.binance.com/zh-CN/register?ref=${REF_CODE}`,
+  "zh-TW": `https://www.binance.com/zh-TC/register?ref=${REF_CODE}`,
+  "en":    `https://www.binance.com/en/register?ref=${REF_CODE}`,
+  "es":    `https://www.binance.com/es-LA/register?ref=${REF_CODE}`,
+  "pt":    `https://www.binance.com/pt-BR/register?ref=${REF_CODE}`,
+};
+
+// ── 5 语言文案（native 翻译，非机翻）────────────────────────
+// 繁中：台湾用户；es：拉美（巴西外）主流系统是 Android，注册为主；pt：巴西；en：全球
+const COPY: Record<Lang, {
+  title: string;       // 底部条主标题
+  hint: string;        // 邀请码提示
+  cta: string;         // 按钮主文案
+  side_sub: string;    // 侧边卡片副标题
+  aria: string;        // 无障碍 label
+  warn: string;        // 风险提示
+  more: string;        // 底部"了解更多"
+}> = {
+  "zh-CN": {
+    title: "注册币安享最高手续费折扣",
+    hint:  "邀请码",
+    cta:   "下载 APP",
+    side_sub: "享最高手续费折扣",
+    aria:  "币安下载",
+    warn:  "投资有风险，请谨慎决策",
+    more:  "了解更多优惠 →",
+  },
+  "zh-TW": {
+    title: "註冊幣安享最高手續費折扣",
+    hint:  "邀請碼",
+    cta:   "立即註冊",
+    side_sub: "享最高手續費折扣",
+    aria:  "幣安註冊",
+    warn:  "投資有風險，請謹慎決策",
+    more:  "了解更多優惠 →",
+  },
+  "en": {
+    title: "Open a Binance account — best fee discount",
+    hint:  "Code",
+    cta:   "Sign Up",
+    side_sub: "Lock in the max fee discount",
+    aria:  "Binance sign-up",
+    warn:  "Crypto trading involves risk",
+    more:  "See details →",
+  },
+  "es": {
+    title: "Abre cuenta en Binance — máximo descuento",
+    hint:  "Código",
+    cta:   "Registrarse",
+    side_sub: "Descuento máximo en comisiones",
+    aria:  "Registro en Binance",
+    warn:  "Invertir en cripto conlleva riesgo",
+    more:  "Ver más →",
+  },
+  "pt": {
+    title: "Abra conta na Binance — desconto máximo",
+    hint:  "Código",
+    cta:   "Cadastrar-se",
+    side_sub: "Desconto máximo em taxas",
+    aria:  "Cadastro na Binance",
+    warn:  "Cripto envolve risco",
+    more:  "Ver detalhes →",
+  },
+};
+
+// ── 根据语言选 CTA 链接 ─────────────────────────────────────
+// 大陆：APK 直下载；其他：官方 Binance 注册页（对应地区的 App Store / Play 由 Binance 自己处理）
+const isCN = lang === "zh-CN";
+const registerUrl = BINANCE_REGISTER[lang] ?? BINANCE_REGISTER["en"];
+const primaryHref = isCN ? BINANCE_APK_CN : registerUrl;
+
+const t = COPY[lang] ?? COPY["en"];
 ---
 
-<!-- 移动端底部悬浮条（滚动300px后出现） -->
-<div id="bnr-float" aria-label="币安下载" role="complementary"
+<!-- ══ 移动端底部悬浮条（滚动 300px 后出现） ══ -->
+<div id="bnr-float" aria-label={t.aria} role="complementary" data-lang={lang}
   style="position:fixed;bottom:0;left:0;right:0;z-index:999;transform:translateY(100%);transition:transform 0.3s ease;will-change:transform;">
   <div style="background:var(--bg-sidebar);border-top:1px solid rgba(240,185,11,0.35);padding:10px 16px;display:flex;align-items:center;gap:10px;max-width:100%;">
     <img src={LOGO} alt="Binance" width="32" height="32" style="border-radius:6px;flex-shrink:0;" loading="lazy"/>
     <div style="flex:1;min-width:0;">
-      <div style="font-size:12px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">注册币安享最高折扣</div>
-      <div style="font-size:10.5px;color:var(--fg-muted);">邀请码 <b style="color:#F0B90B;font-family:monospace;">B2345</b></div>
+      <div style="font-size:12px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{t.title}</div>
+      <div style="font-size:10.5px;color:var(--fg-muted);">{t.hint} <b style="color:#F0B90B;font-family:monospace;">{REF_CODE}</b></div>
     </div>
-    <a href={APK_CN} target="_blank" rel="noopener noreferrer sponsored"
+    <a href={primaryHref} target="_blank" rel="noopener noreferrer nofollow sponsored"
       style="flex-shrink:0;padding:9px 16px;background:#F0B90B;color:#1a1200;border-radius:6px;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap;">
-      下载APP
+      {t.cta}
     </a>
     <button id="bnr-float-close"
       style="flex-shrink:0;width:28px;height:28px;border:none;background:var(--bg-elevated);color:var(--fg-muted);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background 0.12s;"
-      aria-label="关闭"
+      aria-label="×"
     >×</button>
   </div>
 </div>
 
-<!-- 桌面端侧边滑入卡片（文章滚动50%后出现，仅在>1100px时显示） -->
-<div id="bnr-side" aria-label="币安下载" role="complementary"
+<!-- ══ 桌面端侧边滑入卡片（滚动 40% 后出现，>1100px 显示） ══ -->
+<div id="bnr-side" aria-label={t.aria} role="complementary" data-lang={lang}
   style="position:fixed;right:20px;bottom:100px;z-index:998;width:220px;transform:translateX(260px);transition:transform 0.35s ease;will-change:transform;display:none;">
   <div style="background:var(--bg-card);border:1px solid rgba(240,185,11,0.3);border-radius:10px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <img src={LOGO} alt="Binance" width="32" height="32" style="border-radius:6px;" loading="lazy"/>
       <div>
-        <div style="font-size:11px;font-weight:700;color:var(--fg);line-height:1.3;">注册币安</div>
-        <div style="font-size:10px;color:var(--fg-muted);">享最高手续费折扣</div>
+        <div style="font-size:11px;font-weight:700;color:var(--fg);line-height:1.3;">Binance</div>
+        <div style="font-size:10px;color:var(--fg-muted);">{t.side_sub}</div>
       </div>
       <button id="bnr-side-close"
         style="margin-left:auto;width:22px;height:22px;border:none;background:var(--bg-elevated);color:var(--fg-muted);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
-        aria-label="关闭">×</button>
+        aria-label="×">×</button>
     </div>
+
     <div style="background:var(--bg-elevated);border:1px dashed rgba(240,185,11,0.4);border-radius:6px;padding:6px 10px;text-align:center;margin-bottom:10px;">
-      <div style="font-size:10px;color:var(--fg-muted);">邀请码</div>
-      <div style="font-size:18px;font-weight:900;color:#F0B90B;font-family:monospace;letter-spacing:0.1em;">B2345</div>
+      <div style="font-size:10px;color:var(--fg-muted);">{t.hint}</div>
+      <div style="font-size:18px;font-weight:900;color:#F0B90B;font-family:monospace;letter-spacing:0.1em;">{REF_CODE}</div>
     </div>
-    <a href={APK_CN} target="_blank" rel="noopener noreferrer sponsored"
-      style="display:block;width:100%;padding:9px;background:#F0B90B;color:#1a1200;border-radius:6px;font-size:12.5px;font-weight:800;text-align:center;text-decoration:none;margin-bottom:6px;transition:background 0.12s;box-sizing:border-box;"
-      onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
-    >大陆版APK下载</a>
-    <a href={APK_EN} target="_blank" rel="noopener noreferrer sponsored"
-      style="display:block;width:100%;padding:7px;background:var(--bg-elevated);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-weight:600;text-align:center;text-decoration:none;margin-bottom:6px;transition:all 0.12s;box-sizing:border-box;"
-      onmouseover="this.style.borderColor='#F0B90B';this.style.color='#F0B90B'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg)'"
-    >国际版APK</a>
-    <a href={LP}
+
+    {isCN ? (
+      <>
+        <a href={BINANCE_APK_CN} target="_blank" rel="noopener noreferrer nofollow sponsored"
+          style="display:block;width:100%;padding:9px;background:#F0B90B;color:#1a1200;border-radius:6px;font-size:12.5px;font-weight:800;text-align:center;text-decoration:none;margin-bottom:6px;transition:background 0.12s;box-sizing:border-box;"
+          onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
+        >大陆版 APK 下载</a>
+        <a href={BINANCE_APK_INTL} target="_blank" rel="noopener noreferrer nofollow sponsored"
+          style="display:block;width:100%;padding:7px;background:var(--bg-elevated);color:var(--fg);border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-weight:600;text-align:center;text-decoration:none;margin-bottom:6px;transition:all 0.12s;box-sizing:border-box;"
+          onmouseover="this.style.borderColor='#F0B90B';this.style.color='#F0B90B'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg)'"
+        >国际版 APK</a>
+      </>
+    ) : (
+      <a href={registerUrl} target="_blank" rel="noopener noreferrer nofollow sponsored"
+        style="display:block;width:100%;padding:9px;background:#F0B90B;color:#1a1200;border-radius:6px;font-size:12.5px;font-weight:800;text-align:center;text-decoration:none;margin-bottom:6px;transition:background 0.12s;box-sizing:border-box;"
+        onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
+      >{t.cta}</a>
+    )}
+
+    <a href={LANDING}
       style="display:block;text-align:center;font-size:11px;color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
       onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg-muted)'"
-    >了解更多优惠 →</a>
-    <p style="font-size:9.5px;color:var(--fg-light);margin:8px 0 0;line-height:1.4;text-align:center;">投资有风险，请谨慎决策</p>
+    >{t.more}</a>
+    <p style="font-size:9.5px;color:var(--fg-light);margin:8px 0 0;line-height:1.4;text-align:center;">{t.warn}</p>
   </div>
 </div>
 
@@ -73,15 +175,12 @@ const LP     = "/go/binance";
 
   if (!floatBar || !sideCard) return;
 
-  // 关闭状态 key（同一会话不再显示）
   const CLOSED_BAR  = "bnr_bar_closed";
   const CLOSED_SIDE = "bnr_side_closed";
 
-  // 检测是否已关闭
   if (sessionStorage.getItem(CLOSED_BAR)) floatBar.style.display = "none";
   if (sessionStorage.getItem(CLOSED_SIDE)) sideCard.style.display = "none";
 
-  // 检测宽度 — 桌面显示侧边卡片
   const isDesktop = () => window.innerWidth > 1100;
   if (isDesktop()) sideCard.style.display = "block";
 
@@ -90,7 +189,6 @@ const LP     = "/go/binance";
     sideCard.style.display = isDesktop() ? "block" : "none";
   });
 
-  // 关闭按钮
   closeBar?.addEventListener("click", () => {
     floatBar.style.transform = "translateY(100%)";
     sessionStorage.setItem(CLOSED_BAR, "1");
@@ -100,7 +198,6 @@ const LP     = "/go/binance";
     sessionStorage.setItem(CLOSED_SIDE, "1");
   });
 
-  // 滚动触发
   let barShown = false, sideShown = false;
 
   function handleScroll() {
@@ -108,19 +205,16 @@ const LP     = "/go/binance";
     const total    = document.body.scrollHeight - window.innerHeight;
     const progress = total > 0 ? scrollY / total : 0;
 
-    // 移动端底部条：滚动300px后出现
     if (!barShown && !sessionStorage.getItem(CLOSED_BAR) && scrollY > 300) {
       barShown = true;
       floatBar.style.transform = "translateY(0)";
     }
 
-    // 桌面侧边卡片：滚动40%后出现
     if (!sideShown && !sessionStorage.getItem(CLOSED_SIDE) && progress > 0.4 && isDesktop()) {
       sideShown = true;
       sideCard.style.transform = "translateX(0)";
     }
 
-    // 接近底部时隐藏底部条（避免遮挡Footer）
     if (progress > 0.92 && barShown) {
       floatBar.style.transform = "translateY(100%)";
     } else if (barShown && !sessionStorage.getItem(CLOSED_BAR) && scrollY > 300) {

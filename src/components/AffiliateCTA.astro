@@ -1,0 +1,192 @@
+---
+// src/components/AffiliateCTA.astro
+// 本地化软广告卡片 — 按（语言 × 文章类型 × 币种）自动匹配
+//
+// 用法示例：
+//   <AffiliateCTA lang="zh-CN" type="tutorial" coin="BTC" variant="inline" />
+//   <AffiliateCTA lang="en" type="news" />
+//   <AffiliateCTA lang="pt" type="market" coin="ETH" variant="sidebar" />
+
+import type { Lang } from "@/i18n/ui";
+import type { ArticleType } from "@/utils/affiliates";
+import { buildAffiliateCTA } from "@/utils/affiliates";
+
+export interface Props {
+  lang: Lang;
+  type?: ArticleType;
+  coin?: string;
+  variant?: "inline" | "sidebar" | "banner";
+}
+
+const { lang, type = "default", coin, variant = "inline" } = Astro.props;
+const cta = buildAffiliateCTA(lang, type, coin);
+---
+
+{variant === "inline" && (
+  <aside class="bit-aff bit-aff-inline" data-lang={lang} data-coin={coin ?? ""}>
+    <div class="bit-aff-header">
+      <img src={cta.logo} alt="" width="28" height="28" loading="lazy" />
+      <div class="bit-aff-title">
+        <div class="bit-aff-headline">{cta.headline}</div>
+        <div class="bit-aff-hint">{cta.hint}</div>
+      </div>
+    </div>
+    <div class="bit-aff-ctas">
+      <a href={cta.primary.href} target="_blank" rel="noopener noreferrer nofollow sponsored" class="bit-aff-btn primary">
+        {cta.primary.label}
+      </a>
+      {cta.secondary && (
+        <a href={cta.secondary.href} target="_blank" rel="noopener noreferrer nofollow sponsored" class="bit-aff-btn secondary">
+          {cta.secondary.label}
+        </a>
+      )}
+      {cta.tertiary && (
+        <a href={cta.tertiary.href} target="_blank" rel="noopener noreferrer nofollow sponsored" class="bit-aff-btn tertiary">
+          {cta.tertiary.label}
+        </a>
+      )}
+    </div>
+    <p class="bit-aff-disclaimer">{cta.disclaimer}</p>
+  </aside>
+)}
+
+{variant === "sidebar" && (
+  <aside class="bit-aff bit-aff-sidebar" data-lang={lang} data-coin={coin ?? ""}>
+    <img src={cta.logo} alt="" width="36" height="36" loading="lazy" />
+    <div class="bit-aff-headline">{cta.headline}</div>
+    <div class="bit-aff-hint">{cta.hint}</div>
+    <a href={cta.primary.href} target="_blank" rel="noopener noreferrer nofollow sponsored" class="bit-aff-btn primary full">
+      {cta.primary.label}
+    </a>
+    {cta.secondary && (
+      <a href={cta.secondary.href} target="_blank" rel="noopener noreferrer nofollow sponsored" class="bit-aff-btn secondary full">
+        {cta.secondary.label}
+      </a>
+    )}
+    <p class="bit-aff-disclaimer">{cta.disclaimer}</p>
+  </aside>
+)}
+
+{variant === "banner" && (
+  <aside class="bit-aff bit-aff-banner" data-lang={lang} data-coin={coin ?? ""}>
+    <div class="bit-aff-banner-left">
+      <img src={cta.logo} alt="" width="32" height="32" loading="lazy" />
+      <div>
+        <div class="bit-aff-headline">{cta.headline}</div>
+        <div class="bit-aff-hint">{cta.hint}</div>
+      </div>
+    </div>
+    <a href={cta.primary.href} target="_blank" rel="noopener noreferrer nofollow sponsored" class="bit-aff-btn primary">
+      {cta.primary.label}
+    </a>
+  </aside>
+)}
+
+<style>
+  .bit-aff {
+    border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(240, 185, 11, 0.06), rgba(240, 185, 11, 0.02));
+    padding: 18px 20px;
+    margin: 24px 0;
+    font-family: inherit;
+  }
+  .bit-aff-inline { display: block; }
+  .bit-aff-sidebar {
+    text-align: center;
+    padding: 20px 16px;
+  }
+  .bit-aff-sidebar img { margin: 0 auto 10px; display: block; border-radius: 8px; }
+  .bit-aff-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: space-between;
+  }
+  .bit-aff-banner-left {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .bit-aff-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .bit-aff-header img { border-radius: 6px; }
+
+  .bit-aff-headline {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg, #111);
+    line-height: 1.35;
+  }
+  .bit-aff-hint {
+    font-size: 12px;
+    color: var(--fg-muted, #666);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .bit-aff-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .bit-aff-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 700;
+    transition: transform 0.12s, box-shadow 0.12s;
+    line-height: 1.2;
+  }
+  .bit-aff-btn.full { display: block; width: 100%; margin-top: 10px; }
+  .bit-aff-btn.primary {
+    background: #F0B90B;
+    color: #1a1200;
+    box-shadow: 0 2px 8px rgba(240, 185, 11, 0.3);
+  }
+  .bit-aff-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(240, 185, 11, 0.45);
+  }
+  .bit-aff-btn.secondary {
+    background: transparent;
+    color: var(--fg, #111);
+    border: 1px solid var(--border, #ccc);
+  }
+  .bit-aff-btn.secondary:hover {
+    border-color: #F0B90B;
+    color: #F0B90B;
+  }
+  .bit-aff-btn.tertiary {
+    background: transparent;
+    color: var(--fg-muted, #666);
+    border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+    font-size: 12.5px;
+    padding: 8px 14px;
+  }
+  .bit-aff-btn.tertiary:hover { color: var(--fg, #111); }
+
+  .bit-aff-disclaimer {
+    font-size: 10.5px;
+    color: var(--fg-light, #999);
+    margin: 12px 0 0;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 600px) {
+    .bit-aff-banner { flex-direction: column; align-items: stretch; }
+    .bit-aff-banner .bit-aff-btn { width: 100%; }
+    .bit-aff-ctas { flex-direction: column; }
+    .bit-aff-btn { width: 100%; }
+  }
+</style>

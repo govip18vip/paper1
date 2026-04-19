@@ -1,0 +1,372 @@
+---
+// src/pages/[lang]/go/[partner].astro
+// ═════════════════════════════════════════════════════════════
+// 多语言交易所推广落地页
+//   /zh-tw/go/binance   /zh-tw/go/okx
+//   /en/go/binance      /en/go/okx
+//   /es/go/binance      /es/go/okx
+//   /pt/go/binance      /pt/go/okx
+// （大陆 zh-CN 仍使用根路径 /go/binance 与 /go/okx，保留 APK 下载专属页）
+// ═════════════════════════════════════════════════════════════
+import type { GetStaticPaths } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+import { LANG_PATH_MAP, type Lang } from "@/i18n/ui";
+import { binanceRegister, okxRegister, BINANCE_LOGO } from "@/utils/affiliates";
+
+export const getStaticPaths = (async () => {
+  const langs: { slug: string; lang: Lang }[] = [
+    { slug: "zh-tw", lang: "zh-TW" },
+    { slug: "en",    lang: "en"    },
+    { slug: "es",    lang: "es"    },
+    { slug: "pt",    lang: "pt"    },
+  ];
+  const partners = ["binance", "okx"];
+  const paths: any[] = [];
+  for (const l of langs) for (const p of partners) {
+    paths.push({ params: { lang: l.slug, partner: p } });
+  }
+  return paths;
+}) satisfies GetStaticPaths;
+
+const { lang: langSeg, partner } = Astro.params;
+const lang = (LANG_PATH_MAP[langSeg ?? ""] ?? "en") as Lang;
+const isBinance = partner === "binance";
+const REF = "B2345";
+
+// ── 注册 URL（统一走 affiliates.ts）─────────────────────
+const registerUrl = isBinance ? binanceRegister(lang) : okxRegister(lang);
+
+// ── 品牌主题色 ─────────────────────────────────────────
+const BRAND = isBinance
+  ? { main: "#F0B90B", fg: "#1a1200", label: "Binance" }
+  : { main: "#00c896", fg: "#ffffff", label: "OKX" };
+
+// ── 5 语言文案 ─────────────────────────────────────────
+type Copy = {
+  home: string;
+  crumb: string;
+  title: string;
+  subtitle: string;
+  tagline: string;
+  hero_cta: string;
+  benefits_title: string;
+  benefits: { icon: string; title: string; desc: string }[];
+  steps_title: string;
+  steps: { title: string; desc: string }[];
+  faq_title: string;
+  faqs: { q: string; a: string }[];
+  bottom_cta: string;
+  bottom_warn: string;
+  meta_title: string;
+  meta_desc: string;
+  cross_sell: string;   // 底部跳另一家
+  cross_link: string;   // 文字
+};
+
+function buildCopy(lang: Lang, isBin: boolean): Copy {
+  const brand = isBin ? "Binance" : "OKX";
+  const brandZH = isBin ? "幣安" : "OKX";
+  const brandZHCN = isBin ? "币安" : "OKX";
+  const other = isBin ? "OKX" : "Binance";
+  const otherSlug = isBin ? "okx" : "binance";
+  const otherBrandZH = isBin ? "OKX" : "幣安";
+  const otherBrandZHCN = isBin ? "OKX" : "币安";
+
+  if (lang === "zh-TW") {
+    return {
+      home: "首頁",
+      crumb: `${brandZH}註冊`,
+      title: `${brandZH}註冊下載`,
+      subtitle: `邀請碼 ${REF} · 享平台最高手續費折扣`,
+      tagline: `${brand} 是${isBin ? "全球最大" : "全球知名"}加密貨幣交易所，使用邀請碼 ${REF} 註冊可鎖定最高折扣`,
+      hero_cta: `立即註冊 ${brand}`,
+      benefits_title: `為什麼選擇 ${brand}？`,
+      benefits: isBin ? [
+        { icon: "💰", title: "最高手續費折扣",  desc: "現貨交易手續費低至 0.075%" },
+        { icon: "🌍", title: "全球流動性最佳",  desc: "日均交易量超 700 億美元" },
+        { icon: "🔒", title: "SAFU 安全基金",  desc: "10 億美元用戶資產保護" },
+        { icon: "📱", title: "繁中介面",        desc: "App / 網頁完整支援繁體中文" },
+      ] : [
+        { icon: "🌐", title: "內建 Web3 錢包",   desc: "多鏈錢包一站式操作" },
+        { icon: "📊", title: "專業交易工具",    desc: "現貨 / 合約 / 期權 / 跟單" },
+        { icon: "💰", title: "低手續費",        desc: "現貨 0.08%，合約 0.02% / 0.05%" },
+        { icon: "🔐", title: "儲備金證明",      desc: "資產 1:1 公開透明" },
+      ],
+      steps_title: "3 步完成註冊",
+      steps: [
+        { title: "建立帳戶",   desc: `使用信箱或手機號註冊，填入邀請碼 ${REF} 享折扣` },
+        { title: "身份驗證 KYC", desc: "上傳身分證件完成實名認證，通常 5 分鐘內審核通過" },
+        { title: "入金交易",   desc: "透過 C2C / 信用卡 / 加密轉帳入金，即可開始交易" },
+      ],
+      faq_title: "常見問題",
+      faqs: [
+        { q: `邀請碼 ${REF} 有什麼優惠？`,       a: `使用邀請碼 ${REF} 註冊即可鎖定平台最高手續費折扣，終身有效。` },
+        { q: `${brandZH}在台灣合法嗎？`,         a: `${brand} 在多國持有合規牌照，台灣用戶可以註冊使用，建議完成 KYC 以解鎖全部功能。` },
+        { q: "新手如何安全交易？",                a: "建議先小額入金熟悉介面，開啟雙因素驗證 (2FA)，使用 USDT 穩定幣入門現貨交易。" },
+      ],
+      bottom_cta: `立即註冊 ${brand}`,
+      bottom_warn: "投資加密貨幣有風險，請謹慎決策。",
+      meta_title: `${brandZH}註冊 · 邀請碼 ${REF} | ${SITE.title}`,
+      meta_desc: `透過邀請碼 ${REF} 註冊 ${brand}，享最高手續費折扣與新用戶獎勵。`,
+      cross_sell: `也可以考慮 ${otherBrandZH}`,
+      cross_link: `前往 ${otherBrandZH} 註冊 →`,
+    };
+  }
+  if (lang === "es") {
+    return {
+      home: "Inicio",
+      crumb: `Registro en ${brand}`,
+      title: `Abre tu cuenta en ${brand}`,
+      subtitle: `Código ${REF} · Máximo descuento en comisiones`,
+      tagline: `${brand} es ${isBin ? "el mayor exchange de cripto del mundo" : "un exchange global líder"}. Regístrate con el código ${REF} y asegura el descuento máximo de por vida.`,
+      hero_cta: `Registrarse en ${brand}`,
+      benefits_title: `¿Por qué elegir ${brand}?`,
+      benefits: isBin ? [
+        { icon: "💰", title: "Máximo descuento", desc: "Comisiones spot desde 0.075%" },
+        { icon: "🌍", title: "Mejor liquidez global", desc: "Volumen diario superior a $70B" },
+        { icon: "🔒", title: "Fondo SAFU",       desc: "$1B protegen los activos de usuarios" },
+        { icon: "📱", title: "App en español",    desc: "Interfaz y soporte en tu idioma" },
+      ] : [
+        { icon: "🌐", title: "Wallet Web3",       desc: "Multi-cadena, todo en una app" },
+        { icon: "📊", title: "Trading profesional", desc: "Spot / Futuros / Opciones / Copy Trading" },
+        { icon: "💰", title: "Comisiones bajas",  desc: "Spot 0.08%, futuros 0.02% / 0.05%" },
+        { icon: "🔐", title: "Prueba de reservas", desc: "Activos 1:1 transparentes" },
+      ],
+      steps_title: "3 pasos para empezar",
+      steps: [
+        { title: "Crear cuenta", desc: `Regístrate con correo o teléfono e ingresa el código ${REF}` },
+        { title: "Verificación KYC", desc: "Sube tu documento de identidad; verificación en minutos" },
+        { title: "Depositar y operar", desc: "Deposita por P2P, tarjeta o transferencia cripto y comienza a operar" },
+      ],
+      faq_title: "Preguntas frecuentes",
+      faqs: [
+        { q: `¿Qué beneficios da el código ${REF}?`,  a: `El código ${REF} activa el descuento máximo permitido por la plataforma, de forma permanente.` },
+        { q: `¿${brand} es legal en América Latina?`, a: `${brand} opera en la mayoría de países de Latinoamérica. Verifica las regulaciones locales de tu país.` },
+        { q: "¿Cómo empezar siendo principiante?",    a: "Inicia con montos pequeños, activa 2FA y prefiere pares con USDT para aprender el mercado spot." },
+      ],
+      bottom_cta: `Registrarse en ${brand} ahora`,
+      bottom_warn: "Invertir en cripto implica riesgo. Haz tu propia investigación.",
+      meta_title: `Registro ${brand} · Código ${REF} | ${SITE.title}`,
+      meta_desc: `Regístrate en ${brand} con el código ${REF} y obtén el máximo descuento en comisiones.`,
+      cross_sell: `También puedes considerar ${other}`,
+      cross_link: `Ir al registro de ${other} →`,
+    };
+  }
+  if (lang === "pt") {
+    return {
+      home: "Início",
+      crumb: `Cadastro na ${brand}`,
+      title: `Abra conta na ${brand}`,
+      subtitle: `Código ${REF} · Desconto máximo em taxas`,
+      tagline: `${brand} é ${isBin ? "a maior corretora de cripto do mundo" : "uma corretora global de referência"}. Use o código ${REF} e garanta o maior desconto disponível.`,
+      hero_cta: `Cadastrar-se na ${brand}`,
+      benefits_title: `Por que escolher ${brand}?`,
+      benefits: isBin ? [
+        { icon: "💰", title: "Desconto máximo",   desc: "Taxas spot a partir de 0,075%" },
+        { icon: "🌍", title: "Liquidez global",   desc: "Volume diário acima de US$ 70 bi" },
+        { icon: "🔒", title: "Fundo SAFU",        desc: "US$ 1 bi protege ativos de usuários" },
+        { icon: "📱", title: "Suporte em PT-BR",  desc: "App e site em português do Brasil" },
+      ] : [
+        { icon: "🌐", title: "Carteira Web3",      desc: "Multi-chain, tudo em um app" },
+        { icon: "📊", title: "Trading profissional", desc: "Spot / Futuros / Opções / Copy" },
+        { icon: "💰", title: "Taxas competitivas", desc: "Spot 0,08%, futuros 0,02% / 0,05%" },
+        { icon: "🔐", title: "Prova de reservas",  desc: "Ativos 1:1 transparentes" },
+      ],
+      steps_title: "3 passos para começar",
+      steps: [
+        { title: "Criar conta",     desc: `Cadastre-se com e-mail ou celular e inclua o código ${REF}` },
+        { title: "Verificação KYC", desc: "Envie seu documento; verificação em minutos" },
+        { title: "Depositar e negociar", desc: "Deposite via PIX, cartão ou transferência cripto e opere" },
+      ],
+      faq_title: "Perguntas frequentes",
+      faqs: [
+        { q: `O que o código ${REF} oferece?`,          a: `O código ${REF} ativa o desconto máximo da plataforma, vitalício.` },
+        { q: `${brand} é autorizada no Brasil?`,        a: `${brand} opera no Brasil conforme a regulamentação vigente. Consulte sempre a CVM para atualizações.` },
+        { q: "Como começar com segurança?",             a: "Inicie com valores pequenos, ative o 2FA e use pares com USDT para aprender o mercado spot." },
+      ],
+      bottom_cta: `Cadastrar-se na ${brand} agora`,
+      bottom_warn: "Investir em cripto envolve risco. Faça sua própria pesquisa.",
+      meta_title: `Cadastro ${brand} · Código ${REF} | ${SITE.title}`,
+      meta_desc: `Cadastre-se na ${brand} com o código ${REF} e garanta o desconto máximo em taxas.`,
+      cross_sell: `Você também pode considerar a ${other}`,
+      cross_link: `Ir ao cadastro da ${other} →`,
+    };
+  }
+  // en
+  return {
+    home: "Home",
+    crumb: `${brand} sign-up`,
+    title: `Open a ${brand} account`,
+    subtitle: `Code ${REF} · Maximum fee discount`,
+    tagline: `${brand} is ${isBin ? "the world's largest crypto exchange" : "a globally leading crypto exchange"}. Register with code ${REF} to lock in the max fee discount for life.`,
+    hero_cta: `Sign up on ${brand}`,
+    benefits_title: `Why ${brand}?`,
+    benefits: isBin ? [
+      { icon: "💰", title: "Maximum fee discount", desc: "Spot fees as low as 0.075%" },
+      { icon: "🌍", title: "Deepest liquidity",    desc: "Daily volume above $70B" },
+      { icon: "🔒", title: "SAFU insurance",       desc: "$1B fund protecting user assets" },
+      { icon: "📱", title: "Full-featured app",    desc: "Mobile + web with pro tooling" },
+    ] : [
+      { icon: "🌐", title: "Built-in Web3 wallet", desc: "Multi-chain wallet, DeFi & NFTs in one app" },
+      { icon: "📊", title: "Pro trading suite",    desc: "Spot / Futures / Options / Copy trading" },
+      { icon: "💰", title: "Low fees",             desc: "Spot 0.08%, futures 0.02% / 0.05%" },
+      { icon: "🔐", title: "Proof of reserves",    desc: "1:1 transparent asset backing" },
+    ],
+    steps_title: "Get started in 3 steps",
+    steps: [
+      { title: "Create an account", desc: `Sign up with email or phone; enter referral code ${REF}` },
+      { title: "Verify KYC",        desc: "Upload your ID; most approvals complete within 5 minutes" },
+      { title: "Fund & trade",      desc: "Deposit via P2P, card or crypto transfer and start trading" },
+    ],
+    faq_title: "FAQ",
+    faqs: [
+      { q: `What does referral code ${REF} unlock?`, a: `Code ${REF} applies the maximum fee discount available on the platform — locked in for life.` },
+      { q: `Is ${brand} available worldwide?`,       a: `${brand} serves users in 180+ countries. Some regions (e.g. US residents) face restrictions; check your local rules.` },
+      { q: "How do I stay safe as a beginner?",      a: "Start small, enable 2FA, whitelist withdrawal addresses, and stick to USDT spot pairs while you learn." },
+    ],
+    bottom_cta: `Sign up on ${brand} now`,
+    bottom_warn: "Crypto trading involves risk. Do your own research.",
+    meta_title: `${brand} sign-up · Code ${REF} | ${SITE.title}`,
+    meta_desc: `Open a ${brand} account with code ${REF} and lock in the maximum fee discount.`,
+    cross_sell: `You can also consider ${other}`,
+    cross_link: `Sign up for ${other} →`,
+  };
+}
+
+const c = buildCopy(lang, isBinance);
+const otherSlug = isBinance ? "okx" : "binance";
+const crossLink = `/${langSeg}/go/${otherSlug}`;
+
+// Schema
+const pageSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: c.title,
+  description: c.meta_desc,
+  url: `${SITE.website}${langSeg}/go/${partner}`,
+  inLanguage: lang,
+};
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: c.faqs.map(f => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+---
+
+<Layout title={c.meta_title} description={c.meta_desc}>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <Header />
+
+  <main style="max-width:760px;margin:0 auto;padding:24px 16px 60px;">
+
+    <!-- Breadcrumb -->
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:20px;">
+      <a href={`/${langSeg}/`} style="color:var(--fg-muted);text-decoration:none;">{c.home}</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">{c.crumb}</span>
+    </nav>
+
+    <!-- Hero -->
+    <section style={`text-align:center;padding:36px 22px;background:linear-gradient(135deg,${isBinance ? "#1a1200" : "#000000"},${isBinance ? "#2a1e00" : "#1a1a2e"});border-radius:16px;margin-bottom:24px;border:1px solid rgba(255,255,255,0.08);`}>
+      {isBinance && (
+        <img src={BINANCE_LOGO} alt="Binance" width="48" height="48" style="border-radius:10px;margin-bottom:12px;" loading="eager" />
+      )}
+      <h1 style={`font-size:clamp(22px,4vw,30px);font-weight:900;color:#fff;margin:0 0 10px;line-height:1.25;letter-spacing:-0.02em;`}>
+        {c.title}
+      </h1>
+      <p style={`font-size:14px;color:rgba(255,255,255,0.7);margin:0 0 18px;line-height:1.6;`}>
+        {c.subtitle}
+      </p>
+      <p style="font-size:13px;color:rgba(255,255,255,0.55);max-width:540px;margin:0 auto 24px;line-height:1.65;">
+        {c.tagline}
+      </p>
+      <a href={registerUrl} target="_blank" rel="noopener noreferrer nofollow sponsored"
+        style={`display:inline-block;padding:14px 38px;background:${BRAND.main};color:${BRAND.fg};font-weight:800;font-size:15px;border-radius:10px;text-decoration:none;box-shadow:0 4px 14px ${isBinance ? "rgba(240,185,11,0.35)" : "rgba(0,200,150,0.35)"};`}>
+        {c.hero_cta} →
+      </a>
+    </section>
+
+    <!-- Benefits -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:20px;">
+      <h2 style="font-size:17px;font-weight:700;color:var(--fg);margin:0 0 18px;display:flex;align-items:center;gap:8px;">
+        <span style={`width:3px;height:18px;background:${BRAND.main};border-radius:2px;display:inline-block;`}></span>
+        {c.benefits_title}
+      </h2>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
+        {c.benefits.map(b => (
+          <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+            <div style="font-size:22px;margin-bottom:6px;">{b.icon}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:4px;">{b.title}</div>
+            <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">{b.desc}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Steps -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:20px;">
+      <h2 style="font-size:17px;font-weight:700;color:var(--fg);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <span style={`width:3px;height:18px;background:${BRAND.main};border-radius:2px;display:inline-block;`}></span>
+        {c.steps_title}
+      </h2>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        {c.steps.map((s, i) => (
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <span style={`width:30px;height:30px;border-radius:50%;background:${BRAND.main};color:${BRAND.fg};font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;`}>{i + 1}</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:3px;">{s.title}</div>
+              <div style="font-size:13px;color:var(--fg-muted);line-height:1.6;">{s.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:24px;" itemscope itemtype="https://schema.org/FAQPage">
+      <h2 style="font-size:17px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+        <span style={`width:3px;height:18px;background:${BRAND.main};border-radius:2px;display:inline-block;`}></span>
+        {c.faq_title}
+      </h2>
+      {c.faqs.map(f => (
+        <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question"
+          style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+          <summary itemprop="name"
+            style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">{f.q}</summary>
+          <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"
+            style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+            <p itemprop="text">{f.a}</p>
+          </div>
+        </details>
+      ))}
+    </section>
+
+    <!-- Bottom CTA -->
+    <div style="text-align:center;margin-bottom:18px;">
+      <a href={registerUrl} target="_blank" rel="noopener noreferrer nofollow sponsored"
+        style={`display:inline-block;padding:16px 44px;background:${BRAND.main};color:${BRAND.fg};font-weight:800;font-size:16px;border-radius:12px;text-decoration:none;`}>
+        {c.bottom_cta} →
+      </a>
+      <p style="font-size:11px;color:var(--fg-muted);margin-top:12px;">{c.bottom_warn}</p>
+    </div>
+
+    <!-- Cross-sell -->
+    <p style="text-align:center;font-size:12.5px;color:var(--fg-muted);margin:28px 0 0;">
+      {c.cross_sell} · <a href={crossLink} style="color:var(--accent);text-decoration:none;font-weight:600;">{c.cross_link}</a>
+    </p>
+
+  </main>
+
+  <Footer />
+</Layout>
