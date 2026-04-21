@@ -32,12 +32,18 @@ const catLabelMap: Record<string, string> = {
 };
 const catIconMap: Record<string, string> = { prices: "📊", learn: "🎓", tools: "🛠", defi: "💎" };
 
-const navGroups = TAXONOMY.slice(2).map(cat => ({
-  ...cat,
-  label: t(catLabelMap[cat.key] ?? `cat.${cat.key}`),
-  icon: catIconMap[cat.key] ?? "",
-  translatedSubs: cat.sub.map(s => ({ ...s, label: t(s.labelKey) })),
-}));
+const navGroups = TAXONOMY.slice(2).map(cat => {
+  const translatedSubs = cat.sub.map(s => ({ ...s, label: t(s.labelKey) }));
+  // Group is "active" if the group's own path OR any sub-item's path matches current URL
+  const groupActive = isActive(cat.href) || translatedSubs.some(s => isActive(s.href));
+  return {
+    ...cat,
+    label: t(catLabelMap[cat.key] ?? `cat.${cat.key}`),
+    icon: catIconMap[cat.key] ?? "",
+    translatedSubs,
+    groupActive,
+  };
+});
 
 ---
 
@@ -96,8 +102,8 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
       <div class="lnav-group" id={`group-${g.key}`}>
         {g.translatedSubs.length > 0 ? (
           <button
-            class:list={["lnav-item lnav-toggle", { active: isActive(g.href) }]}
-            aria-expanded={isActive(g.href) ? "true" : "false"}
+            class:list={["lnav-item lnav-toggle", { active: g.groupActive }]}
+            aria-expanded={g.groupActive ? "true" : "false"}
             data-group={g.key}
           >
             <span style="display:flex;align-items:center;gap:6px;">
@@ -110,7 +116,7 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
             </svg>
           </button>
         ) : (
-          <a href={g.href} class:list={["lnav-item", { active: isActive(g.href) }]}>
+          <a href={g.href} class:list={["lnav-item", { active: g.groupActive }]}>
             <span style="display:flex;align-items:center;gap:6px;">
               {g.icon && <span style="font-size:12px;">{g.icon}</span>}
               <span>{g.label}</span>
@@ -118,7 +124,7 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
           </a>
         )}
         {g.translatedSubs.length > 0 && (
-          <div class:list={["lnav-sub", { open: isActive(g.href) }]} id={`sub-${g.key}`}>
+          <div class:list={["lnav-sub", { open: g.groupActive }]} id={`sub-${g.key}`}>
             {g.translatedSubs.map(sub => (
               <a href={sub.href}
                 class:list={["lnav-sub-link", { active: isActive(sub.href) }]}>
@@ -218,9 +224,29 @@ function initMobileNav() {
   const btn = document.getElementById("mobile-nav-btn");
   const nav = document.getElementById("lnav");
   if (!btn || !nav) return;
-  btn.addEventListener("click", () => {
+
+  // Hamburger toggle
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
     const open = nav.classList.toggle("mobile-open");
     btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+
+  // Close when any nav link is clicked (user navigated away)
+  nav.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      nav.classList.remove("mobile-open");
+      btn.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  // Close when clicking outside the sidebar
+  document.addEventListener("click", (e) => {
+    const sidebar = btn.closest(".lsidebar");
+    if (sidebar && !sidebar.contains(e.target as Node)) {
+      nav.classList.remove("mobile-open");
+      btn.setAttribute("aria-expanded", "false");
+    }
   });
 }
 

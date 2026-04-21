@@ -6,6 +6,7 @@ import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
 import IconHash from "@/assets/icons/IconHash.svg";
 import getUniqueTags from "@/utils/getUniqueTags";
 import { SITE } from "@/config";
@@ -46,23 +47,51 @@ const tags = getUniqueTags(posts);
 
 <Layout title={`${t("section.tags")} | ${SITE.title}`} description={pageDesc}>
   <Header />
-  <main class="app-layout pb-4">
-    <h1 class="text-2xl font-semibold sm:text-3xl">{t("section.tags")}</h1>
-    <p class="mt-2 mb-6 italic">{pageDesc}</p>
-    <ul class="flex flex-wrap gap-6">
-      {tags.map(({ tag, tagName }) => (
-        <li>
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
+
+    <main class="main-col" style="padding-bottom:40px;">
+      <!-- 面包屑 -->
+      <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
+        <a href={`/${langSeg}`}
+          style="color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+          onmouseover="this.style.color='var(--accent)'"
+          onmouseout="this.style.color='var(--fg-muted)'">{t("nav.home")}</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="color:var(--fg);">{t("section.tags")}</span>
+      </div>
+
+      <div style="padding:10px 16px 0;">
+        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">{t("section.tags")}</h1>
+        <p style="font-size:13px;color:var(--fg-muted);">{pageDesc}</p>
+      </div>
+
+      <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;">
+        {tags.map(({ tag, tagName }) => (
           <a
-            href={`/${langSeg}/tags/${tag}/`}
+            href={`/${langSeg}/tags/${tag}`}
             transition:name={`lang-${langSeg}-${tag}`}
-            class="flex items-center gap-0.5 border-b-2 border-dashed border-foreground text-lg hover:-mt-0.5 hover:border-accent hover:text-accent focus-visible:border-none focus-visible:text-accent"
+            style="display:inline-flex;align-items:center;gap:6px;border-radius:20px;border:1px solid var(--border);background:var(--bg-card);padding:6px 14px;font-size:13px;color:var(--fg);text-decoration:none;transition:border-color 0.12s,color 0.12s;"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg)'"
           >
-            <IconHash class="size-5 opacity-80" />
+            <IconHash style="width:13px;height:13px;opacity:0.6;" />
             {tagName}
           </a>
-        </li>
-      ))}
-    </ul>
-  </main>
+        ))}
+      </div>
+    </main>
+
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{t("section.tags")}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          {tags.slice(0, 10).map(({ tag, tagName }) => (
+            <a href={`/${langSeg}/tags/${tag}`} class="ctag" style="text-decoration:none;">{tagName}</a>
+          ))}
+        </div>
+      </div>
+    </aside>
+  </div>
   <Footer />
 </Layout>

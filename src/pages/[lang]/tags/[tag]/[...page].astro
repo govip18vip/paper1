@@ -6,6 +6,7 @@ export const prerender = false;
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
 import UnifiedCard from "@/components/UnifiedCard.astro";
 import { getCollection } from "astro:content";
 import { SITE } from "@/config";
@@ -155,41 +156,76 @@ const breadcrumbSchema = {
 
   <Header />
 
-  <main class="mx-auto max-w-3xl px-4 py-8">
-    <nav class="mb-4 text-sm text-[var(--fg-muted)]">
-      <a href={basePath || "/"} class="hover:underline">{t.home}</a>
-      <span class="mx-2">/</span>
-      <a href={`${basePath}/tags`} class="hover:underline">{t.tags}</a>
-      <span class="mx-2">/</span>
-      <span class="text-foreground">#{decodedTag}</span>
-    </nav>
+  <div class="site-outer">
+    <LeftSidebar currentLang={lang} />
 
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-foreground">#{decodedTag}</h1>
-      <p class="mt-1 text-sm text-[var(--fg-muted)]">{pageDesc}</p>
-    </div>
-
-    {pagePosts.length === 0 ? (
-      <p class="text-[var(--fg-muted)] py-12 text-center">{t.empty}</p>
-    ) : (
-      <div class="space-y-2">
-        {pagePosts.map(p => <UnifiedCard post={p} size="list" variant="h3" />)}
+    <main class="main-col" style="padding-bottom:40px;">
+      <!-- 面包屑 -->
+      <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
+        <a href={basePath || "/"}
+          style="color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+          onmouseover="this.style.color='var(--accent)'"
+          onmouseout="this.style.color='var(--fg-muted)'">{t.home}</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <a href={`${basePath}/tags`}
+          style="color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+          onmouseover="this.style.color='var(--accent)'"
+          onmouseout="this.style.color='var(--fg-muted)'">{t.tags}</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="color:var(--fg);">#{decodedTag}</span>
       </div>
-    )}
 
-    <!-- 分页 -->
-    {lastPage > 1 && (
-      <div class="mt-8 flex justify-center gap-4 text-sm">
-        {prevUrl ? (
-          <a href={prevUrl} class="text-accent hover:underline">{t.prev}</a>
-        ) : <span />}
-        <span class="text-[var(--fg-muted)]">{pageNum} / {lastPage}</span>
-        {nextUrl ? (
-          <a href={nextUrl} class="text-accent hover:underline">{t.next}</a>
-        ) : <span />}
+      <div style="padding:10px 16px 0;">
+        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">
+          #{decodedTag}
+        </h1>
+        <p style="font-size:13px;color:var(--fg-muted);">{pageDesc}</p>
       </div>
-    )}
-  </main>
+
+      <div style="margin-top:12px;">
+        {pagePosts.length === 0 ? (
+          <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
+            <p style="font-size:15px;">{t.empty}</p>
+          </div>
+        ) : (
+          <div class="alist">
+            {pagePosts.map(p => <UnifiedCard post={p} size="list" variant="h3" />)}
+          </div>
+        )}
+      </div>
+
+      <!-- 分页 -->
+      {lastPage > 1 && (
+        <div style="margin-top:24px;display:flex;justify-content:center;align-items:center;gap:16px;font-size:13px;padding:0 16px;">
+          {prevUrl ? (
+            <a href={prevUrl} style="color:var(--accent);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:6px 14px;transition:border-color 0.12s;"
+              onmouseover="this.style.borderColor='var(--accent)'"
+              onmouseout="this.style.borderColor='var(--border)'">{t.prev}</a>
+          ) : <span />}
+          <span style="color:var(--fg-muted);">{pageNum} / {lastPage}</span>
+          {nextUrl ? (
+            <a href={nextUrl} style="color:var(--accent);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:6px 14px;transition:border-color 0.12s;"
+              onmouseover="this.style.borderColor='var(--accent)'"
+              onmouseout="this.style.borderColor='var(--border)'">{t.next}</a>
+          ) : <span />}
+        </div>
+      )}
+    </main>
+
+    <!-- 右侧边栏 -->
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{t.tags}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          {["BTC","ETH","DeFi","NFT","Wallet","Layer2"].map(tk => (
+            <a href={`${basePath}/tags/${encodeURIComponent(tk)}`}
+              class="ctag"
+              style={`text-decoration:none;${tk.toLowerCase() === decodedTag.toLowerCase() ? "background:var(--accent);color:#fff;" : ""}`}>{tk}</a>
+          ))}
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <Footer />
 </Layout>

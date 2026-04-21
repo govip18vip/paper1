@@ -6,6 +6,7 @@ export const prerender = false;
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
 import { getCollection } from "astro:content";
 import { SITE } from "@/config";
 import { getPath } from "@/utils/getPath";
@@ -53,24 +54,51 @@ const tags = Array.from(tagCount.entries())
 >
   <Header />
 
-  <main class="mx-auto max-w-3xl px-4 py-8">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-foreground">标签索引</h1>
-      <p class="mt-1 text-sm text-[var(--fg-muted)]">共 {tags.length} 个标签</p>
-    </div>
+  <div class="site-outer">
+    <LeftSidebar />
 
-    <div class="flex flex-wrap gap-3">
-      {tags.map(({ tag, count }) => (
-        <a
-          href={`/tags/${encodeURIComponent(tag)}`}
-          class="inline-flex items-center gap-1.5 rounded-full border border-border bg-[var(--bg-card)] px-3 py-1.5 text-sm text-foreground hover:border-accent hover:text-accent transition-colors"
-        >
-          <span>#{tag}</span>
-          <span class="text-xs text-[var(--fg-muted)]">({count})</span>
-        </a>
-      ))}
-    </div>
-  </main>
+    <main class="main-col" style="padding-bottom:40px;">
+      <!-- 面包屑 -->
+      <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
+        <a href="/"
+          style="color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+          onmouseover="this.style.color='var(--accent)'"
+          onmouseout="this.style.color='var(--fg-muted)'">首页</a>
+        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="color:var(--fg);">标签</span>
+      </div>
+
+      <div style="padding:10px 16px 0;">
+        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">标签索引</h1>
+        <p style="font-size:13px;color:var(--fg-muted);">共 {tags.length} 个标签，点击标签查看相关文章</p>
+      </div>
+
+      <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;">
+        {tags.map(({ tag, count }) => (
+          <a
+            href={`/tags/${encodeURIComponent(tag)}`}
+            style="display:inline-flex;align-items:center;gap:6px;border-radius:20px;border:1px solid var(--border);background:var(--bg-card);padding:6px 14px;font-size:13px;color:var(--fg);text-decoration:none;transition:border-color 0.12s,color 0.12s;"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg)'"
+          >
+            <span>#{tag}</span>
+            <span style="font-size:11px;color:var(--fg-muted);">{count}</span>
+          </a>
+        ))}
+      </div>
+    </main>
+
+    <aside class="rsidebar" style="padding:16px 0;">
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">热门话题</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          {tags.slice(0, 12).map(({ tag }) => (
+            <a href={`/tags/${encodeURIComponent(tag)}`} class="ctag" style="text-decoration:none;">{tag}</a>
+          ))}
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <Footer />
 </Layout>
