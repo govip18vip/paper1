@@ -44,7 +44,7 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
 <aside class="lsidebar" role="navigation" aria-label="主导航">
 
   <!-- Logo -->
-  <a href={base + "/"} class="lsidebar-logo" aria-label={SITE.title}>
+  <a href={base || "/"} class="lsidebar-logo" aria-label={SITE.title}>
     <div class="lsidebar-logo-icon" aria-hidden="true">₿</div>
     <span class="lsidebar-logo-text" data-i18n="site.name">{SITE.title}</span>
   </a>
@@ -63,7 +63,7 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
   <!-- ── Navigation ── -->
   <nav class="lnav" id="lnav">
 
-    <a href={base + "/"}
+    <a href={base || "/"}
       class:list={["lnav-item", {
         active: isActive("/") && !isActive("/posts") && !isActive("/tags")
                 && !isActive("/search") && !isActive("/about") && !isActive("/archives")
@@ -79,6 +79,11 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
     <a href={base + "/posts"}
       class:list={["lnav-item", { active: isActive("/posts") }]}>
       <span data-i18n="nav.news">{t("nav.news")}</span>
+    </a>
+
+    <a href={base + "/news"}
+      class:list={["lnav-item", { active: isActive("/news") }]}>
+      <span data-i18n="nav.newsCenter">{t("nav.newsCenter")}</span>
     </a>
 
     <a href="/archives"

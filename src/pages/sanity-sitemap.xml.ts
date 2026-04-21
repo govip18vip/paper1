@@ -1,76 +1,65 @@
 // src/pages/sanity-sitemap.xml.ts
-// Standard URL sitemap for ALL Sanity `btgPost` documents (all languages).
-// Complements the Astro auto-generated sitemap-index.xml which only covers
-// static/prerendered pages, and news-sitemap.xml which is limited to 48 hours.
+// ─────────────────────────────────────────────────────────────
+// Sitemap INDEX for ALL Sanity `btgPost` documents.
+//
+// With 362K+ posts a single sitemap would exceed Google's 50 MB / 50K URL
+// limits, so this file acts as a sitemap index that lists paginated
+// sub-sitemaps at /sanity-sitemap-0.xml, /sanity-sitemap-1.xml, …
+//
+// Each sub-sitemap (sanity-sitemap-[n].xml.ts) fetches its own slice of
+// 40 K posts from Sanity and returns a standard <urlset>.
+//
+// Also includes static /news list-page URLs directly (only a handful).
+// ─────────────────────────────────────────────────────────────
+export const prerender = false;
 
+import type { APIRoute } from "astro";
 import { sanityClient } from "@/utils/sanity";
 import { SITE } from "@/config";
-import { LANG_TO_PATH, type Lang } from "@/i18n/ui";
 
-type SanityRow = {
-  slug: { current: string } | string;
-  lang?: string;
-  pubDatetime: string;
-  modDatetime?: string;
-};
+const URLS_PER_PAGE = 40_000; // safely under Google's 50K URL limit
 
-function sanityUrl(base: string, lang: Lang, slug: string): string {
-  const lp = LANG_TO_PATH[lang] ?? "";
-  return lp ? `${base}/${lp}/news/${slug}` : `${base}/news/${slug}`;
-}
+// Static /news listing pages that are SSR (not in auto-generated sitemap)
+const NEWS_LIST_PAGES = [
+  "/news",
+  "/zh-tw/news",
+  "/en/news",
+  "/es/news",
+  "/pt/news",
+];
 
-export async function GET() {
-  const siteBase = SITE.website.replace(/\/$/, "");
+export const GET: APIRoute = async ({ site }) => {
+  const siteBase = (site?.href ?? SITE.website).replace(/\/$/, "");
+  const today = new Date().toISOString().split("T")[0];
 
-  const rows = await sanityClient
-    .fetch<SanityRow[]>(
-      `*[_type == "btgPost" && draft != true] | order(pubDatetime desc) [0...5000] {
-        slug, lang, pubDatetime, modDatetime
-      }`,
-    )
-    .catch(() => [] as SanityRow[]);
+  // Count all published posts to know how many sub-sitemaps we need
+  const total = await sanityClient
+    .fetch<number>('count(*[_type == "btgPost" && draft != true])')
+    .catch(() => 0);
 
-  const urls = rows
-    .map(r => {
-      const slug =
-        typeof r.slug === "string" ? r.slug : r.slug?.current ?? "";
-      if (!slug) return "";
-      const lang = (r.lang ?? "zh-CN") as Lang;
-      const loc = sanityUrl(siteBase, lang, slug);
-      const lastmod = new Date(r.modDatetime ?? r.pubDatetime).toISOString();
-      return `  <url>
-    <loc>${loc}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
-    })
-    .filter(Boolean);
+  const pageCount = Math.max(1, Math.ceil(total / URLS_PER_PAGE));
 
-  // Also add news list pages for each language
-  const newsListUrls = [
-    { path: "/news", lang: "zh-CN" },
-    { path: "/zh-tw/news", lang: "zh-TW" },
-    { path: "/en/news", lang: "en" },
-    { path: "/es/news", lang: "es" },
-    { path: "/pt/news", lang: "pt" },
-  ].map(
-    ({ path }) => `  <url>
-    <loc>${siteBase}${path}</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>`,
+  // News list pages as individual <sitemap> entries (or inline <url> — use
+  // a nested sitemap for cleanliness so this file stays a pure index)
+  const staticEntries = NEWS_LIST_PAGES.map(
+    path =>
+      `  <sitemap>\n    <loc>${siteBase}${path}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`,
+  );
+
+  // Paginated post sitemaps
+  const pageEntries = Array.from({ length: pageCount }, (_, i) =>
+    `  <sitemap>\n    <loc>${siteBase}/sanity-sitemap-${i}.xml</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`,
   );
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...newsListUrls, ...urls].join("\n")}
-</urlset>`;
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${[...staticEntries, ...pageEntries].join("\n")}
+</sitemapindex>`;
 
   return new Response(xml, {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "public, max-age=3600, s-maxage=3600",
     },
   });
-}
+};

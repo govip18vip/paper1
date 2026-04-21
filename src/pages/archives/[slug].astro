@@ -110,7 +110,7 @@ const articleSchema = {
 
       <!-- 面包屑 -->
       <nav class="pd-breadcrumb" aria-label="breadcrumb">
-        <a href={lang === "zh-CN" ? "/" : `/${lang.toLowerCase()}/`}>{t("nav.home")}</a>
+        <a href={lang === "zh-CN" ? "/" : `/${lang.toLowerCase()}`}>{t("nav.home")}</a>
         <span aria-hidden="true">›</span>
         <a href="/archives">{t("footer.link.archives")}</a>
         <span aria-hidden="true">›</span>

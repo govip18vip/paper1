@@ -36,13 +36,20 @@ export default defineConfig({
 
   integrations: [
     sitemap({
-      // SSR 页面不会被自动收集，手动添加 /archives 入口
-      customPages: SITE.showArchives
-        ? [
-            `${SITE.website}archives`,
-            `${SITE.website}archives/page/2`,
-          ]
-        : [],
+      // SSR 页面不会被自动收集，手动添加入口
+      // /news 列表页 + /archives 均为 SSR，必须在这里声明
+      customPages: [
+        // News listing (SSR page — not in auto-generated sitemap)
+        `${SITE.website}news`,
+        `${SITE.website}zh-tw/news`,
+        `${SITE.website}en/news`,
+        `${SITE.website}es/news`,
+        `${SITE.website}pt/news`,
+        // Archives (conditional)
+        ...(SITE.showArchives
+          ? [`${SITE.website}archives`, `${SITE.website}archives/page/2`]
+          : []),
+      ],
       filter: page =>
         !page.endsWith("/archives") &&   // customPages 已手动添加，避免重复
         !page.includes("/archives/page/") &&
