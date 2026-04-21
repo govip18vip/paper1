@@ -17,6 +17,7 @@ import { getPath } from "@/utils/getPath";
 import {
   localToUnified,
   fetchGhostUnified,
+  fetchSanityUnified,
   mergePosts,
   filterUnifiedByLang,
 } from "@/utils/mergedPosts";
@@ -50,7 +51,14 @@ try {
   console.warn("[posts] Ghost unavailable");
 }
 
-const merged = mergePosts(localUnified, ghostUnified);
+let sanityUnified: UnifiedPost[] = [];
+try {
+  sanityUnified = await fetchSanityUnified({ lang, limit: 500 });
+} catch (e) {
+  console.warn("[posts] Sanity unavailable");
+}
+
+const merged = mergePosts(localUnified, ghostUnified, sanityUnified);
 const allPosts = filterUnifiedByLang(merged, lang);
 
 // ── 手动分页 ────────────────────────────────────────────
