@@ -126,14 +126,15 @@ const tipTextMap: Record<string, string> = {
 
   <Header />
 
+  <style>
+    @media(max-width:768px){
+      .binance-layout{ grid-template-columns:1fr !important; }
+      .binance-sidebar{ display:none !important; }
+    }
+  </style>
+
   <!-- 整体布局：两栏（内容 + 侧栏） -->
   <div style="max-width:1100px;margin:0 auto;padding:0 16px 80px;display:grid;grid-template-columns:1fr 240px;gap:32px;align-items:start;" class="binance-layout">
-    <style>{`
-      @media(max-width:768px){
-        .binance-layout{ grid-template-columns:1fr !important; }
-        .binance-sidebar{ display:none !important; }
-      }
-    `}</style>
 
     <!-- ══ 主内容 ══ -->
     <main id="main-content">
