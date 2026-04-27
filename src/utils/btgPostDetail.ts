@@ -48,7 +48,7 @@ export async function loadBtgPostDetail(opts: {
     `*[_type == "btgPost" && slug.current == $slug && draft != true][0] {
       _id, title, slug, lang, articleType, description,
       coverImage, body, pubDatetime, modDatetime,
-      tags, faqs, sourceUrl, sourceName,
+      tags, faqs, steps, sourceUrl, sourceName,
       category, translationKey,
       "author": author->{ name, bio, avatar, twitter }
     }`,

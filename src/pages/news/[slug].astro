@@ -15,7 +15,7 @@ const post = await sanityClient.fetch(`
   *[_type == "btgPost" && slug.current == $slug && draft != true][0] {
     _id, title, slug, lang, articleType, description,
     coverImage, body, pubDatetime, modDatetime,
-    tags, faqs, sourceUrl, sourceName,
+    tags, faqs, steps, sourceUrl, sourceName,
     "author": author->{ name, bio, avatar, twitter }
   }
 `, { slug });
