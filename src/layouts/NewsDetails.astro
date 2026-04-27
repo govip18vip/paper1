@@ -548,9 +548,83 @@ const pageTitle = `${post.title} | ${SITE.title}`;
     margin: 0 0 18px;
     padding-left: 12px;
     border-left: 3px solid var(--accent);
+    overflow-wrap: break-word;
+    word-wrap: break-word;
   }
 
-  .nd-prose { margin-top: 12px; }
+  .nd-prose {
+    margin-top: 12px;
+    /* 防长英文/URL/图片溢出右侧 */
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+  /* 内容元素全部限宽 + 自动换行 */
+  .nd-prose :where(p, h1, h2, h3, h4, h5, h6, li, blockquote, figcaption) {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    max-width: 100%;
+  }
+  .nd-prose img,
+  .nd-prose figure,
+  .nd-prose video,
+  .nd-prose iframe {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 16px auto;
+    border-radius: 8px;
+  }
+  .nd-prose figure { margin: 20px 0; }
+  .nd-prose figure img { margin: 0 auto; }
+  .nd-prose pre {
+    overflow-x: auto;
+    max-width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .nd-prose code {
+    word-break: break-word;
+    background: var(--bg-elevated);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  .nd-prose pre code { background: transparent; padding: 0; }
+  .nd-prose blockquote {
+    margin: 20px 0;
+    padding: 12px 16px;
+    border-left: 4px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    color: var(--fg-muted);
+    font-style: italic;
+    border-radius: 0 6px 6px 0;
+  }
+  .nd-prose ul, .nd-prose ol { padding-left: 24px; margin: 14px 0; }
+  .nd-prose li { margin: 6px 0; }
+  .nd-prose h2 { font-size: 1.5rem; font-weight: 700; margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .nd-prose h3 { font-size: 1.2rem; font-weight: 700; margin: 24px 0 12px; }
+  .nd-prose h4 { font-size: 1.05rem; font-weight: 700; margin: 20px 0 10px; }
+  .nd-prose p { line-height: 1.8; margin: 12px 0; color: var(--fg); }
+  .nd-prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    word-break: break-all;
+  }
+  .nd-prose a:hover { opacity: 0.85; }
+  .nd-prose table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  .nd-prose th, .nd-prose td { border: 1px solid var(--border); padding: 8px 12px; }
 
   .nd-banner-mid, .nd-banner-article { margin: 28px 0; }
 
