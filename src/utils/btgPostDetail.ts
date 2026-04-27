@@ -86,11 +86,20 @@ export async function loadBtgPostDetail(opts: {
   const rawHtml = post.body
     ? toHTML(post.body, {
         components: {
+          marks: {
+            link: ({ children, value }: any) => {
+              const href = value?.href || "#";
+              const isExternal = /^https?:\/\//i.test(href);
+              const target = isExternal ? ' target="_blank" rel="noopener nofollow"' : "";
+              return `<a href="${href}"${target}>${children}</a>`;
+            },
+          },
           types: {
             image: ({ value }: any) => {
+              // 优先 Sanity asset._ref，否则用外链 url
               const url = value?.asset?._ref
                 ? sanityImageUrl(value.asset._ref, { width: 800 })
-                : "";
+                : (value?.url || "");
               const alt = value?.alt || post.title;
               return url
                 ? `<figure><img src="${url}" alt="${alt}" loading="lazy" decoding="async" /></figure>`

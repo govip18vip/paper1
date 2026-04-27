@@ -1,0 +1,13 @@
+---
+export const prerender = false;
+import CategoryList from "@/components/CategoryList.astro";
+import { loadBtgPostList } from "@/utils/btgPostList";
+import { LANG_PATH_MAP, type Lang } from "@/i18n/ui";
+const { lang: langPath } = Astro.params;
+const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1", 10));
+const pageSize = 20;
+const tag = Astro.url.searchParams.get("tag") || undefined;
+const r = await loadBtgPostList({ category: "bitcoin", lang, page, pageSize, tag });
+---
+<CategoryList category="bitcoin" lang={lang} posts={r.posts} totalCount={r.totalCount} page={page} pageSize={pageSize} hasNext={r.hasNext} filterTag={tag} />
