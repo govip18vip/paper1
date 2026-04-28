@@ -34,6 +34,105 @@
   ],
   "redirects": [
     {
+      "comment": "── 多语言下 /coin/[symbol] 价格页只有 zh-CN，其他语言重定向回根 /coin/ ──",
+      "source": "/en/coin/:symbol",
+      "destination": "/coin/:symbol",
+      "permanent": true
+    },
+    {
+      "source": "/zh-tw/coin/:symbol",
+      "destination": "/coin/:symbol",
+      "permanent": true
+    },
+    {
+      "source": "/es/coin/:symbol",
+      "destination": "/coin/:symbol",
+      "permanent": true
+    },
+    {
+      "source": "/pt/coin/:symbol",
+      "destination": "/coin/:symbol",
+      "permanent": true
+    },
+    {
+      "comment": "── 旧 slug 模式 cn-/tw-/p- 在多语言路径下 → 重定向到 zh-CN news（这些是 zh-CN-only 文章） ──",
+      "source": "/en/news/cn-:rest*",
+      "destination": "/news/cn-:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/zh-tw/news/cn-:rest*",
+      "destination": "/news/cn-:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/es/news/cn-:rest*",
+      "destination": "/news/cn-:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/pt/news/cn-:rest*",
+      "destination": "/news/cn-:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/en/news/tw-:rest*",
+      "destination": "/zh-tw/news/tw-:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/es/news/tw-:rest*",
+      "destination": "/zh-tw/news/tw-:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/pt/news/tw-:rest*",
+      "destination": "/zh-tw/news/tw-:rest*",
+      "permanent": true
+    },
+    {
+      "comment": "── 拼音 slug 通常是 zh-CN 原文，多语言路径下重定向回 zh-CN ──",
+      "source": "/en/news/p-:rest*",
+      "destination": "/news/",
+      "permanent": false
+    },
+    {
+      "source": "/es/news/p-:rest*",
+      "destination": "/news/",
+      "permanent": false
+    },
+    {
+      "source": "/pt/news/p-:rest*",
+      "destination": "/news/",
+      "permanent": false
+    },
+    {
+      "source": "/zh-tw/news/p-:rest*",
+      "destination": "/news/",
+      "permanent": false
+    },
+    {
+      "comment": "── 多语言 flash 不存在，重定向到 zh-CN 快讯页 ──",
+      "source": "/en/flash/:rest*",
+      "destination": "/flash/:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/zh-tw/flash/:rest*",
+      "destination": "/flash/:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/es/flash/:rest*",
+      "destination": "/flash/:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/pt/flash/:rest*",
+      "destination": "/flash/:rest*",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "query", "key": "x_astro_path" }],
       "destination": "/:path*",

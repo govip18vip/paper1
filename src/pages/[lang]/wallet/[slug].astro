@@ -7,7 +7,7 @@ import { LANG_PATH_MAP, type Lang } from "@/i18n/ui";
 const { lang: langPath, slug } = Astro.params;
 const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
 const r = await loadBtgPostDetail({ slug: slug || "", expectedCategory: "wallet", expectedLang: lang });
-if (r.notFound) return Astro.redirect("/404");
+if (r.notFound) return new Response(null, { status: 404, statusText: "Not Found" });
 if (r.redirectTo) return Astro.redirect(r.redirectTo, 301);
 ---
 <NewsDetails post={r.post!} bodyHtml={r.bodyHtml!} related={r.related} />

@@ -23,9 +23,27 @@ const shortLabel: Record<Lang, string> = {
   "pt":    "PT",
 };
 
+// 这些路径是 zh-CN-only（无多语言版本）。切换到其他语言时回到首页，避免 404。
+// /coin/[symbol]、/flash/*、/binance/section 部分等。
+const ZH_CN_ONLY_PREFIXES = [
+  "/coin/", "/flash/", "/archives", "/portfolio", "/best-crypto-exchange",
+  "/bitcoin-price", "/how-to-buy-bitcoin", "/glossary", "/fear-greed",
+  "/tools/", "/learn",
+];
+
+function isZhCnOnly(path: string): boolean {
+  return ZH_CN_ONLY_PREFIXES.some(p => path === p || path.startsWith(p));
+}
+
 function langHref(target: Lang): string {
   const seg = LANG_TO_PATH[target];
   const targetBase = seg ? `/${seg}` : "";
+
+  // 当前路径如果是 zh-CN-only 路由，切换到非默认语言时回到该语言主页
+  if (target !== "zh-CN" && isZhCnOnly(cleanPath)) {
+    return targetBase || "/";
+  }
+
   const path = cleanPath === "/" || cleanPath === "" ? "" : cleanPath;
   return `${targetBase}${path}` || "/";
 }

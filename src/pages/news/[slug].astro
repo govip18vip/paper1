@@ -21,7 +21,7 @@ const post = await sanityClient.fetch(`
 `, { slug });
 
 if (!post) {
-  return Astro.redirect("/404");
+  return new Response(null, { status: 404, statusText: "Not Found" });
 }
 
 // Non-default language: redirect to localized URL
