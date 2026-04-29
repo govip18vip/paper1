@@ -600,14 +600,39 @@ const pageTitle = `${post.title} | ${SITE.title}`;
     word-break: break-all;
   }
   .nd-prose a:hover { opacity: 0.85; }
-  .nd-prose table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
+  .nd-prose table,
+  .nd-prose .nd-table {
     border-collapse: collapse;
-    margin: 16px 0;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
   }
-  .nd-prose th, .nd-prose td { border: 1px solid var(--border); padding: 8px 12px; }
+  .nd-prose .nd-table-wrap {
+    margin: 18px 0;
+    overflow-x: auto;
+    border-radius: 8px;
+  }
+  .nd-prose .nd-table-wrap table { margin: 0; }
+  .nd-prose th,
+  .nd-prose td {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.55;
+  }
+  .nd-prose th {
+    background: var(--bg-elevated);
+    font-weight: 700;
+    color: var(--fg);
+    border-bottom: 2px solid var(--border);
+  }
+  .nd-prose tr:last-child td { border-bottom: none; }
+  .nd-prose tbody tr:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 
   .nd-banner-mid, .nd-banner-article { margin: 28px 0; }
 

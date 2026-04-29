@@ -83,6 +83,11 @@ export async function loadBtgPostDetail(opts: {
   }
 
   // 4. 渲染 body
+  const escapeHtml = (s: any) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
   const rawHtml = post.body
     ? toHTML(post.body, {
         components: {
@@ -96,7 +101,6 @@ export async function loadBtgPostDetail(opts: {
           },
           types: {
             image: ({ value }: any) => {
-              // 优先 Sanity asset._ref，否则用外链 url
               const url = value?.asset?._ref
                 ? sanityImageUrl(value.asset._ref, { width: 800 })
                 : (value?.url || "");
@@ -104,6 +108,18 @@ export async function loadBtgPostDetail(opts: {
               return url
                 ? `<figure><img src="${url}" alt="${alt}" loading="lazy" decoding="async" /></figure>`
                 : "";
+            },
+            table: ({ value }: any) => {
+              const headers: string[] = value?.headers || [];
+              const rows: { cells: string[] }[] = value?.rows || [];
+              if (!headers.length && !rows.length) return "";
+              const thead = headers.length
+                ? `<thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>`
+                : "";
+              const tbody = `<tbody>${rows.map(r =>
+                `<tr>${(r.cells || []).map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`
+              ).join("")}</tbody>`;
+              return `<div class="nd-table-wrap"><table class="nd-table">${thead}${tbody}</table></div>`;
             },
           },
         },
